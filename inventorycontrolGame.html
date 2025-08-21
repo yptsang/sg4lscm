@@ -1,284 +1,673 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inventory Control Game</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
- :root{
-   --blue:#2563eb;--blue-dark:#1e4ed8;--red:#e11d48;
-   --gray-bg:#f8fafc;--card-shadow:0 2px 6px rgba(0,0,0,.08);--radius:10px;
- }
- *{box-sizing:border-box}
- body{font-family:'Inter',sans-serif;background:var(--gray-bg);color:#222;
-      margin:0;padding:24px;max-width:1100px;margin-inline:auto}
- h1,h2{text-align:center;margin:0 0 .6rem;font-weight:600}
- h3{margin:.4rem 0}
- button,select,input{font:400 15px/1.3 'Inter',sans-serif;padding:10px 14px;
-      border:1px solid #d0d7e2;border-radius:6px}
- button{background:var(--blue);color:#fff;cursor:pointer;transition:.25s}
- button:hover{background:var(--blue-dark)}
- table{width:100%;border-collapse:collapse;font-size:14px}
- th,td{padding:10px 8px;border-bottom:1px solid #e5e7eb}
- th{background:var(--blue);color:#fff;font-weight:500}
- .card{background:#fff;border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--card-shadow)}
- /* supply chain lane */
- #supplyChain{display:flex;align-items:center;gap:14px}
- #supplyChain .entity{flex:0 0 120px;text-align:center;padding:12px;border:2px solid var(--blue);
-                      border-radius:var(--radius);font-weight:600;background:#eff6ff}
- .lane{flex:1;position:relative;height:48px}
- .lane::before{content:'';position:absolute;top:50%;left:0;right:0;height:4px;background:var(--blue);
-               transform:translateY(-50%)}
- .lane::after{content:'→';position:absolute;right:-18px;top:50%;transform:translateY(-50%);
-              font-size:24px;color:var(--blue)}
- .truck{position:absolute;top:-10px;font-size:26px;transition:left .4s ease;pointer-events:none}
- #showFullTable{margin-inline:auto;display:block;margin-top:18px}
- #resetGame{background:var(--red);margin-inline:auto;display:block;margin-top:32px}
- #resetGame:hover{background:#be123c}
- @media(max-width:680px){
-   #supplyChain{flex-direction:column;gap:18px}
-   .lane{width:100%;height:40px}
-   .lane::after{display:none}
- }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaulT-Inventory Control</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7fa;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        #settings-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+        #container {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+        #left, #right {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #left {
+            flex: 1;
+            border-right: 1px solid #ddd;
+        }
+        #right {
+            flex: 1;
+        }
+        #supplier, #warehouse, #retailers {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        #supplier {
+            text-align: center;
+        }
+        #supplier input {
+            display: block;
+            margin: 10px auto;
+            width: 120px;
+        }
+        #warehouse {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #warehouse .order-row {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 10px;
+        }
+        #warehouse .order-item {
+            text-align: center;
+            flex: 1;
+        }
+        #retailers {
+            display: flex;
+            justify-content: space-around;
+        }
+        .retailer {
+            text-align: center;
+            flex: 1;
+            padding: 0 10px;
+        }
+        #cost_table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        #cost_table th, #cost_table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #cost_table th {
+            background-color: #f8f9fa;
+        }
+        #descriptions {
+            white-space: pre-wrap;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            height: 150px;
+            overflow: auto;
+        }
+        #graph {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #buttons {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background-color: #f4f7fa;
+            border-top: 1px solid #ddd;
+        }
+        button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #ok {
+            background-color: #28a745;
+            color: white;
+        }
+        #reset {
+            background-color: #dc3545;
+            color: white;
+        }
+        .transit-info {
+            font-size: 0.8em;
+            color: #e74c3c;
+            margin-top: 5px;
+        }
+        .animation-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .truck {
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            background: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHdpZHRoPSI1MHB4IiBoZWlnaHQ9IjMwcHgiIHZpZXdCb3g9IjAgMCA1MCAzMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSIwIiB5PSIxNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjE1IiBmaWxsPSIjMDBmIj48L3JlY3Q+PHJlY3QgeD0iNDAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMjAiIGZpbGw9IiMwMGYiPjwvcmVjdD48Y2lyY2xlIGN4PSIxMCIgY3k9IjI1IiByPSI1IiBmaWxsPSIjMDAwIj48L2NpcmNsZT48Y2lyY2xlIGN4PSIzMCIgY3k9IjI1IiByPSI1IiBmaWxsPSIjMDAwIj48L2NpcmNsZT48L3N2Zz4=') no-repeat;
+            background-size: contain;
+            animation: moveTruck 6s linear infinite;
+        }
+        @keyframes moveTruck {
+            0% { left: -50px; }
+            100% { left: 100%; }
+        }
+        .van {
+            position: absolute;
+            width: 40px;
+            height: 25px;
+            background: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHdpZHRoPSI0MHB4IiBoZWlnaHQ9IjI1cHgiIHZpZXdCb3g9IjAgMCA0MCAyNSIgeG1lbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB4PSIwIiB5PSIxMCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE1IiBmaWxsPSIjZmYwIj48L3JlY3Q+PHJlY3QgeD0iMzAiIHk9IjUiIHdpZHRoPSIxMCIgaGVpZ2h0PSIyMCIgZmlsbD0iI2ZmMCI+PC9yZWN0PjxjaXJjbGUgY3g9IjUiIGN5PSIyMCIgcj0iNCIgZmlsbD0iIzAwMCI+PC9jaXJjbGU+PGNpcmNsZSBjeD0iMjUiIGN5PSIyMCIgcj0iNCIgZmlsbD0iIzAwMCI+PC9jaXJjbGU+PC9zdmc+') no-repeat;
+            background-size: contain;
+            animation: moveVan 2s linear infinite;
+        }
+        @keyframes moveVan {
+            0% { left: -40px; }
+            100% { left: 100%; }
+        }
+        #modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        #modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        #close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #demand-type {
+            margin-bottom: 10px;
+        }
+        @media (max-width: 768px) {
+            #container {
+                flex-direction: column;
+            }
+            #left, #right {
+                border: none;
+            }
+            #retailers {
+                flex-direction: column;
+            }
+            #warehouse .order-row {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div id="header">
+        <h1>Supply Chain Activity - Day: <span id="day">1</span></h1>
+        <button id="settings-btn">&#9881;</button>
+    </div>
+    <div id="container">
+        <div id="left">
+            <div id="supplier">
+                <img src="https://cdn-icons-png.flaticon.com/512/3321/3321752.png" alt="Supplier Icon" style="width: 50px; height: 50px;">
+                <h3>Supplier</h3>
+                <input id="supplier_input" type="number" min="0" max="9999" value="0">
+                <div id="sup_transit" class="transit-info"></div>
+                <div class="animation-container" id="sup_anim"></div>
+            </div>
+            <div id="warehouse">
+                <h3>Warehouse - Stock: <span id="warehouse_stock">1000</span></h3>
+                <img src="https://cdn-icons-png.flaticon.com/512/3774/3774895.png" alt="Warehouse Icon" style="width: 50px; height: 50px; margin-top: 10px;">
+                <div class="order-row">
+                    <div class="order-item">
+                        Order to MK: <input id="ret1_input" type="number" min="0" value="0">
+                        <div id="ret1_transit" class="transit-info"></div>
+                        <div class="animation-container" id="ret1_anim"></div>
+                    </div>
+                    <div class="order-item">
+                        Order to WC: <input id="ret2_input" type="number" min="0" value="0">
+                        <div id="ret2_transit" class="transit-info"></div>
+                        <div class="animation-container" id="ret2_anim"></div>
+                    </div>
+                    <div class="order-item">
+                        Order to TST: <input id="ret3_input" type="number" min="0" value="0">
+                        <div id="ret3_transit" class="transit-info"></div>
+                        <div class="animation-container" id="ret3_anim"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="retailers">
+                <div class="retailer">
+                    <img src="https://cdn-icons-png.flaticon.com/512/9725/9725546.png" alt="Retailer Icon" style="width: 40px; height: 40px;">
+                    <h4>MK Style</h4>
+                    Stock: <span id="ret1_stock">200</span><br>
+                    Demand: <span id="ret1_demand">0</span>
+                </div>
+                <div class="retailer">
+                    <img src="https://cdn-icons-png.flaticon.com/512/9725/9725546.png" alt="Retailer Icon" style="width: 40px; height: 40px;">
+                    <h4>WC Style</h4>
+                    Stock: <span id="ret2_stock">200</span><br>
+                    Demand: <span id="ret2_demand">0</span>
+                </div>
+                <div class="retailer">
+                    <img src="https://cdn-icons-png.flaticon.com/512/9725/9725546.png" alt="Retailer Icon" style="width: 40px; height: 40px;">
+                    <h4>TST Style</h4>
+                    Stock: <span id="ret3_stock">200</span><br>
+                    Demand: <span id="ret3_demand">0</span>
+                </div>
+            </div>
+        </div>
+        <div id="right">
+            <h3>COST ANALYSIS</h3>
+            <div id="cost_table">
+                <table>
+                    <tr><th></th><th>Original</th><th>Updated</th></tr>
+                    <tr><td>Quantity Sold (in Unit)</td><td id="orig_qty">0</td><td id="upd_qty">0</td></tr>
+                    <tr><td>Sales Value (A)</td><td id="orig_sales">$ 0</td><td id="upd_sales">$ 0</td></tr>
+                    <tr><td>Ordering Cost (B)</td><td id="orig_ordering">$ 0</td><td id="upd_ordering">$ 0</td></tr>
+                    <tr><td>Holding Cost (C)</td><td id="orig_holding">$ 0</td><td id="upd_holding">$ 0</td></tr>
+                    <tr><td>Gross Total (D = A - B - C)</td><td id="orig_gross">$ 0</td><td id="upd_gross">$ 0</td></tr>
+                    <tr><td>Cost of Goods Sold (E)</td><td id="orig_cogs">$ 0</td><td id="upd_cogs">$ 0</td></tr>
+                    <tr><td>Net Profit (F = D - E)</td><td id="orig_net">$ 0</td><td id="upd_net">$ 0</td></tr>
+                </table>
+            </div>
+            <h3>DESCRIPTIONS</h3>
+            <div id="descriptions"></div>
+            <h3>GRAPHS</h3>
+            <canvas id="graph"></canvas>
+        </div>
+    </div>
+    <div id="buttons">
+        <button id="ok">OK</button>
+        <button id="reset">RESET</button>
+    </div>
 
-<h1>Inventory Control Game</h1>
+    <div id="modal">
+        <div id="modal-content">
+            <span id="close-modal">&times;</span>
+            <h2>Settings</h2>
+            <h3>Game Background</h3>
+            <p>Style Co. Ltd is a corporate company selling T-shirts, and makes use of a central warehouse and three retailers where the T-shirts are sold to consumers. Each retailer makes a request to the warehouse when ordering stock for running the business. It is also necessary for the warehouse to place orders with their supplier when necessary so that they can always provide stock to the retailers.
 
-<!-- ===== CHART ===== -->
-<div id="chartCard" class="card">
-  <canvas id="combinedChart" height="120"></canvas>
-</div>
+Assume that you are the Purchasing Manager of the company and are responsible for placing orders with supplier and transport orders to the retailers when requested to do so. You are required to specify the time when orders should be placed and the quantity for each order so that the company can minimize the total cost of operation and to maximize the company profit.
 
-<!-- ===== GAME PARAMETERS ===== -->
-<div id="gameParameters" class="card">
-  <h2>Game Parameters</h2>
-  <table>
-    <tr><th>Parameter</th><th>Value</th></tr>
-    <tr><td>Initial Stock Level</td><td>200 units</td></tr>
-    <tr><td>Ordering Cost</td><td>$150 per order</td></tr>
-    <tr><td>Holding Cost</td><td>$3.88 / unit / year</td></tr>
-    <tr><td>Cost of Goods Sold</td><td>$25 / unit</td></tr>
-    <tr><td>Selling Price</td><td>$39 / unit</td></tr>
-  </table>
-</div>
+There is no limit on the number of times that you place orders with the supplier, but the maximum quantity that you can place is limited to 9,999 T-shirts per order. Note: You can only place an order either with the Warehouse or a Retailer when all the goods have arrived for the previous order from the Warehouse / Retailer. Each T-shirt costs $25 to purchase, plus a $150 for the transportation cost from Supplier to Warehouse per occasion. The Lead Time when the Warehouse places orders with the Supplier is 14 days. The Lead Time when a Retailer places orders with the Warehouse is 3 days. The selling price of a Tee-shirt at any of the Retailers is $39 per each. A handling charges is required for the transportation of T-shirts from the Warehouse to each Retailer, this costs $60 per occasion.
 
-<!-- ===== SCENARIO SELECTION ===== -->
-<div id="scenarioSelection" class="card">
-  <label for="scenario"><strong>Select Scenario:</strong></label>
-  <select id="scenario">
-    <option value="1">Demand: 15/day, Lead: 0</option>
-    <option value="2">Demand: N(15, 5), Lead: 0</option>
-    <option value="3">Demand: 15/day, Lead: 3</option>
-    <option value="4">Demand: N(15, 5), Lead: 3</option>
-  </select>
-  <button onclick="confirmScenario()">Start Game</button>
-</div>
+In addition to the transportation cost specified above, there is a storage cost at both the Warehouse and each Retailer. This is $2.15 and $3.88 per Tee-shirt per year respectively. The daily demand for Tee-shirts at each of the retailers is not constant and varies from day to day.
 
-<!-- ===== GAME CONTROLS ===== -->
-<div id="gameControls" style="display:none">
-  <div id="supplyChain" class="card">
-    <div class="entity">Supplier</div>
-    <div class="lane" id="transitLane"></div>
-    <div class="entity">Retailer (You)</div>
-    <div class="arrow">→</div>
-    <div class="entity">Customer</div>
-  </div>
+</p>
+            <h3>Demand Settings</h3>
+            <select id="demand-type">
+                <option value="uniform">Uniform Distribution</option>
+                <option value="poisson">Poisson Distribution</option>
+            </select>
+            <div id="uniform-settings">
+                Min: <input id="uniform-min" type="number" value="10"><br>
+                Max: <input id="uniform-max" type="number" value="20">
+            </div>
+            <div id="poisson-settings" style="display:none;">
+                Lambda: <input id="poisson-lambda" type="number" value="15">
+            </div>
+            <button id="apply-settings">Apply</button>
+        </div>
+    </div>
 
-  <div class="card" style="display:flex;justify-content:space-between;flex-wrap:wrap;text-align:center">
-    <div>Day<br><strong id="currentDay">1</strong>/100</div>
-    <div>Current Inventory<br><strong id="currentInventory">200</strong></div>
-    <div>Total Net Profit<br>$<strong id="totalNetProfit">0</strong></div>
-  </div>
+    <script>
+        let day = 1;
+        let warehouse_stock = 1000;
+        let retailer_stocks = [200, 200, 200];
+        let demands = [0, 0, 0];
+        let in_transit_sup = [];
+        let in_transit_ret = [[], [], []];
+        let cum_sold = 0;
+        let cum_sales = 0;
+        let cum_ordering = 0;
+        let cum_holding = 0;
+        let cum_cogs = 0;
+        let cum_gross = 0;
+        let cum_net = 0;
+        let orig_sold = 0;
+        let orig_sales = 0;
+        let orig_ordering = 0;
+        let orig_holding = 0;
+        let orig_cogs = 0;
+        let orig_gross = 0;
+        let orig_net = 0;
 
-  <div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <label style="flex:0 0 130px" for="orderQuantity">Order Quantity:</label>
-    <input type="number" id="orderQuantity" min="0" style="flex:1;width:160px">
-    <button onclick="placeOrder()">Place Order</button>
-  </div>
+        let demandType = 'uniform';
+        let uniformMin = 10;
+        let uniformMax = 20;
+        let poissonLambda = 15;
 
-  <div id="latestRecord" class="card"></div>
-  <div id="profitCalculation" class="card"></div>
+        let chart;
+        const chartData = {
+            labels: [],
+            datasets: [
+                { label: 'Total Demand', data: [], yAxisID: 'y1', borderColor: 'black' },
+                { label: 'Stock in Warehouse', data: [], yAxisID: 'y1', borderColor: 'blue' },
+                { label: 'Stock in Retailers', data: [], yAxisID: 'y1', borderColor: 'green' },
+                { label: 'Net Profit', data: [], yAxisID: 'y2', borderColor: 'orange' }
+            ]
+        };
 
-  <!--  table wrapper gets its own id so we can move it to the summary page  -->
-  <div id="tableCard" class="card">
-    <button id="showFullTable" onclick="toggleFullTable()">Show Full Table</button>
-    <table id="resultTable" style="display:none;margin-top:15px">
-      <tr><th>Day</th><th>Demand</th><th>Inventory</th><th>Order Placed</th><th>Net Profit</th></tr>
-    </table>
-  </div>
-</div>
+        function initChart() {
+            const ctx = document.getElementById('graph').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Days' },
+                            min: 0,
+                            max: 200
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Inventory Stock (100 units)' },
+                            min: 0
+                        },
+                        y2: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Net Profit ($000)' },
+                            grid: { drawOnChartArea: false },
+                            min: 0
+                        }
+                    }
+                }
+            });
+        }
 
-<!-- ===== SUMMARY PAGE ===== -->
-<div id="summaryPage" style="display:none">
-  <div class="card">
-    <h2>Game Summary</h2>
-    <div id="summaryStats" style="margin-bottom:18px;font-size:16px"></div>
-    <!-- chartCard and tableCard will be injected here -->
-  </div>
-  <button style="margin-inline:auto;display:block" onclick="resetGame()">Exit</button>
-</div>
+        function generateDemand() {
+            if (demandType === 'uniform') {
+                return Math.floor(Math.random() * (uniformMax - uniformMin + 1) + uniformMin);
+            } else if (demandType === 'poisson') {
+                // Simple Poisson simulation
+                let L = Math.exp(-poissonLambda);
+                let k = 0;
+                let p = 1;
+                do {
+                    p *= Math.random();
+                    k++;
+                } while (p > L);
+                return k - 1;
+            }
+        }
 
-<button id="resetGame" onclick="resetGame()">Reset Game</button>
+        function updateGraph() {
+            chartData.labels.push(day);
+            chartData.datasets[0].data.push(demands.reduce((a, b) => a + b, 0) / 100);
+            chartData.datasets[1].data.push(warehouse_stock / 100);
+            chartData.datasets[2].data.push(retailer_stocks.reduce((a, b) => a + b, 0) / 100);
+            chartData.datasets[3].data.push(cum_net / 1000);
+            chart.update();
+        }
 
-<script>
-/* ----------- variables ----------- */
-let currentDay=1, inventory=200, totalNetProfit=0, itemsSold=0;
-const demandHistory=[], inventoryHistory=[200], profitHistory=[0];
-let pendingOrders=[], scenarioConfirmed=false, combinedChart;
+        function updateUI() {
+            document.getElementById('day').innerText = day;
+            document.getElementById('warehouse_stock').innerText = warehouse_stock;
+            document.getElementById('ret1_stock').innerText = retailer_stocks[0];
+            document.getElementById('ret2_stock').innerText = retailer_stocks[1];
+            document.getElementById('ret3_stock').innerText = retailer_stocks[2];
+            document.getElementById('ret1_demand').innerText = demands[0];
+            document.getElementById('ret2_demand').innerText = demands[1];
+            document.getElementById('ret3_demand').innerText = demands[2];
 
-/* constants */
-const orderingCost=150, holdingCost=3.88/365, cogs=25, price=39;
+            document.getElementById('orig_qty').innerText = orig_sold;
+            document.getElementById('orig_sales').innerText = '$ ' + orig_sales;
+            document.getElementById('orig_ordering').innerText = '$ ' + orig_ordering;
+            document.getElementById('orig_holding').innerText = '$ ' + orig_holding;
+            document.getElementById('orig_gross').innerText = '$ ' + orig_gross;
+            document.getElementById('orig_cogs').innerText = '$ ' + orig_cogs;
+            document.getElementById('orig_net').innerText = '$ ' + orig_net;
 
-/* helpers */
-const $=id=>document.getElementById(id);
-function normalRandom(m,v){let u=0,s=0;while(u===0)u=Math.random();while(s===0)s=Math.random();
- return Math.max(0,Math.round(Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*s)*Math.sqrt(v)+m));}
+            document.getElementById('upd_qty').innerText = cum_sold;
+            document.getElementById('upd_sales').innerText = '$ ' + cum_sales;
+            document.getElementById('upd_ordering').innerText = '$ ' + cum_ordering;
+            document.getElementById('upd_holding').innerText = '$ ' + cum_holding;
+            document.getElementById('upd_gross').innerText = '$ ' + cum_gross;
+            document.getElementById('upd_cogs').innerText = '$ ' + cum_cogs;
+            document.getElementById('upd_net').innerText = '$ ' + cum_net;
 
-/* scenario */
-function confirmScenario(){
- if(scenarioConfirmed) return;
- scenarioConfirmed=true;
- $('gameParameters').style.display='none';
- $('scenarioSelection').style.display='none';
- $('gameControls').style.display='block';
- updateCharts();
-}
-function resetGame(){location.reload();}
+            // Update transit info and disable inputs
+            const supInput = document.getElementById('supplier_input');
+            supInput.disabled = in_transit_sup.length > 0;
+            document.getElementById('sup_transit').innerText = in_transit_sup.length > 0 ? 'In transit: ' + in_transit_sup[0].qty + ', days left: ' + in_transit_sup[0].days_left : '';
+            if (in_transit_sup.length > 0) {
+                document.getElementById('sup_anim').innerHTML = '<div class="truck"></div>';
+            } else {
+                document.getElementById('sup_anim').innerHTML = '';
+            }
 
-function getDemand(){
- const sc=$('scenario').value;
- return (sc==='1'||sc==='3')?15:normalRandom(15,5);
-}
-function getLeadTime(){
- const sc=$('scenario').value;
- return (sc==='3'||sc==='4')?3:0;
-}
+            for (let i = 0; i < 3; i++) {
+                const retInput = document.getElementById('ret' + (i+1) + '_input');
+                retInput.disabled = in_transit_ret[i].length > 0;
+                document.getElementById('ret' + (i+1) + '_transit').innerText = in_transit_ret[i].length > 0 ? 'In transit: ' + in_transit_ret[i][0].qty + ', days left: ' + in_transit_ret[i][0].days_left : '';
+                if (in_transit_ret[i].length > 0) {
+                    document.getElementById('ret' + (i+1) + '_anim').innerHTML = '<div class="van"></div>';
+                } else {
+                    document.getElementById('ret' + (i+1) + '_anim').innerHTML = '';
+                }
+            }
+        }
 
-/* -------- truck animation -------- */
-function spawnTruck(order){
- const t=document.createElement('span');
- t.className='truck';t.textContent='🚚';
- t.dataset.arrival=order.arrival;t.dataset.lead=order.lead;
- $('transitLane').appendChild(t);
-}
-function updateTrucks(){
- document.querySelectorAll('.truck').forEach(tr=>{
-   const leftDays=+tr.dataset.arrival-currentDay;
-   const lead=+tr.dataset.lead;
-   if(leftDays<=0) tr.remove();
-   else tr.style.left=`${(lead-leftDays)/lead*100}%`;
- });
-}
+        function updateDescriptions(sold_per, sup_add, ret_add, ret_sum) {
+            let desc = '';
+            desc += 'Quantity Sold = ' + orig_sold + ' + ' + sold_per.join(' + ') + ' = ' + cum_sold + '\n';
+            desc += 'Sales Value = ' + cum_sold + ' x $39 = $' + cum_sales + '\n';
+            desc += 'Ordering Cost = $' + orig_ordering + ' + ' + sup_add + ' + ' + ret_add[0] + ' + ' + ret_add[1] + ' + ' + ret_add[2] + ' = $' + cum_ordering + '\n';
+            desc += 'Holding Cost = $' + orig_holding + ' + (' + warehouse_stock + ' x $2.15 + ' + ret_sum + ' x $3.88) / 365 = $' + cum_holding + '\n';
+            desc += 'Gross Profit = $' + cum_sales + ' - $' + cum_ordering + ' - $' + cum_holding + ' = $' + cum_gross + '\n';
+            desc += 'COGS = ' + cum_sold + ' x $25 = $' + cum_cogs + '\n';
+            desc += 'Net Profit = $' + cum_gross + ' - $' + cum_cogs + ' = $' + cum_net;
+            document.getElementById('descriptions').innerText = desc;
+        }
 
-/* -------- main loop -------- */
-function placeOrder(){
- if(!scenarioConfirmed){alert('Start the game first');return;}
- const qty=parseInt($('orderQuantity').value);if(isNaN(qty)||qty<0){alert('Invalid qty');return;}
- const lead=getLeadTime();
- if(qty>0){
-   const order={qty,arrival:currentDay+lead,lead};
-   pendingOrders.push(order);if(lead>0)spawnTruck(order);
- }
- /* demand + arrivals */
- const demand=getDemand();
- demandHistory.push(demand);
- const arrivals=pendingOrders.filter(o=>o.arrival===currentDay);
- const arrivedQty=arrivals.reduce((s,o)=>s+o.qty,0);
- pendingOrders=pendingOrders.filter(o=>o.arrival>currentDay);
- inventory+=arrivedQty;
- const sales=Math.min(inventory,demand);inventory-=sales;
- itemsSold+=sales;
+        function onOK() {
+            orig_sold = cum_sold;
+            orig_sales = cum_sales;
+            orig_ordering = cum_ordering;
+            orig_holding = cum_holding;
+            orig_cogs = cum_cogs;
+            orig_gross = cum_gross;
+            orig_net = cum_net;
 
- const rev=sales*price, c=sales*cogs, orderCost=qty>0?orderingCost:0, hold=inventory*holdingCost;
- const net=rev-c-orderCost-hold; totalNetProfit+=net;
- inventoryHistory.push(inventory);profitHistory.push(net);
+            // Place orders
+            let sup_input = parseInt(document.getElementById('supplier_input').value) || 0;
+            let sup_add = '$0';
+            if (sup_input > 0) {
+                if (in_transit_sup.length > 0) {
+                    alert('Cannot place order to supplier while one is in transit.');
+                } else if (sup_input > 9999) {
+                    alert('Maximum order to supplier is 9999.');
+                } else {
+                    in_transit_sup.push({ qty: sup_input, days_left: 14 });
+                    cum_ordering += 150;
+                    sup_add = '$150';
+                }
+            }
+            document.getElementById('supplier_input').value = 0;
 
- updateTable(demand,inventory,qty,net);
- updateLatestRecord(demand,inventory,qty,net);
- updateProfitCalculation(rev,c,orderCost,hold,net);
- updateCharts();updateTrucks();
+            let ret_inputs = [
+                parseInt(document.getElementById('ret1_input').value) || 0,
+                parseInt(document.getElementById('ret2_input').value) || 0,
+                parseInt(document.getElementById('ret3_input').value) || 0
+            ];
+            let ret_add = ['$0', '$0', '$0'];
+            for (let i = 0; i < 3; i++) {
+                if (ret_inputs[i] > 0) {
+                    if (in_transit_ret[i].length > 0) {
+                        alert('Cannot place order to retailer ' + (i + 1) + ' while one is in transit.');
+                    } else if (ret_inputs[i] > warehouse_stock) {
+                        alert('Insufficient stock in warehouse for order to this retailer.');
+                    } else {
+                        in_transit_ret[i].push({ qty: ret_inputs[i], days_left: 3 });
+                        warehouse_stock -= ret_inputs[i];
+                        cum_ordering += 60;
+                        ret_add[i] = '$60';
+                    }
+                }
+                document.getElementById('ret' + (i + 1) + '_input').value = 0;
+            }
 
- currentDay++;
- $('currentDay').textContent=currentDay;$('currentInventory').textContent=inventory;
- $('totalNetProfit').textContent=totalNetProfit.toFixed(2);
- $('orderQuantity').value=0;
+            // Advance day
+            day++;
 
- if(currentDay>100) showSummary();
-}
+            // Decrement and deliver transits
+            for (let i = in_transit_sup.length - 1; i >= 0; i--) {
+                in_transit_sup[i].days_left--;
+                if (in_transit_sup[i].days_left <= 0) {
+                    warehouse_stock += in_transit_sup[i].qty;
+                    in_transit_sup.splice(i, 1);
+                }
+            }
+            for (let j = 0; j < 3; j++) {
+                for (let i = in_transit_ret[j].length - 1; i >= 0; i--) {
+                    in_transit_ret[j][i].days_left--;
+                    if (in_transit_ret[j][i].days_left <= 0) {
+                        retailer_stocks[j] += in_transit_ret[j][i].qty;
+                        in_transit_ret[j].splice(i, 1);
+                    }
+                }
+            }
 
-/* -------- ui helpers -------- */
-function updateTable(d,inv,o,p){
- const r=$('resultTable').insertRow(-1);
- [currentDay,d,inv,o,'$'+p.toFixed(2)].forEach((v,i)=>r.insertCell(i).textContent=v);
-}
-function updateLatestRecord(d,inv,o,p){
- $('latestRecord').innerHTML=`<h3>Latest Record (Day ${currentDay})</h3>
- Demand: <strong>${d}</strong><br>Ending Inventory: <strong>${inv}</strong><br>
- Order Placed: <strong>${o}</strong><br>Net Profit: <strong>$${p.toFixed(2)}</strong>`;
-}
-function updateProfitCalculation(r,c,oc,h,np){
- $('profitCalculation').innerHTML=`<h3>Profit Calculation</h3>
- Revenue: $${r.toFixed(2)}<br>COGS: $${c.toFixed(2)}<br>
- Ordering Cost: $${oc.toFixed(2)}<br>Holding Cost: $${h.toFixed(2)}<br>
- Net Profit: <strong>$${np.toFixed(2)}</strong>`;
-}
-function toggleFullTable(){
- const t=$('resultTable'),btn=$('showFullTable');
- const shown=t.style.display!=='none';t.style.display=shown?'none':'table';
- btn.textContent=shown?'Show Full Table':'Hide Full Table';
-}
+            // Generate new demands
+            demands = [generateDemand(), generateDemand(), generateDemand()];
 
-/* -------- chart -------- */
-function updateCharts(){
- if(!combinedChart){
-   combinedChart=new Chart($('combinedChart').getContext('2d'),{
-     type:'line',
-     data:{labels:Array.from({length:101},(_,i)=>i),
-       datasets:[
-         {label:'Demand',data:demandHistory,borderColor:'#ef4444',yAxisID:'y'},
-         {label:'Inventory',data:inventoryHistory,borderColor:'#3b82f6',yAxisID:'y'},
-         {label:'Net Profit',data:profitHistory,borderColor:'#10b981',yAxisID:'y1'}
-       ]},
-     options:{responsive:true,plugins:{legend:{position:'bottom'}},
-       scales:{y:{title:{display:true,text:'Units'}},
-               y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Profit($)'}}}}
-   });
- }else{
-   combinedChart.data.datasets[0].data=demandHistory;
-   combinedChart.data.datasets[1].data=inventoryHistory;
-   combinedChart.data.datasets[2].data=profitHistory;
-   combinedChart.update();
- }
-}
+            // Deduct demands and calculate sold
+            let sold_today = 0;
+            let sold_per = [];
+            for (let i = 0; i < 3; i++) {
+                let sold = Math.min(retailer_stocks[i], demands[i]);
+                retailer_stocks[i] -= sold;
+                sold_per.push(sold);
+                sold_today += sold;
+            }
 
-/* -------- summary page -------- */
-function showSummary(){
- updateCharts();                      /* ensure last-day data in chart */
- $('gameControls').style.display='none';
- $('resetGame').style.display='none';
+            cum_sold += sold_today;
+            cum_sales = cum_sold * 39;
+            cum_cogs = cum_sold * 25;
 
- /* move chart and full table into summary page */
- $('summaryPage').style.display='block';
- $('summaryPage').querySelector('.card').appendChild($('chartCard'));
+            // Calculate holding
+            let ret_sum = retailer_stocks.reduce((a, b) => a + b, 0);
+            let daily_holding = Math.round((warehouse_stock * 2.15 + ret_sum * 3.88) / 365);
+            cum_holding += daily_holding;
 
- /* ensure the table is fully visible and button removed */
- $('tableCard').querySelector('#showFullTable').style.display='none';
- $('resultTable').style.display='table';
- $('summaryPage').querySelector('.card').appendChild($('tableCard'));
+            // Update gross and net
+            cum_gross = cum_sales - cum_ordering - cum_holding;
+            cum_net = cum_gross - cum_cogs;
 
- const avg=itemsSold? (totalNetProfit/itemsSold):0;
- $('summaryStats').innerHTML=`
-   Current Inventory: <strong>${inventory}</strong><br>
-   Items Sold: <strong>${itemsSold}</strong><br>
-   Total Net Profit: <strong>$${totalNetProfit.toFixed(2)}</strong><br>
-   Average Profit per Item: <strong>$${avg.toFixed(2)}</strong>`;
-}
-</script>
+            // Update descriptions
+            updateDescriptions(sold_per, sup_add, ret_add, ret_sum);
+
+            // Update graph
+            updateGraph();
+
+            updateUI();
+        }
+
+        function onReset() {
+            day = 1;
+            warehouse_stock = 1000;
+            retailer_stocks = [200, 200, 200];
+            demands = [0, 0, 0];
+            in_transit_sup = [];
+            in_transit_ret = [[], [], []];
+            cum_sold = 0;
+            cum_sales = 0;
+            cum_ordering = 0;
+            cum_holding = 0;
+            cum_cogs = 0;
+            cum_gross = 0;
+            cum_net = 0;
+            orig_sold = 0;
+            orig_sales = 0;
+            orig_ordering = 0;
+            orig_holding = 0;
+            orig_cogs = 0;
+            orig_gross = 0;
+            orig_net = 0;
+            chartData.labels = [];
+            chartData.datasets.forEach(ds => ds.data = []);
+            chartData.labels.push(day);
+            chartData.datasets[0].data.push(demands.reduce((a, b) => a + b, 0) / 100);
+            chartData.datasets[1].data.push(warehouse_stock / 100);
+            chartData.datasets[2].data.push(retailer_stocks.reduce((a, b) => a + b, 0) / 100);
+            chartData.datasets[3].data.push(cum_net / 1000);
+            chart.update();
+            document.getElementById('descriptions').innerText = '';
+            updateUI();
+        }
+
+        // Modal logic
+        const modal = document.getElementById('modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        const closeModal = document.getElementById('close-modal');
+        const demandTypeSelect = document.getElementById('demand-type');
+        const uniformSettings = document.getElementById('uniform-settings');
+        const poissonSettings = document.getElementById('poisson-settings');
+        const applySettings = document.getElementById('apply-settings');
+
+        settingsBtn.onclick = () => { modal.style.display = 'block'; };
+        closeModal.onclick = () => { modal.style.display = 'none'; };
+        window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
+
+        demandTypeSelect.onchange = () => {
+            if (demandTypeSelect.value === 'uniform') {
+                uniformSettings.style.display = 'block';
+                poissonSettings.style.display = 'none';
+            } else {
+                uniformSettings.style.display = 'none';
+                poissonSettings.style.display = 'block';
+            }
+        };
+
+        applySettings.onclick = () => {
+            demandType = demandTypeSelect.value;
+            if (demandType === 'uniform') {
+                uniformMin = parseInt(document.getElementById('uniform-min').value) || 10;
+                uniformMax = parseInt(document.getElementById('uniform-max').value) || 20;
+            } else {
+                poissonLambda = parseInt(document.getElementById('poisson-lambda').value) || 15;
+            }
+            modal.style.display = 'none';
+            onReset();  // Reset game to apply new settings
+        };
+
+        document.getElementById('ok').addEventListener('click', onOK);
+        document.getElementById('reset').addEventListener('click', onReset);
+        initChart();
+        onReset();
+    </script>
 </body>
 </html>
