@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forecasting Lab: Time-Series Demand Game</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --card:#111830;
+    --card-2:#0f172a;
+    --muted:#9aa4b2;
+    --text:#e6ebf3;
+    --primary:#6ea8fe;
+    --accent:#22d3ee;
+    --ok:#22c55e;
+    --warn:#f59e0b;
+    --bad:#ef4444;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+    background:
+      radial-gradient(1200px 1200px at 80% -10%, #1b2350 0%, #0b1020 50%),
+      radial-gradient(1000px 800px at -20% 10%, #172554 0%, #0b1020 60%),
+      linear-gradient(180deg, #0b1020, #0b1020);
+    color:var(--text);
+  }
+  header{
+    padding:28px 18px 20px;
+    position:relative;
+    overflow:hidden;
+  }
+  header .title{
+    max-width:1200px;
+    margin:0 auto;
+    display:flex;
+    gap:16px;
+    align-items:center;
+  }
+  .logo{
+    width:44px;height:44px;border-radius:12px;
+    display:grid;place-items:center;
+    background:radial-gradient(120% 120% at 30% 20%, #60a5fa, #22d3ee);
+    color:#081224;font-weight:900;
+    box-shadow:0 6px 20px rgba(34,211,238,.35), inset 0 0 30px rgba(255,255,255,.4);
+  }
+  h1{font-size:clamp(18px, 2.4vw, 26px);margin:0}
+  header p{margin:4px 0 0;color:var(--muted)}
+  main{
+    max-width:1200px;margin:0 auto;padding:0 16px 40px;
+  }
+  .grid{
+    display:grid;gap:18px;
+    grid-template-columns: 1.25fr .85fr;
+  }
+  @media (max-width: 1024px){
+    .grid{grid-template-columns: 1fr}
+  }
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,.03), transparent 40%), var(--card);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:var(--radius);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .card-header{
+    padding:14px 16px 12px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .card-header h2{margin:0;font-size:16px;font-weight:600;letter-spacing:.2px}
+  .card-body{padding:14px 16px 18px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .pill{
+    padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);font-size:12px
+  }
+  .legend{display:flex;flex-wrap:wrap;gap:10px}
+  .key{display:flex;align-items:center;gap:8px;font-size:12px;color:#cbd5e1;background:rgba(255,255,255,.04);padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.06)}
+  .swatch{width:12px;height:12px;border-radius:3px;border:2px solid rgba(255,255,255,.25)}
+  .sw-actual{background:#3b82f6;border-color:#3b82f6}
+  .sw-player{background:#f59e0b;border-color:#f59e0b}
+  .sw-ma5{background:#22c55e;border-color:#22c55e}
+  .sw-ma10{background:#16a34a;border-color:#16a34a}
+  .sw-ses{background:#ef4444;border-color:#ef4444}
+  .sw-arima{background:#a855f7;border-color:#a855f7}
+
+  .controls{display:grid;gap:12px;grid-template-columns: 1.2fr .8fr}
+  @media (max-width:720px){.controls{grid-template-columns: 1fr}}
+  .input{
+    background:var(--card-2);border:1px solid rgba(255,255,255,.08);border-radius:12px;
+    padding:10px 12px;color:var(--text);width:100%;font-size:15px;
+    outline:none;transition:border .2s ease;
+  }
+  .input:focus{border-color:#60a5fa}
+  .btn{
+    background:linear-gradient(180deg, #60a5fa, #2563eb);color:white;border:none;border-radius:12px;
+    padding:12px 14px;font-weight:700;letter-spacing:.3px;cursor:pointer;
+    box-shadow:0 10px 20px rgba(37,99,235,.35);
+    transition:transform .05s ease, opacity .2s ease, filter .2s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;filter:grayscale(.3)}
+  .btn-secondary{
+    background:linear-gradient(180deg, #22d3ee, #0ea5e9);
+    box-shadow:0 10px 20px rgba(14,165,233,.3);
+  }
+  .btn-ghost{
+    background:transparent;border:1px solid rgba(255,255,255,.14);color:#cbd5e1
+  }
+
+  .split{
+    display:grid;grid-template-columns: 1fr 1fr;gap:12px
+  }
+  @media (max-width:540px){.split{grid-template-columns: 1fr}}
+
+  .stat-grid{
+    display:grid;grid-template-columns: repeat(3, 1fr);gap:10px
+  }
+  @media (max-width: 540px){.stat-grid{grid-template-columns: 1fr}}
+  .stat{
+    background:var(--card-2);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;padding:12px
+  }
+  .stat .label{font-size:12px;color:var(--muted)}
+  .stat .value{font-size:20px;font-weight:800;margin-top:4px}
+  .stat.ok .value{color:var(--ok)}
+  .stat.warn .value{color:var(--warn)}
+  .stat.bad .value{color:var(--bad)}
+
+  .metrics-table{width:100%;border-collapse:separate;border-spacing:0 8px}
+  .metrics-table th, .metrics-table td{font-size:13px;padding:8px 10px;text-align:right}
+  .metrics-table th:first-child, .metrics-table td:first-child{text-align:left}
+  .metrics-table thead th{color:#9aa4b2;font-weight:600}
+  .metrics-table tbody tr{
+    background:var(--card-2);border:1px solid rgba(255,255,255,.06);
+  }
+  .metrics-table tbody tr td{
+    border-top:1px solid rgba(255,255,255,.06);
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .metrics-table tbody tr td:first-child{
+    border-left:1px solid rgba(255,255,255,.06);
+    border-top-left-radius:10px;border-bottom-left-radius:10px;
+  }
+  .metrics-table tbody tr td:last-child{
+    border-right:1px solid rgba(255,255,255,.06);
+    border-top-right-radius:10px;border-bottom-right-radius:10px;
+  }
+  .tag{
+    font-size:11px;color:#94a3b8;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.08);
+    padding:2px 8px;border-radius:999px;margin-left:6px
+  }
+  .toggle{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1
+  }
+  .toggle input{width:18px;height:18px}
+
+  /* Chart */
+  .chart-wrap{width:100%;height:420px}
+  .chart{
+    width:100%;height:100%;display:block
+  }
+  .axis text{fill:#9aa4b2;font-size:11px}
+  .grid line{stroke:rgba(255,255,255,.08)}
+  .axis line, .axis path{stroke:rgba(255,255,255,.14)}
+  .hint{font-size:12px;color:#9aa4b2}
+
+  details{
+    background:var(--card-2);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;padding:12px;margin-top:8px
+  }
+  summary{cursor:pointer;color:#cbd5e1;font-weight:600}
+  .row-wrap{display:flex;flex-wrap:wrap;gap:8px}
+  .small{font-size:12px;color:#a6b0bf}
+
+  .footnote{font-size:11px;color:#8b93a3;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="title">
+    <div class="logo">TS</div>
+    <div>
+      <h1>Forecasting Lab: Time-Series Demand Game</h1>
+      <p>Make a one-step-ahead forecast each day. Compete against classic models and learn why demand forecasting is hard.</p>
+    </div>
+  </div>
+</header>
+
+<main class="grid">
+  <section class="card">
+    <div class="card-header">
+      <h2>Demand Timeline</h2>
+      <div class="row">
+        <div id="dayBadge" class="pill">Day 1 / 60</div>
+        <div id="levelBadge" class="pill">Level 2 • Normal</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="legend" style="margin-bottom:10px">
+        <div class="key"><span class="swatch sw-actual"></span> Actual demand</div>
+        <div class="key"><span class="swatch sw-player"></span> Your forecast</div>
+        <div class="key"><span class="swatch sw-ma5"></span> MA(5)</div>
+        <div class="key"><span class="swatch sw-ma10"></span> MA(10)</div>
+        <div class="key"><span class="swatch sw-ses"></span> SES</div>
+        <div class="key"><span class="swatch sw-arima"></span> ARIMA</div>
+      </div>
+      <div class="chart-wrap">
+        <svg id="chart" class="chart" viewBox="0 0 900 420" preserveAspectRatio="none" aria-label="Demand line chart"></svg>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="toggle"><input id="togglePlayer" type="checkbox" checked /> Show your forecast</label>
+        <label class="toggle"><input id="toggleMA5" type="checkbox" checked /> Show MA(5)</label>
+        <label class="toggle"><input id="toggleMA10" type="checkbox" checked /> Show MA(10)</label>
+        <label class="toggle"><input id="toggleSES" type="checkbox" checked /> Show SES</label>
+        <label class="toggle"><input id="toggleARIMA" type="checkbox" checked /> Show ARIMA</label>
+      </div>
+    </div>
+    <div class="card-header">
+      <h2>Make your forecast</h2>
+      <div class="small" id="nextLabel">Forecast for Day 11</div>
+    </div>
+    <div class="card-body">
+      <div class="controls">
+        <div class="row" style="flex:1">
+          <input id="guessInput" class="input" type="number" step="0.01" placeholder="Enter your forecast…" />
+          <button id="btnUseLast" class="btn-ghost btn" title="Use last actual value">Use last</button>
+          <button id="btnUseMA5" class="btn-ghost btn" title="Use MA(5)">Use MA(5)</button>
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button id="btnNext" class="btn" title="Advance one day">Next Day ▶</button>
+        </div>
+      </div>
+      <div class="split" style="margin-top:10px">
+        <div class="stat" id="lastActualBox">
+          <div class="label">Last actual (Day <span id="lastActualDay">10</span>)</div>
+          <div class="value" id="lastActualVal">—</div>
+        </div>
+        <div class="stat" id="lastErrorBox">
+          <div class="label">Your absolute error today</div>
+          <div class="value" id="lastAbsErr">—</div>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:10px">Tip: Try MA(5) or SES as a starting point, then adjust based on trend/seasonality.</div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <div class="card-header">
+      <h2>Results & Comparisons</h2>
+      <div class="row-wrap">
+        <span class="pill">Evaluated after each day</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="stat-grid">
+        <div class="stat" id="maeBox">
+          <div class="label">Your MAE</div>
+          <div class="value" id="maeVal">—</div>
+        </div>
+        <div class="stat" id="rmseBox">
+          <div class="label">Your RMSE</div>
+          <div class="value" id="rmseVal">—</div>
+        </div>
+        <div class="stat" id="mapeBox">
+          <div class="label">Your MAPE</div>
+          <div class="value" id="mapeVal">—</div>
+        </div>
+      </div>
+
+      <table class="metrics-table" style="margin-top:14px">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>MAE</th>
+            <th>RMSE</th>
+            <th>MAPE</th>
+          </tr>
+        </thead>
+        <tbody id="metricsBody">
+          <!-- rows injected -->
+        </tbody>
+      </table>
+
+      <details>
+        <summary>About the comparison models and hyperparameters</summary>
+        <div class="small" style="margin-top:8px">
+          • Moving Average (MA): window sizes of 5 and 10 days.<br/>
+          • Simple Exponential Smoothing (SES): smoothing factor α (0–1). Forecast is next-day = current smoothed level L_t, with L_t = α·y_t + (1−α)·L_{t−1}.<br/>
+          • ARIMA(p,d,q): we expose p (autoregressive order) and d (difference order). For learning simplicity here we set q=0 and fit AR(p) on the d-th differenced series via least squares at each step. One-step forecast is inverted back to the original scale. Defaults: p=1, d=1.
+        </div>
+      </details>
+    </div>
+
+    <div class="card-header">
+      <h2>Settings</h2>
+      <div class="row">
+        <button id="btnNew" class="btn-secondary btn">Start New Game</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row" style="gap:10px;flex-wrap:wrap">
+        <div style="flex:1 1 140px">
+          <label class="small">Game duration (days)</label>
+          <input id="durationInput" class="input" type="number" min="10" max="365" value="60"/>
+        </div>
+        <div style="flex:1 1 140px">
+          <label class="small">Initial revealed days</label>
+          <input id="initDaysInput" class="input" type="number" min="5" max="30" value="10"/>
+        </div>
+        <div style="flex:1 1 220px">
+          <label class="small">Random seed (optional)</label>
+          <input id="seedInput" class="input" type="number" placeholder="e.g., 12345"/>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="small">Difficulty level</label>
+        <div class="row" style="margin-top:6px">
+          <label class="toggle"><input type="radio" name="level" value="1"/> Level 1: Constant</label>
+          <label class="toggle"><input type="radio" name="level" value="2" checked/> Level 2: Normal</label>
+          <label class="toggle"><input type="radio" name="level" value="3"/> Level 3: Non-stationary</label>
+        </div>
+      </div>
+
+      <div id="level1Opts" style="margin-top:10px; display:none">
+        <div class="row">
+          <div style="flex:1">
+            <label class="small">Constant value</label>
+            <input id="lvl1Const" class="input" type="number" step="0.01" value="100"/>
+          </div>
+        </div>
+      </div>
+
+      <div id="level2Opts" style="margin-top:10px;">
+        <div class="split">
+          <div>
+            <label class="small">Normal mean (μ)</label>
+            <input id="lvl2Mu" class="input" type="number" step="0.1" value="100"/>
+          </div>
+          <div>
+            <label class="small">Variance (σ²)</label>
+            <input id="lvl2Var" class="input" type="number" step="0.1" value="100"/>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="toggle"><input id="clipNonNeg" type="checkbox" checked/> Clip to non-negative demand</label>
+        </div>
+      </div>
+
+      <div id="level3Opts" style="margin-top:10px; display:none">
+        <div class="split">
+          <div>
+            <label class="small">Base level</label>
+            <input id="lvl3Base" class="input" type="number" step="0.1" value="50"/>
+          </div>
+          <div>
+            <label class="small">Drift per day</label>
+            <input id="lvl3Drift" class="input" type="number" step="0.01" value="0.3"/>
+          </div>
+        </div>
+        <div class="split" style="margin-top:6px">
+          <div>
+            <label class="small">Random-walk σ</label>
+            <input id="lvl3RwSigma" class="input" type="number" step="0.01" value="0.5"/>
+          </div>
+          <div>
+            <label class="small">Noise σ₀</label>
+            <input id="lvl3Noise0" class="input" type="number" step="0.1" value="3"/>
+          </div>
+        </div>
+        <div class="split" style="margin-top:6px">
+          <div>
+            <label class="small">Season amplitude</label>
+            <input id="lvl3Amp" class="input" type="number" step="0.1" value="10"/>
+          </div>
+          <div>
+            <label class="small">Season period</label>
+            <input id="lvl3Period" class="input" type="number" step="1" value="20"/>
+          </div>
+        </div>
+        <div class="split" style="margin-top:6px">
+          <div>
+            <label class="small">Noise growth/day</label>
+            <input id="lvl3NoiseGrow" class="input" type="number" step="0.001" value="0.05"/>
+          </div>
+          <div class="row" style="align-items:end">
+            <label class="toggle"><input id="lvl3Clip" type="checkbox" checked/> Clip to non-negative</label>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div class="row">
+          <div style="flex:1">
+            <label class="small">SES α (0–1)</label>
+            <input id="sesAlpha" class="input" type="number" min="0" max="1" step="0.01" value="0.3"/>
+          </div>
+          <div style="flex:1">
+            <label class="small">ARIMA p (1–3)</label>
+            <input id="arimaP" class="input" type="number" min="1" max="3" step="1" value="1"/>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div style="flex:1">
+            <label class="small">ARIMA d (0–2)</label>
+            <input id="arimaD" class="input" type="number" min="0" max="2" step="1" value="1"/>
+          </div>
+          <div style="flex:1;align-self:flex-end">
+            <div class="small">q is fixed to 0 in this game for clarity.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footnote">
+        Metrics: MAE = mean absolute error, RMSE = root mean square error, MAPE = mean absolute percentage error (safe denominator to avoid divide-by-zero).
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script>
+/* ========= Utilities ========= */
+const fmt = (x) => (x==null || Number.isNaN(x) ? '—' : (Math.abs(x) >= 1000 ? x.toFixed(0) : x.toFixed(2)));
+const clamp0 = (x) => Math.max(0, x);
+const mapeEps = 1e-8;
+
+/* Pseudorandom generator (Mulberry32) + Box-Muller normal */
+function mulberry32(seed){
+  let t = seed >>> 0;
+  return function(){
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ t >>> 15, 1 | t);
+    r ^= r + Math.imul(r ^ r >>> 7, 61 | r);
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  }
+}
+function makeRNG(seedMaybe){
+  let seed = seedMaybe != null && !Number.isNaN(+seedMaybe) ? (+seedMaybe) : Math.floor(Math.random()*1e9);
+  return { rand: mulberry32(seed), seed };
+}
+function randn(rng){ // standard normal via Box–Muller
+  let u = 0, v = 0;
+  while(u === 0) u = rng.rand();
+  while(v === 0) v = rng.rand();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+/* ========= Demand Generators ========= */
+class ConstantGen {
+  constructor(value=100, clip=true){ this.value = value; this.clip = clip; }
+  next(t){ return this.clip ? clamp0(this.value) : this.value; }
+}
+class NormalGen {
+  constructor(mu=100, variance=100, rng, clip=true){
+    this.mu = mu; this.sigma = Math.sqrt(Math.max(0, variance)); this.rng = rng; this.clip = clip;
+  }
+  next(t){
+    const v = this.mu + this.sigma * randn(this.rng);
+    return this.clip ? clamp0(v) : v;
+  }
+}
+class NonStationaryGen {
+  constructor(opts, rng){
+    this.base = +opts.base || 50;
+    this.drift = +opts.drift || 0.3;
+    this.rwSigma = +opts.rwSigma || 0.5;
+    this.noise0 = +opts.noise0 || 3;
+    this.noiseGrow = +opts.noiseGrow || 0.05;
+    this.amp = +opts.amp || 10;
+    this.period = Math.max(2, Math.round(+opts.period || 20));
+    this.clip = !!opts.clip;
+    this.rng = rng;
+    this.s = this.base + (this.noise0 * randn(this.rng));
+    this.phase = 2*Math.PI * this.rng.rand();
+    this.t = 0;
+  }
+  next(t){
+    this.t += 1;
+    // state update: random walk with drift
+    this.s = this.s + this.drift + this.rwSigma * randn(this.rng);
+    const season = this.amp * Math.sin(2*Math.PI * (this.t) / this.period + this.phase);
+    const sigma = Math.max(0, this.noise0 + this.noiseGrow * this.t);
+    const eps = sigma * randn(this.rng);
+    const v = this.s + season + eps;
+    return this.clip ? clamp0(v) : v;
+  }
+}
+
+/* ========= Forecasting models ========= */
+// Moving average on last k actuals; if not enough data, use mean of available.
+function forecastMA(actuals, k){
+  const n = actuals.length;
+  if(n===0) return undefined;
+  const m = Math.min(k, n);
+  const slice = actuals.slice(n - m);
+  const sum = slice.reduce((a,b)=>a+b,0);
+  const f = sum / m;
+  return clamp0(f);
+}
+
+// Simple Exponential Smoothing as a class to keep level
+class SES {
+  constructor(alpha=0.3){
+    this.alpha = Math.min(1, Math.max(0, +alpha || 0.3));
+    this.level = null; // L_t
+    this.initialized = false;
+  }
+  // call this after observing actual y_t to update level
+  update(y){
+    if(!this.initialized){
+      this.level = y;
+      this.initialized = true;
+    } else {
+      this.level = this.alpha * y + (1 - this.alpha) * this.level;
+    }
+  }
+  // one-step-ahead forecast for t+1 at time t is L_t
+  forecast(){
+    if(!this.initialized) return undefined;
+    return clamp0(this.level);
+  }
+}
+
+// OLS-based AR on differenced series (ARIMA(p,d,0))
+function differenceSeries(y, d){
+  if(d<=0) return y.slice();
+  let x = y.slice();
+  for(let k=0; k<d; k++){
+    const nx = [];
+    for(let i=1; i<x.length; i++){
+      nx.push(x[i] - x[i-1]);
+    }
+    x = nx;
+    if(x.length===0) break;
+  }
+  return x;
+}
+// Build design matrix X (rows) and y target for AR(p) on x
+function buildARDesign(x, p){
+  const rows = [];
+  const y = [];
+  for(let t=p; t<x.length; t++){
+    const row = [];
+    for(let j=1; j<=p; j++){
+      row.push(x[t - j]);
+    }
+    rows.push(row);
+    y.push(x[t]);
+  }
+  return {X: rows, y};
+}
+// Matrix utilities for tiny p (<=3)
+function transpose(A){
+  const m=A.length, n=A[0].length;
+  const AT = Array.from({length:n}, _=>Array(m).fill(0));
+  for(let i=0;i<m;i++) for(let j=0;j<n;j++) AT[j][i]=A[i][j];
+  return AT;
+}
+function matMul(A,B){ // A: m x n, B: n x p
+  const m=A.length, n=A[0].length, p=B[0].length;
+  const C = Array.from({length:m}, _=>Array(p).fill(0));
+  for(let i=0;i<m;i++){
+    for(let k=0;k<n;k++){
+      const aik = A[i][k];
+      for(let j=0;j<p;j++){
+        C[i][j] += aik * B[k][j];
+      }
+    }
+  }
+  return C;
+}
+function invert2x2(M){
+  const [[a,b],[c,d]] = M;
+  const det = a*d - b*c;
+  if(Math.abs(det) < 1e-9) return null;
+  const invDet = 1/det;
+  return [[ d*invDet, -b*invDet],
+          [-c*invDet,  a*invDet]];
+}
+function invert3x3(m){
+  const [[a,b,c],[d,e,f],[g,h,i]] = m;
+  const A =   e*i - f*h;
+  const B = -(d*i - f*g);
+  const C =   d*h - e*g;
+  const D = -(b*i - c*h);
+  const E =   a*i - c*g;
+  const F = -(a*h - b*g);
+  const G =   b*f - c*e;
+  const H = -(a*f - c*d);
+  const I =   a*e - b*d;
+  const det = a*A + b*B + c*C;
+  if(Math.abs(det) < 1e-9) return null;
+  const invDet = 1/det;
+  return [
+    [A*invDet, D*invDet, G*invDet],
+    [B*invDet, E*invDet, H*invDet],
+    [C*invDet, F*invDet, I*invDet]
+  ];
+}
+function invertMatrix(M){
+  const n = M.length;
+  if(n===1){
+    const v = M[0][0]; if(Math.abs(v)<1e-9) return null;
+    return [[1/v]];
+  } else if(n===2){
+    return invert2x2(M);
+  } else if(n===3){
+    return invert3x3(M);
+  } else {
+    // Fallback: Gaussian elimination
+    const A = M.map(row=>row.slice());
+    const I = Array.from({length:n}, (_,i)=>Array.from({length:n},(__,j)=>i===j?1:0));
+    for(let i=0;i<n;i++){
+      // pivot
+      let maxR=i, maxV=Math.abs(A[i][i]);
+      for(let r=i+1;r<n;r++){
+        const v = Math.abs(A[r][i]); if(v>maxV){maxV=v; maxR=r;}
+      }
+      if(maxV < 1e-12) return null;
+      if(maxR!==i){ [A[i],A[maxR]]=[A[maxR],A[i]]; [I[i],I[maxR]]=[I[maxR],I[i]]; }
+      const piv = A[i][i];
+      for(let j=0;j<n;j++){ A[i][j]/=piv; I[i][j]/=piv; }
+      for(let r=0;r<n;r++){
+        if(r===i) continue;
+        const f = A[r][i];
+        for(let j=0;j<n;j++){ A[r][j]-=f*A[i][j]; I[r][j]-=f*I[i][j]; }
+      }
+    }
+    return I;
+  }
+}
+function solveOLS(X, y){ // returns beta vector length p
+  const n = X.length;
+  if(n===0) return null;
+  const p = X[0].length;
+  // Convert y to column matrix
+  const ycol = y.map(v=>[v]);
+  const XT = transpose(X);
+  const XTX = matMul(XT, X);         // p x p
+  const XTy = matMul(XT, ycol);      // p x 1
+  const XTXinv = invertMatrix(XTX);
+  if(!XTXinv) return null;
+  const beta = matMul(XTXinv, XTy);  // p x 1
+  return beta.map(b=>b[0]);
+}
+// One-step forecast using ARIMA(p,d,0) via OLS on differenced series
+function forecastARIMA_PD0(actuals, p=1, d=1){
+  p = Math.max(1, Math.min(3, Math.round(p)));
+  d = Math.max(0, Math.min(2, Math.round(d)));
+  const n = actuals.length;
+  if(n===0) return undefined;
+  // Build differenced series
+  const x = differenceSeries(actuals, d);
+  if(d>0 && x.length===0) return clamp0(actuals[n-1]); // not enough
+  if(x.length <= p){
+    // fallback: naive or MA
+    const fallback = actuals[n-1];
+    return clamp0(fallback);
+  }
+  const {X, y} = buildARDesign(x, p);
+  const phi = solveOLS(X, y);
+  if(!phi){
+    return clamp0(actuals[n-1]);
+  }
+  // Predict next x_{m} where m = x.length
+  const lastLag = [];
+  for(let j=1;j<=p;j++){
+    lastLag.push(x[x.length - j]);
+  }
+  let x_pred = 0;
+  for(let j=0;j<p;j++) x_pred += phi[j] * lastLag[j];
+
+  // Invert differencing for one-step ahead
+  const y_last = actuals[n-1];
+  if(d===0){
+    return clamp0(x_pred);
+  } else if(d===1){
+    return clamp0(y_last + x_pred);
+  } else {
+    // d === 2
+    if(n<2) return clamp0(y_last);
+    const d1_last = actuals[n-1] - actuals[n-2];
+    const delta_next = d1_last + x_pred; // Δy_{t+1} = Δy_t + Δ^2 y_{t+1}
+    return clamp0(y_last + delta_next);
+  }
+}
+
+/* ========= Metrics ========= */
+function computeMetrics(actuals, preds){
+  let n = actuals.length;
+  let cnt = 0, absSum = 0, sqSum = 0, mapeSum = 0;
+  for(let i=0;i<n;i++){
+    const a = actuals[i];
+    const p = preds[i];
+    if(a==null || p==null || Number.isNaN(a) || Number.isNaN(p)) continue;
+    const e = p - a;
+    const ae = Math.abs(e);
+    absSum += ae;
+    sqSum += e*e;
+    mapeSum += ae / Math.max(mapeEps, Math.abs(a));
+    cnt++;
+  }
+  if(cnt===0) return {MAE:null, RMSE:null, MAPE:null, N:0};
+  return {
+    MAE: absSum / cnt,
+    RMSE: Math.sqrt(sqSum / cnt),
+    MAPE: 100 * (mapeSum / cnt),
+    N: cnt
+  };
+}
+
+/* ========= Chart ========= */
+function buildPath(xs, ys){
+  let d = "";
+  let started=false;
+  for(let i=0;i<xs.length;i++){
+    const x = xs[i], y = ys[i];
+    if(y==null || Number.isNaN(y)) { started=false; continue; }
+    if(!started){ d += `M ${x} ${y}`; started=true; }
+    else{ d += ` L ${x} ${y}`; }
+  }
+  return d;
+}
+function renderChart(container, data){
+  const svg = container;
+  const W = 900, H = 420;
+  const m = {l:54, r:20, t:16, b:44};
+  const innerW = W - m.l - m.r;
+  const innerH = H - m.t - m.b;
+
+  const days = data.days; // [1..currentDay]
+  const n = days.length;
+  // Determine y domain from actuals + visible preds
+  let ymin = Infinity, ymax = -Infinity;
+  function scan(arr){
+    for(let i=0;i<arr.length;i++){
+      const v = arr[i];
+      if(v==null || Number.isNaN(v)) continue;
+      if(v<ymin) ymin=v;
+      if(v>ymax) ymax=v;
+    }
+  }
+  scan(data.actuals);
+  if(data.showPlayer) scan(data.playerPreds);
+  if(data.showMA5) scan(data.ma5Preds);
+  if(data.showMA10) scan(data.ma10Preds);
+  if(data.showSES) scan(data.sesPreds);
+  if(data.showARIMA) scan(data.arimaPreds);
+  if(!Number.isFinite(ymin) || !Number.isFinite(ymax)){
+    ymin = 0; ymax = 1;
+  }
+  if(ymax === ymin){ ymax = ymin + 1; }
+  const pad = (ymax - ymin) * 0.1;
+  ymin -= pad; ymax += pad; if(ymin<0) ymin=0;
+
+  const xScale = (d) => m.l + ( (d - 1) / Math.max(1, (days[days.length-1] - 1)) ) * innerW;
+  const yScale = (v) => m.t + innerH - ( (v - ymin) / (ymax - ymin) ) * innerH;
+
+  // Ticks
+  const yTicks = 5;
+  const yLines = [];
+  for(let i=0;i<=yTicks;i++){
+    const v = ymin + (i / yTicks) * (ymax - ymin);
+    yLines.push({v, y: yScale(v)});
+  }
+  const xTicks = Math.min(10, days[days.length-1]);
+  const xLines = [];
+  for(let i=0;i<=xTicks;i++){
+    const d = 1 + Math.round(i / xTicks * (days[days.length-1] - 1));
+    xLines.push({d, x: xScale(d)});
+  }
+
+  // Build coordinates
+  const xs = days.map(d=>xScale(d));
+  const ysActual = data.actuals.map(v=>yScale(v));
+  const ysPlayer = data.playerPreds.map(v=>v==null?null:yScale(v));
+  const ysMA5 = data.ma5Preds.map(v=>v==null?null:yScale(v));
+  const ysMA10 = data.ma10Preds.map(v=>v==null?null:yScale(v));
+  const ysSES = data.sesPreds.map(v=>v==null?null:yScale(v));
+  const ysARIMA = data.arimaPreds.map(v=>v==null?null:yScale(v));
+
+  // SVG content
+  let html = '';
+  // Grid
+  html += `<g class="grid">`;
+  for(const yt of yLines){
+    html += `<line x1="${m.l}" y1="${yt.y}" x2="${W - m.r}" y2="${yt.y}" />`;
+  }
+  for(const xt of xLines){
+    html += `<line x1="${xt.x}" y1="${m.t}" x2="${xt.x}" y2="${H - m.b}" />`;
+  }
+  html += `</g>`;
+  // Axes
+  html += `<g class="axis">`;
+  // Y labels
+  for(const yt of yLines){
+    html += `<text x="${m.l - 8}" y="${yt.y}" text-anchor="end" alignment-baseline="middle">${fmt(yt.v)}</text>`;
+  }
+  // X labels
+  for(const xt of xLines){
+    html += `<text x="${xt.x}" y="${H - m.b + 18}" text-anchor="middle">${xt.d}</text>`;
+  }
+  html += `</g>`;
+
+  // Series
+  // Actual
+  const pathActual = buildPath(xs, ysActual);
+  html += `<path d="${pathActual}" fill="none" stroke="#3b82f6" stroke-width="2.5" />`;
+  // Points for actual
+  for(let i=0;i<xs.length;i++){
+    const cx = xs[i], cy = ysActual[i];
+    html += `<circle cx="${cx}" cy="${cy}" r="2.4" fill="#3b82f6"/>`;
+  }
+
+  // Player
+  if(data.showPlayer){
+    const pathPl = buildPath(xs, ysPlayer);
+    html += `<path d="${pathPl}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3" />`;
+  }
+  // MA5
+  if(data.showMA5){
+    const p = buildPath(xs, ysMA5);
+    html += `<path d="${p}" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="6 4" />`;
+  }
+  // MA10
+  if(data.showMA10){
+    const p = buildPath(xs, ysMA10);
+    html += `<path d="${p}" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-dasharray="3 3" />`;
+  }
+  // SES
+  if(data.showSES){
+    const p = buildPath(xs, ysSES);
+    html += `<path d="${p}" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="8 4" />`;
+  }
+  // ARIMA
+  if(data.showARIMA){
+    const p = buildPath(xs, ysARIMA);
+    html += `<path d="${p}" fill="none" stroke="#a855f7" stroke-width="2" stroke-dasharray="2 3" />`;
+  }
+
+  svg.innerHTML = html;
+}
+
+/* ========= Game State ========= */
+const state = {
+  config: {
+    duration: 60,
+    initialDays: 10,
+    level: 2,
+    levelParams: {
+      l1: { value: 100, clip:true },
+      l2: { mu: 100, variance: 100, clip:true },
+      l3: { base:50, drift:0.3, rwSigma:0.5, noise0:3, noiseGrow:0.05, amp:10, period:20, clip:true }
+    },
+    sesAlpha: 0.3,
+    arimaP: 1,
+    arimaD: 1
+  },
+  rng: null,
+  gen: null,
+  day: 0,
+  actuals: [],
+  playerPreds: [],
+  ma5Preds: [],
+  ma10Preds: [],
+  sesPreds: [],
+  arimaPreds: [],
+  playerGuesses: [],
+  sesModel: null,
+  gameOver: false
+};
+
+/* ========= UI Elements ========= */
+const chartEl = document.getElementById('chart');
+const dayBadge = document.getElementById('dayBadge');
+const levelBadge = document.getElementById('levelBadge');
+const nextLabel = document.getElementById('nextLabel');
+const lastActualDayEl = document.getElementById('lastActualDay');
+const lastActualValEl = document.getElementById('lastActualVal');
+const lastAbsErrEl = document.getElementById('lastAbsErr');
+const btnNext = document.getElementById('btnNext');
+const guessInput = document.getElementById('guessInput');
+const btnUseLast = document.getElementById('btnUseLast');
+const btnUseMA5 = document.getElementById('btnUseMA5');
+
+const maeVal = document.getElementById('maeVal');
+const rmseVal = document.getElementById('rmseVal');
+const mapeVal = document.getElementById('mapeVal');
+const metricsBody = document.getElementById('metricsBody');
+
+const durationInput = document.getElementById('durationInput');
+const initDaysInput = document.getElementById('initDaysInput');
+const seedInput = document.getElementById('seedInput');
+const btnNew = document.getElementById('btnNew');
+
+const lvlRadios = Array.from(document.querySelectorAll('input[name="level"]'));
+const level1Opts = document.getElementById('level1Opts');
+const level2Opts = document.getElementById('level2Opts');
+const level3Opts = document.getElementById('level3Opts');
+
+const lvl1Const = document.getElementById('lvl1Const');
+const lvl2Mu = document.getElementById('lvl2Mu');
+const lvl2Var = document.getElementById('lvl2Var');
+const clipNonNeg = document.getElementById('clipNonNeg');
+
+const lvl3Base = document.getElementById('lvl3Base');
+const lvl3Drift = document.getElementById('lvl3Drift');
+const lvl3RwSigma = document.getElementById('lvl3RwSigma');
+const lvl3Noise0 = document.getElementById('lvl3Noise0');
+const lvl3NoiseGrow = document.getElementById('lvl3NoiseGrow');
+const lvl3Amp = document.getElementById('lvl3Amp');
+const lvl3Period = document.getElementById('lvl3Period');
+const lvl3Clip = document.getElementById('lvl3Clip');
+
+const sesAlpha = document.getElementById('sesAlpha');
+const arimaP = document.getElementById('arimaP');
+const arimaD = document.getElementById('arimaD');
+
+const togglePlayer = document.getElementById('togglePlayer');
+const toggleMA5 = document.getElementById('toggleMA5');
+const toggleMA10 = document.getElementById('toggleMA10');
+const toggleSES = document.getElementById('toggleSES');
+const toggleARIMA = document.getElementById('toggleARIMA');
+
+/* ========= UI Bindings ========= */
+lvlRadios.forEach(r=>{
+  r.addEventListener('change', ()=>{
+    const lvl = +document.querySelector('input[name="level"]:checked').value;
+    showLevelOpts(lvl);
+  });
+});
+btnUseLast.addEventListener('click', ()=>{
+  const last = state.actuals[state.actuals.length-1];
+  if(last!=null) guessInput.value = (+last).toFixed(2);
+});
+btnUseMA5.addEventListener('click', ()=>{
+  const f = forecastMA(state.actuals, 5);
+  if(f!=null) guessInput.value = (+f).toFixed(2);
+});
+btnNext.addEventListener('click', ()=> advanceOneDay());
+guessInput.addEventListener('keydown', (e)=>{
+  if(e.key==='Enter'){ e.preventDefault(); advanceOneDay(); }
+});
+btnNew.addEventListener('click', ()=> startNewGame());
+
+togglePlayer.addEventListener('change', ()=> updateChart());
+toggleMA5.addEventListener('change', ()=> updateChart());
+toggleMA10.addEventListener('change', ()=> updateChart());
+toggleSES.addEventListener('change', ()=> updateChart());
+toggleARIMA.addEventListener('change', ()=> updateChart());
+
+/* ========= Game Logic ========= */
+function showLevelOpts(level){
+  level1Opts.style.display = (level===1)?'block':'none';
+  level2Opts.style.display = (level===2)?'block':'none';
+  level3Opts.style.display = (level===3)?'block':'none';
+}
+
+function buildGenerator(){
+  const lvl = state.config.level;
+  if(lvl===1){
+    return new ConstantGen(+state.config.levelParams.l1.value, !!state.config.levelParams.l1.clip);
+  } else if(lvl===2){
+    const p = state.config.levelParams.l2;
+    return new NormalGen(+p.mu, +p.variance, state.rng, !!p.clip);
+  } else {
+    return new NonStationaryGen(state.config.levelParams.l3, state.rng);
+  }
+}
+
+function applySettingsFromUI(){
+  state.config.duration = Math.max(10, Math.min(365, +durationInput.value || 60));
+  state.config.initialDays = Math.max(5, Math.min(30, +initDaysInput.value || 10));
+  state.config.level = +document.querySelector('input[name="level"]:checked').value;
+
+  state.config.levelParams.l1.value = +lvl1Const.value || 100;
+  state.config.levelParams.l1.clip = true;
+
+  state.config.levelParams.l2.mu = +lvl2Mu.value || 100;
+  state.config.levelParams.l2.variance = Math.max(0, +lvl2Var.value || 100);
+  state.config.levelParams.l2.clip = !!clipNonNeg.checked;
+
+  state.config.levelParams.l3.base = +lvl3Base.value || 50;
+  state.config.levelParams.l3.drift = +lvl3Drift.value || 0.3;
+  state.config.levelParams.l3.rwSigma = +lvl3RwSigma.value || 0.5;
+  state.config.levelParams.l3.noise0 = +lvl3Noise0.value || 3;
+  state.config.levelParams.l3.noiseGrow = +lvl3NoiseGrow.value || 0.05;
+  state.config.levelParams.l3.amp = +lvl3Amp.value || 10;
+  state.config.levelParams.l3.period = Math.max(2, Math.round(+lvl3Period.value || 20));
+  state.config.levelParams.l3.clip = !!lvl3Clip.checked;
+
+  state.config.sesAlpha = Math.min(1, Math.max(0, +sesAlpha.value || 0.3));
+  state.config.arimaP = Math.max(1, Math.min(3, Math.round(+arimaP.value || 1)));
+  state.config.arimaD = Math.max(0, Math.min(2, Math.round(+arimaD.value || 1)));
+}
+
+function labelForLevel(level){
+  if(level===1) return "Level 1 • Constant";
+  if(level===2) return "Level 2 • Normal";
+  return "Level 3 • Non-stationary";
+}
+
+function startNewGame(){
+  applySettingsFromUI();
+  const seedVal = seedInput.value !== '' ? +seedInput.value : null;
+  state.rng = makeRNG(seedVal);
+  state.gen = buildGenerator();
+  state.day = 0;
+  state.actuals = [];
+  state.playerPreds = [];
+  state.ma5Preds = [];
+  state.ma10Preds = [];
+  state.sesPreds = [];
+  state.arimaPreds = [];
+  state.playerGuesses = [];
+  state.sesModel = new SES(state.config.sesAlpha);
+  state.gameOver = false;
+
+  // Generate initial revealed days
+  for(let i=0;i<state.config.initialDays;i++){
+    const v = state.gen.next(i+1);
+    state.actuals.push(v);
+    state.day += 1;
+    state.sesModel.update(v);
+  }
+
+  // Precompute labels/UI
+  updateBadges();
+  // Prefill guess with MA(5) or last value
+  const defaultGuess = forecastMA(state.actuals, 5) ?? state.actuals[state.actuals.length-1] ?? 0;
+  guessInput.value = (+defaultGuess).toFixed(2);
+  updateTodayLabels();
+  updateAllModelForecasts(); // compute forecasts for the next day at t=initialDays
+  updateMetrics();
+  updateChart();
+  btnNext.disabled = false;
+}
+
+function updateBadges(){
+  dayBadge.textContent = `Day ${state.day} / ${state.config.duration}`;
+  levelBadge.textContent = labelForLevel(state.config.level);
+}
+
+function updateTodayLabels(){
+  const nextDay = state.day + 1;
+  nextLabel.textContent = `Forecast for Day ${nextDay}`;
+  lastActualDayEl.textContent = state.day;
+  lastActualValEl.textContent = fmt(state.actuals[state.actuals.length-1]);
+  lastAbsErrEl.textContent = '—';
+  // Visual status styles reset
+  document.getElementById('lastErrorBox').classList.remove('ok','warn','bad');
+}
+
+function advanceOneDay(){
+  if(state.gameOver) return;
+  const g = +guessInput.value;
+  if(Number.isNaN(g)){
+    alert('Please enter your forecast (a number).');
+    return;
+  }
+  const currentDay = state.day; // t
+  const nextDay = currentDay + 1; // t+1
+
+  // Compute model forecasts for day t+1 using data up to t
+  const playerForecast = g;
+  const ma5f = forecastMA(state.actuals, 5);
+  const ma10f = forecastMA(state.actuals, 10);
+  const sesf = state.sesModel.forecast();
+  const arimaf = forecastARIMA_PD0(state.actuals, state.config.arimaP, state.config.arimaD);
+
+  // Store forecasts at index nextDay-1 (0-based aligned to day)
+  state.playerPreds[nextDay-1] = clamp0(playerForecast);
+  state.ma5Preds[nextDay-1] = ma5f;
+  state.ma10Preds[nextDay-1] = ma10f;
+  state.sesPreds[nextDay-1] = sesf;
+  state.arimaPreds[nextDay-1] = arimaf;
+  state.playerGuesses[nextDay-1] = clamp0(playerForecast);
+
+  // Generate actual for next day
+  const actualNext = state.gen.next(nextDay);
+  state.actuals.push(actualNext);
+  state.day = nextDay;
+
+  // Update SES with realized value
+  state.sesModel.update(actualNext);
+
+  // Immediate absolute error for the player
+  const absErr = Math.abs(playerForecast - actualNext);
+  lastAbsErrEl.textContent = fmt(absErr);
+  const errBox = document.getElementById('lastErrorBox');
+  errBox.classList.remove('ok','warn','bad');
+  if(absErr <= (0.05*(Math.abs(actualNext)+1))) errBox.classList.add('ok');
+  else if(absErr <= (0.15*(Math.abs(actualNext)+1))) errBox.classList.add('warn');
+  else errBox.classList.add('bad');
+
+  // Update labels/UI
+  updateBadges();
+  updateTodayLabels();
+  updateAllModelForecasts(); // compute forecasts for the following day (t+2) to show lines extending
+  updateMetrics();
+  updateChart();
+
+  // If game over
+  if(state.day >= state.config.duration){
+    state.gameOver = true;
+    btnNext.disabled = true;
+    nextLabel.textContent = 'Game complete! Review your results.';
+    // Optionally scroll metrics into view
+  } else {
+    // prefill next guess with MA(5) or last actual
+    const defaultGuess = forecastMA(state.actuals, 5) ?? state.actuals[state.actuals.length-1];
+    guessInput.value = (+defaultGuess).toFixed(2);
+  }
+}
+
+function updateAllModelForecasts(){
+  // Compute forecasts for the NEXT day from current state to draw them on the chart as lines up to day+1
+  const t = state.day;
+  const n = state.actuals.length; // equals t
+  const nextIdx = t; // zero-based index = nextDay-1
+  // Player forecast unknown until user enters next; keep undefined
+  state.playerPreds[nextIdx] = state.playerPreds[nextIdx] ?? null;
+
+  // Baselines:
+  state.ma5Preds[nextIdx] = forecastMA(state.actuals, 5);
+  state.ma10Preds[nextIdx] = forecastMA(state.actuals, 10);
+  state.sesPreds[nextIdx] = state.sesModel.forecast();
+  state.arimaPreds[nextIdx] = forecastARIMA_PD0(state.actuals, state.config.arimaP, state.config.arimaD);
+}
+
+function updateMetrics(){
+  // Player metrics: compare actuals vs playerPreds at indices where predictions exist
+  const my = computeMetrics(state.actuals, state.playerPreds);
+  maeVal.textContent = fmt(my.MAE);
+  rmseVal.textContent = fmt(my.RMSE);
+  mapeVal.textContent = my.MAPE==null ? '—' : `${fmt(my.MAPE)}%`;
+
+  // Comparison rows based on toggles
+  const rows = [];
+  function addRow(label, preds, enabled, tag){
+    if(!enabled) return;
+    const m = computeMetrics(state.actuals, preds);
+    rows.push({
+      label: label + (tag?` <span class="tag">${tag}</span>`:''),
+      MAE: m.MAE, RMSE: m.RMSE, MAPE: m.MAPE
+    });
+  }
+  addRow('MA(5)', state.ma5Preds, toggleMA5.checked, 'k=5');
+  addRow('MA(10)', state.ma10Preds, toggleMA10.checked, 'k=10');
+  addRow('SES', state.sesPreds, toggleSES.checked, `α=${(+state.config.sesAlpha).toFixed(2)}`);
+  addRow(`ARIMA(p=${state.config.arimaP}, d=${state.config.arimaD}, q=0)`, state.arimaPreds, toggleARIMA.checked);
+
+  // Render table
+  let html = '';
+  for(const r of rows){
+    html += `<tr>
+      <td style="text-align:left">${r.label}</td>
+      <td>${fmt(r.MAE)}</td>
+      <td>${fmt(r.RMSE)}</td>
+      <td>${r.MAPE==null?'—':fmt(r.MAPE)+'%'}</td>
+    </tr>`;
+  }
+  metricsBody.innerHTML = html;
+
+  // Color-code top rows loosely vs your MAE
+  const myMAE = my.MAE ?? Infinity;
+  const maeBox = document.getElementById('maeBox');
+  maeBox.classList.remove('ok','warn','bad');
+  if(myMAE < Infinity){
+    if(myMAE <= 0.1*(Math.max(1, average(state.actuals)))) maeBox.classList.add('ok');
+    else if(myMAE <= 0.25*(Math.max(1, average(state.actuals)))) maeBox.classList.add('warn');
+    else maeBox.classList.add('bad');
+  }
+}
+
+function average(arr){
+  if(!arr.length) return 0;
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+
+function updateChart(){
+  const days = Array.from({length: state.actuals.length}, (_,i)=>i+1);
+  renderChart(chartEl, {
+    days,
+    actuals: state.actuals,
+    playerPreds: togglePlayer.checked ? state.playerPreds : state.playerPreds.map(_=>null),
+    ma5Preds: toggleMA5.checked ? state.ma5Preds : state.ma5Preds.map(_=>null),
+    ma10Preds: toggleMA10.checked ? state.ma10Preds : state.ma10Preds.map(_=>null),
+    sesPreds: toggleSES.checked ? state.sesPreds : state.sesPreds.map(_=>null),
+    arimaPreds: toggleARIMA.checked ? state.arimaPreds : state.arimaPreds.map(_=>null),
+    showPlayer: togglePlayer.checked,
+    showMA5: toggleMA5.checked,
+    showMA10: toggleMA10.checked,
+    showSES: toggleSES.checked,
+    showARIMA: toggleARIMA.checked
+  });
+}
+
+/* ========= Boot ========= */
+showLevelOpts(state.config.level);
+startNewGame();
+</script>
+</body>
+</html>
