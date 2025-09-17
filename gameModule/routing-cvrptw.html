@@ -1,0 +1,567 @@
+<!-- File: game3.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title> VRP (Game 3: Capacity + Time Windows)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --panel:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --accent:#3b82f6;
+      --accent-2:#22c55e;
+      --danger:#ef4444;
+      --warning:#f59e0b;
+      --border:#e5e7eb;
+      --shadow: 0 6px 20px rgba(2,6,23,0.08);
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    body{ margin:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial }
+    header{ background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; padding:18px 16px; position:sticky; top:0; z-index:10; box-shadow:var(--shadow) }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; max-width:1200px; margin:0 auto }
+    .brand{ display:flex; gap:12px; align-items:center }
+    .logo{ width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.15); display:grid; place-items:center; font-weight:800 }
+    .kicker{ font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:#e2e8f0; opacity:.9 }
+    .title{ font-weight:800; font-size:18px }
+    nav a{ color:#fff; text-decoration:none; padding:8px 12px; border-radius:10px }
+    nav a:hover{ background:rgba(255,255,255,0.15) }
+    nav .active{ background:rgba(255,255,255,0.2); font-weight:700 }
+
+    main{ max-width:1200px; margin:24px auto; padding:0 16px }
+    .layout{ display:grid; gap:16px; grid-template-columns: 1fr 1.3fr }
+    @media (max-width: 1100px){ .layout{ grid-template-columns: 1fr } }
+
+    .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow) }
+    .card .head{ padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:12px }
+    .card .head h2{ margin:0; font-size:16px; font-weight:800 }
+    .card .body{ padding:14px 16px }
+    .toolbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+    .btn{ appearance:none; border:1px solid var(--border); background:#fff; color:var(--text); padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:700 }
+    .btn.primary{ background:var(--accent); color:#fff; border-color:transparent }
+    .btn.success{ background:var(--accent-2); color:#fff; border-color:transparent }
+    .btn.danger{ background:var(--danger); color:#fff; border-color:transparent }
+    .hint{ padding:10px 12px; background:#f1f5f9; border:1px solid var(--border); border-radius:10px; color:#334155; font-size:14px }
+    .msg{ padding:10px 12px; border-radius:10px; font-weight:700; margin-top:8px; display:none }
+    .msg.ok{ display:block; background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0 }
+    .msg.err{ display:block; background:#fef2f2; color:#991b1b; border:1px solid #fecaca }
+    .msg.warn{ display:block; background:#fff7ed; color:#9a3412; border:1px solid #fed7aa }
+
+    .table-wrap{ max-height:340px; overflow:auto; border:1px solid var(--border); border-radius:12px }
+    table{ width:100%; border-collapse:separate; border-spacing:0 }
+    thead th{ position:sticky; top:0; background:#f8fafc; border-bottom:1px solid var(--border); font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; padding:10px }
+    tbody td{ padding:10px; border-bottom:1px dashed var(--border) }
+    tr.assigned{ color:#94a3b8 }
+    .select{ padding:7px 10px; border:1px solid var(--border); border-radius:10px; background:#fff }
+
+    .map-wrap{ height:520px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background: radial-gradient(1200px 400px at 20% -30%, #ffffff 0%, #f0f9ff 45%, #eff6ff 100%) }
+    canvas{ width:100%; height:100%; display:block }
+
+    .fleet{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top:12px }
+    .truck{ border:1px solid var(--border); border-radius:12px; background:#fff; overflow:hidden }
+    .truck .th{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; background:#f8fafc; border-bottom:1px solid var(--border) }
+    .truck .th .name{ font-weight:800 }
+    .truck .th .load{ font-size:13px; color:#334155 }
+    .truck .body{ padding:10px 12px }
+    .zone{ border:2px dashed #cbd5e1; border-radius:10px; min-height:120px; padding:6px; background:#f8fafc }
+    .zone.over{ border-color:var(--accent); background:#eef2ff }
+    .entry{ background:#fff; border:1px solid var(--border); border-radius:10px; padding:6px 8px; margin:6px 0; display:flex; justify-content:space-between; align-items:center; gap:8px; cursor:grab }
+    .entry .id{ font-weight:800; background:#dcfce7; color:#065f46; padding:2px 8px; border-radius:8px }
+    .entry .w{ font-size:12px; color:#0f172a; background:#f1f5f9; padding:2px 8px; border-radius:8px }
+    .entry .tw{ font-size:12px; color:#0f172a; background:#eef2ff; padding:2px 8px; border-radius:8px }
+    .entry button{ border:none; background:#fee2e2; color:#991b1b; border-radius:8px; padding:6px 8px; cursor:pointer; font-weight:700 }
+
+    .legend{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:13px; color:#64748b }
+    .dot{ width:10px; height:10px; border-radius:50% }
+
+    .stat{ background:#fff; border:1px solid var(--border); border-radius:10px; padding:6px 10px; font-weight:800 }
+    .schedule{ margin-top:10px; font-size:13px; color:#334155 }
+    .schedule .bad{ color:#b91c1c; font-weight:800 }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">VRP</div>
+        <div>
+          <div class="title">Vehicle Routing — Capacity + Time Windows</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="layout">
+      <!-- Left: Orders + Controls -->
+      <section class="card">
+        <div class="head">
+          <h2>Delivery Orders</h2>
+          <div class="toolbar">
+            <button class="btn" id="btnNew">Generate New Orders</button>
+            <label class="stat">Capacity/Truck: <input type="number" id="capacityInput" class="select" value="120" min="10" step="5" style="width:90px" /></label>
+            <span class="stat">Speed: 50 km/h</span>
+            <label class="stat">Assign to: 
+              <select id="assignTarget" class="select"></select>
+            </label>
+          </div>
+        </div>
+        <div class="body">
+          <p class="hint">Drag orders to trucks (or use the Assign dropdown). Feasibility requires both load and time windows to be satisfied. The truck day starts at 08:00. Waiting before a window opens is allowed; arriving after window end is a violation.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Location (x, y)</th>
+                  <th>Weight</th>
+                  <th>Time Window</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+          <div class="msg" id="msg"></div>
+          <div class="toolbar" style="margin-top:10px;">
+            <button class="btn primary" id="btnConfirm">Confirm & Check Feasibility</button>
+            <button class="btn" id="btnReset">Reset Assignments</button>
+          </div>
+          <div class="toolbar" style="margin-top:10px;">
+            <div class="stat">Total Distance: <span id="totalDistance">0.00</span> km</div>
+            <div class="stat">Trucks Used: <span id="trucksUsed">0</span></div>
+          </div>
+          <div class="schedule" id="schedule"></div>
+        </div>
+      </section>
+
+      <!-- Right: Map + Fleet -->
+      <section class="card">
+        <div class="head">
+          <h2>Map & Routing Plans</h2>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="body">
+          <div class="map-wrap"><canvas id="mapCanvas"></canvas></div>
+          <div class="toolbar" style="margin-top:10px;">
+            <button class="btn success" id="btnAddTruck">Add Truck</button>
+            <button class="btn" id="btnRemoveEmpty">Remove Empty Trucks</button>
+          </div>
+          <div class="fleet" id="fleet"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // ----------------------------
+    // Game 3: Data + State
+    // ----------------------------
+    const DEPOT = { x: 50, y: 50 };
+    const ORDERS_COUNT = 15;
+    const WEIGHT_RANGE = { min: 5, max: 35 };
+    const COORD_RANGE = { min: 5, max: 95 };
+    const SPEED_KMPH = 50;
+    const DAY_START_MIN = 8*60; // 08:00
+    const DAY_END_MIN = 18*60; // 18:00
+
+    let orders = []; // {id,x,y,weight, twStartMin, twEndMin}
+    let trucks = []; // [{id,color,route: [orderId]}]
+    let assign = new Map(); // orderId -> truckId | null
+    let capacityPerTruck = 120;
+
+    // DOM
+    const ordersBody = document.getElementById('ordersBody');
+    const msgEl = document.getElementById('msg');
+    const totalDistanceEl = document.getElementById('totalDistance');
+    const trucksUsedEl = document.getElementById('trucksUsed');
+    const scheduleEl = document.getElementById('schedule');
+    const fleetEl = document.getElementById('fleet');
+    const legendEl = document.getElementById('legend');
+    const capacityInput = document.getElementById('capacityInput');
+    const assignTarget = document.getElementById('assignTarget');
+
+    const btnNew = document.getElementById('btnNew');
+    const btnConfirm = document.getElementById('btnConfirm');
+    const btnReset = document.getElementById('btnReset');
+    const btnAddTruck = document.getElementById('btnAddTruck');
+    const btnRemoveEmpty = document.getElementById('btnRemoveEmpty');
+
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Utils
+    function rnd(min,max){ return Math.random()*(max-min)+min; }
+    function int(min,max){ return Math.floor(rnd(min,max+1)); }
+    function round(n,d=2){ return Number.parseFloat(n).toFixed(d); }
+    function byId(id){ return orders.find(o => o.id === id); }
+    function distAB(a,b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+    function minutesToHHMM(m){
+      const h = Math.floor(m/60), mm=m%60;
+      return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    }
+    function hms(t){ return minutesToHHMM(t); }
+
+    // Map
+    function resizeCanvas(){
+      const dpr=Math.max(1, window.devicePixelRatio||1);
+      const {clientWidth, clientHeight} = canvas;
+      canvas.width = clientWidth*dpr; canvas.height=clientHeight*dpr;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    function worldToCanvas(x,y){
+      const pad=24, w=canvas.clientWidth, h=canvas.clientHeight;
+      return { x: pad + (x/100)*(w-2*pad), y: h - pad - (y/100)*(h-2*pad) };
+    }
+    function drawGrid(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.save(); ctx.strokeStyle='#e2e8f0'; ctx.globalAlpha=.6; ctx.lineWidth=1;
+      for(let g=0; g<=100; g+=20){
+        const p1=worldToCanvas(g,0), p2=worldToCanvas(g,100);
+        ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+        const q1=worldToCanvas(0,g), q2=worldToCanvas(100,g);
+        ctx.beginPath(); ctx.moveTo(q1.x,q1.y); ctx.lineTo(q2.x,q2.y); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle='#94a3b8'; ctx.font='12px system-ui';
+      for(let g=0; g<=100; g+=20){
+        const p=worldToCanvas(g,0), q=worldToCanvas(0,g);
+        ctx.fillText(g.toString(), p.x-6, worldToCanvas(0,0).y+14);
+        ctx.fillText(g.toString(), worldToCanvas(0,0).x-26, q.y+4);
+      }
+    }
+    function drawMap(showRoutes=true){
+      resizeCanvas(); drawGrid();
+      const d=worldToCanvas(DEPOT.x,DEPOT.y);
+      ctx.fillStyle='#111827'; ctx.beginPath(); ctx.arc(d.x,d.y,6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#111827'; ctx.font='bold 12px system-ui'; ctx.fillText('Depot', d.x+10, d.y-8);
+      for(const o of orders){
+        const p=worldToCanvas(o.x,o.y);
+        ctx.fillStyle='#0ea5e9'; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#0c4a6e'; ctx.font='bold 12px system-ui'; ctx.fillText('#'+o.id, p.x+8, p.y-8);
+      }
+      if(!showRoutes) return;
+      for(const t of trucks){
+        if(t.route.length===0) continue;
+        ctx.save();
+        ctx.strokeStyle=t.color; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.lineCap='round';
+        const seq=[DEPOT, ...t.route.map(byId), DEPOT];
+        ctx.beginPath();
+        for(let i=0;i<seq.length;i++){
+          const p=worldToCanvas(seq[i].x, seq[i].y);
+          if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    window.addEventListener('resize', ()=> drawMap(true));
+
+    // Data
+    function generateOrders(){
+      const arr=[];
+      for(let i=1;i<=ORDERS_COUNT;i++){
+        const x=Math.round(rnd(COORD_RANGE.min, COORD_RANGE.max));
+        const y=Math.round(rnd(COORD_RANGE.min, COORD_RANGE.max));
+        const weight=int(WEIGHT_RANGE.min, WEIGHT_RANGE.max);
+        // Time windows: random 1–2.5 hour windows within 08:00–18:00
+        let start = DAY_START_MIN + int(0, (DAY_END_MIN - DAY_START_MIN - 60));
+        let span = int(60, 150);
+        let end = Math.min(DAY_END_MIN, start + span);
+        if(end - start < 40){ // ensure at least 40min window
+          start = Math.max(DAY_START_MIN, end - 40);
+        }
+        arr.push({ id:i, x, y, weight, twStartMin:start, twEndMin:end });
+      }
+      return arr;
+    }
+
+    function genColor(i){ const hue=(i*67)%360; return `hsl(${hue} 70% 45%)`; }
+
+    function resetFleet(){
+      trucks=[]; assign=new Map(orders.map(o=>[o.id, null]));
+      addTruck();
+      updateAssignTarget();
+    }
+
+    // Orders UI
+    function renderOrders(){
+      ordersBody.innerHTML='';
+      for(const o of orders){
+        const tr=document.createElement('tr');
+        tr.dataset.id=o.id;
+        const isAssigned = assign.get(o.id)!=null;
+        if(isAssigned) tr.classList.add('assigned');
+        tr.draggable = !isAssigned;
+        tr.addEventListener('dragstart', e=>{
+          if(assign.get(o.id)!=null) return e.preventDefault();
+          e.dataTransfer.setData('text/plain', JSON.stringify({type:'order', id:o.id}));
+          e.dataTransfer.effectAllowed='copy';
+        });
+
+        const c1=document.createElement('td'); c1.textContent=o.id;
+        const c2=document.createElement('td'); c2.textContent=`(${o.x}, ${o.y})`;
+        const c3=document.createElement('td'); c3.textContent=o.weight + ' kg';
+        const c4=document.createElement('td'); c4.textContent=`${minutesToHHMM(o.twStartMin)}–${minutesToHHMM(o.twEndMin)}`;
+        const c5=document.createElement('td');
+        const btn=document.createElement('button');
+        btn.className='btn'; btn.textContent = isAssigned ? 'Assigned' : 'Add';
+        btn.disabled = isAssigned;
+        btn.addEventListener('click', ()=>{
+          const tId = parseInt(assignTarget.value,10);
+          addToTruck(o.id, tId);
+        });
+        c5.appendChild(btn);
+
+        tr.append(c1,c2,c3,c4,c5);
+        ordersBody.appendChild(tr);
+      }
+    }
+
+    // Fleet UI
+    function truckLoad(t){ return t.route.reduce((s,id)=>s + byId(id).weight, 0); }
+    function routeDistance(t){
+      if(t.route.length===0) return 0;
+      const seq=[DEPOT, ...t.route.map(byId), DEPOT];
+      let d=0; for(let i=0;i<seq.length-1;i++) d+=distAB(seq[i],seq[i+1]); return d;
+    }
+    function renderFleet(){
+      fleetEl.innerHTML=''; legendEl.innerHTML='';
+      for(const t of trucks){
+        const chip=document.createElement('span');
+        chip.innerHTML = `<span class="dot" style="background:${t.color}"></span> Truck ${t.id}`;
+        legendEl.appendChild(chip);
+
+        const el=document.createElement('div'); el.className='truck'; el.style.borderTop=`6px solid ${t.color}`;
+        const th=document.createElement('div'); th.className='th';
+        const name=document.createElement('div'); name.className='name'; name.textContent='Truck '+t.id;
+        const load=document.createElement('div'); load.className='load';
+        const loadVal=truckLoad(t); const over = loadVal>capacityPerTruck;
+        load.innerHTML = `Load <strong>${loadVal}</strong> / ${capacityPerTruck} kg` + (over?' <span style="color:var(--danger); font-weight:800;">(Over!)</span>':'');
+        th.append(name,load);
+
+        const body=document.createElement('div'); body.className='body';
+        const zone=document.createElement('div'); zone.className='zone'; zone.dataset.truckId=t.id;
+
+        zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('over'); e.dataTransfer.dropEffect='copy' });
+        zone.addEventListener('dragleave', ()=> zone.classList.remove('over'));
+        zone.addEventListener('drop', e=>{
+          e.preventDefault(); zone.classList.remove('over');
+          let data; try{ data=JSON.parse(e.dataTransfer.getData('text/plain')||'{}') }catch{}
+          if(!data) return;
+          if(data.type==='order'){
+            addToTruck(data.id, t.id);
+          }else if(data.type==='item'){
+            const fromId=data.fromTruck, id=data.id;
+            if(fromId===t.id){
+              const idx=dropIndex(zone, e.clientY);
+              const arr=t.route;
+              const i=arr.indexOf(id);
+              if(i<0) return;
+              arr.splice(i,1);
+              const newIndex= idx>i?idx-1:idx;
+              arr.splice(newIndex,0,id);
+              renderFleet(); drawMap(false);
+            }else{
+              moveBetweenTrucks(id, fromId, t.id);
+            }
+          }
+        });
+
+        for(const id of t.route){
+          const o=byId(id);
+          const row=document.createElement('div'); row.className='entry'; row.draggable=true;
+          row.addEventListener('dragstart', e=>{
+            e.dataTransfer.setData('text/plain', JSON.stringify({type:'item', id, fromTruck:t.id}));
+            e.dataTransfer.effectAllowed='move';
+          });
+          const idDiv=document.createElement('div'); idDiv.className='id'; idDiv.textContent='#'+o.id;
+          const coords=document.createElement('div'); coords.style.flex='1'; coords.textContent=`(${o.x}, ${o.y})`;
+          const wt=document.createElement('div'); wt.className='w'; wt.textContent=o.weight+' kg';
+          const tw=document.createElement('div'); tw.className='tw'; tw.textContent = `${minutesToHHMM(o.twStartMin)}–${minutesToHHMM(o.twEndMin)}`;
+          const del=document.createElement('button'); del.textContent='Remove';
+          del.addEventListener('click', ()=> removeFromTruck(id, t.id));
+          row.append(idDiv,coords,wt,tw,del);
+          zone.appendChild(row);
+        }
+
+        body.appendChild(zone);
+        el.append(th,body);
+        fleetEl.appendChild(el);
+      }
+      renderOrders();
+      updateAssignTarget();
+    }
+
+    function dropIndex(zone, clientY){
+      const items=Array.from(zone.querySelectorAll('.entry'));
+      let idx=items.length;
+      for(let i=0;i<items.length;i++){
+        const r=items[i].getBoundingClientRect();
+        const mid=r.top + r.height/2;
+        if(clientY<mid){ idx=i; break; }
+      }
+      return idx;
+    }
+
+    // Actions
+    function addTruck(){
+      const id = trucks.length ? Math.max(...trucks.map(t=>t.id))+1 : 1;
+      const color = genColor(id);
+      trucks.push({ id, color, route: [] });
+      renderFleet(); drawMap(false);
+    }
+    function removeEmptyTrucks(){
+      const nonEmpty = trucks.filter(t=>t.route.length>0);
+      trucks = nonEmpty.length===0 ? [ { id:1, color:genColor(1), route: [] } ] : nonEmpty;
+      renderFleet(); drawMap(false);
+    }
+    function addToTruck(orderId, truckId){
+      orderId=parseInt(orderId,10); truckId=parseInt(truckId,10);
+      if(assign.get(orderId)!=null) { setMsg('Order already assigned to a truck.', 'warn'); return; }
+      const t=trucks.find(t=>t.id===truckId); if(!t) return;
+      t.route.push(orderId); assign.set(orderId, truckId);
+      renderFleet(); drawMap(false);
+      setMsg('Order assigned. Reorder within each truck by dragging.', 'ok');
+    }
+    function removeFromTruck(orderId, truckId){
+      const t=trucks.find(t=>t.id===truckId); if(!t) return;
+      const i=t.route.indexOf(orderId); if(i>=0) t.route.splice(i,1);
+      assign.set(orderId, null);
+      renderFleet(); drawMap(false);
+    }
+    function moveBetweenTrucks(orderId, fromId, toId){
+      const from=trucks.find(t=>t.id===fromId);
+      const to=trucks.find(t=>t.id===toId);
+      if(!from || !to) return;
+      const i=from.route.indexOf(orderId);
+      if(i>=0) from.route.splice(i,1);
+      to.route.push(orderId);
+      assign.set(orderId, toId);
+      renderFleet(); drawMap(false);
+    }
+
+    // Evaluation with Time Windows
+    function evaluate(){
+      scheduleEl.innerHTML='';
+      const cap=capacityPerTruck;
+      const errors=[];
+      let totalDist=0, used=0;
+
+      for(const t of trucks){
+        const loadVal=truckLoad(t);
+        if(loadVal>cap) errors.push(`Truck ${t.id} exceeds capacity (${loadVal} > ${cap} kg).`);
+
+        if(t.route.length>0){
+          used++;
+          totalDist += routeDistance(t);
+
+          // Check time windows
+          const seq=[DEPOT, ...t.route.map(byId), DEPOT];
+          let time = DAY_START_MIN; // depart depot at start of day
+          let prev = DEPOT;
+          let routeFeasible = true;
+          let lines = [`Truck ${t.id} schedule (start 08:00):`];
+
+          for(let k=1;k<seq.length-0;k++){ // we will evaluate nodes including final depot travel but only orders have TW
+            const node = seq[k];
+            const travelMin = (distAB(prev, node) / SPEED_KMPH) * 60;
+            time += travelMin;
+
+            if(k < seq.length-1){ // this is an order (not final depot)
+              const o = node; // has tw
+              const arrive = time;
+              const start = o.twStartMin, end=o.twEndMin;
+              let status;
+              if(arrive < start){
+                // waiting allowed
+                status = `arrive ${hms(arrive)} (wait to ${hms(start)})`;
+                time = start; // wait
+              }else if(arrive > end){
+                status = `arrive ${hms(arrive)} (window ${hms(start)}–${hms(end)}) — VIOLATION`;
+                routeFeasible = false;
+              }else{
+                status = `arrive ${hms(arrive)} within window ${hms(start)}–${hms(end)}`;
+              }
+              lines.push(` • #${o.id}: ${status}`);
+            }else{
+              // final return to depot
+              lines.push(`Return to Depot at ~${hms(time)}`);
+            }
+            prev = node;
+          }
+
+          const block = document.createElement('div');
+          block.innerHTML = lines.map(s=>{
+            if(s.includes('VIOLATION')) return `<div class="bad">${s}</div>`;
+            return `<div>${s}</div>`;
+          }).join('');
+          scheduleEl.appendChild(block);
+
+          if(!routeFeasible){
+            errors.push(`Truck ${t.id} violates at least one time window.`);
+          }
+        }
+      }
+
+      totalDistanceEl.textContent=round(totalDist);
+      trucksUsedEl.textContent=used;
+
+      if(errors.length>0){
+        setMsg(errors.join(' '), 'err');
+      }else{
+        setMsg(`Feasible plan. Total distance: ${round(totalDist)} km. Trucks used: ${used}.`, 'ok');
+      }
+      drawMap(true);
+    }
+
+    // Helpers
+    function truckLoad(t){ return t.route.reduce((s,id)=> s + byId(id).weight, 0); }
+    function setMsg(text, type){
+      msgEl.textContent=text;
+      msgEl.className='msg '+(type==='err'?'err':type==='warn'?'warn':'ok');
+    }
+    function updateAssignTarget(){
+      const prev=parseInt(assignTarget.value||'1',10);
+      assignTarget.innerHTML='';
+      for(const t of trucks){
+        const opt=document.createElement('option');
+        opt.value=t.id; opt.textContent='Truck '+t.id;
+        assignTarget.appendChild(opt);
+      }
+      assignTarget.value = trucks.some(t=>t.id===prev) ? prev : (trucks[0]?.id ?? '');
+    }
+
+    // Controls
+    capacityInput.addEventListener('change', ()=>{
+      capacityPerTruck = Math.max(10, parseInt(capacityInput.value||'120',10));
+      renderFleet();
+    });
+    btnNew.addEventListener('click', ()=>{
+      orders = generateOrders();
+      resetFleet();
+      setMsg('New orders generated with weights and time windows.', 'ok');
+      scheduleEl.innerHTML='';
+      drawMap(false);
+    });
+    btnReset.addEventListener('click', ()=>{
+      resetFleet();
+      totalDistanceEl.textContent='0.00'; trucksUsedEl.textContent='0';
+      scheduleEl.innerHTML='';
+      setMsg('Assignments cleared.', 'ok');
+      drawMap(false);
+    });
+    btnConfirm.addEventListener('click', evaluate);
+    btnAddTruck.addEventListener('click', ()=>{ addTruck(); updateAssignTarget(); });
+    btnRemoveEmpty.addEventListener('click', ()=>{ removeEmptyTrucks(); updateAssignTarget(); });
+
+    // Init
+    orders = generateOrders();
+    resetFleet();
+    drawMap(false);
+  </script>
+</body>
+</html>
