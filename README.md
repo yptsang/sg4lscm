@@ -4,4 +4,6 @@ I view education as a transformative process that bridges theory and practice. I
 
 This philosophy is grounded in the idea that motivation stems from relevance and autonomy. When students feel the weight of decisions in those decision-making problems, they become invested in mastering concepts like linear programming, heuristics, and stochastic modeling. Ultimately, my goal is to produce graduates who are not just technically proficient but also innovative thinkers capable of adapting to uncertainties in global supply chains.
 
+In summary, my teaching philosophy is about empowering students through purposeful struggle. By letting them "feel the pain" in serious games, I prepare them to embrace the power of supply chain management and decision analytics, turning theoretical knowledge into actionable wisdom for a complex world.
+
 Enjoy!
