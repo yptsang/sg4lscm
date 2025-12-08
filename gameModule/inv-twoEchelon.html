@@ -1,1178 +1,1076 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Two-Echelon Game Inventory Control</title>
-  <style>
-    :root{
-      --bg: #0b1020;
-      --panel: #0f1630;
-      --panel-2:#111a3c;
-      --muted: #8aa0c4;
-      --text: #e9eef8;
-      --accent: #6c7dff; /* indigo for general primary actions */
-      --accent-2:#60a5fa;
-      --decision-1:#10b981; /* teal for decision actions */
-      --decision-2:#059669;
-      --good:#22c55e;
-      --warn:#f59e0b;
-      --bad:#ef4444;
-      --card-radius:16px;
-      --input-bg:#0b132c;
-      --input-bd:#243252;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
-      color:var(--text);
-      background:
-        radial-gradient(1200px 600px at 80% -20%, #193159 15%, transparent 45%),
-        radial-gradient(900px 480px at 0% -10%, #142548 10%, transparent 55%),
-        linear-gradient(180deg, #091022 0%, #0b1020 100%);
-    }
-    a{color:inherit}
-    .wrap{
-      max-width:1200px;
-      margin-inline:auto;
-      padding:16px;
-    }
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:12px;
-    }
-    .brand{
-      display:flex;align-items:center;gap:12px;
-    }
-    .logo{
-      width:44px;height:44px;border-radius:12px;
-      background: conic-gradient(from 220deg, var(--accent), var(--accent-2));
-      box-shadow: inset 0 0 10px rgba(255,255,255,.15), 0 8px 18px rgba(108,125,255,.35);
-    }
-    h1{
-      font-size:18px;margin:0;font-weight:700;letter-spacing:.3px;
-    }
-    .sub{
-      font-size:12px;opacity:.8;margin-top:2px
-    }
-    .controls{
-      display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;
-    }
-    .chip{
-      border:1px solid #1d2c4b;
-      background: linear-gradient(180deg, #0d1531, #0b132c);
-      color:var(--text);
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:13px;
-      display:flex;align-items:center;gap:8px;
-    }
-    .chip strong{color:#fff}
-    .btn{
-      border:none;
-      background:linear-gradient(180deg, var(--accent), #4f63ff);
-      color:white;
-      padding:10px 14px;
-      border-radius:10px;
-      font-weight:700;
-      cursor:pointer;
-      box-shadow: 0 6px 16px rgba(108,125,255,.35);
-      transition:.2s transform ease, .2s opacity ease, .2s background ease;
-    }
-    .btn:disabled{
-      opacity:.55;cursor:not-allowed;box-shadow:none
-    }
-    .btn.secondary{
-      background: linear-gradient(180deg, #172044, #111a3c);
-      color:#d6def0;
-      box-shadow: none;
-      border:1px solid #22305b;
-      font-weight:600;
-    }
-    .btn.warn{ background:linear-gradient(180deg,#f59e0b,#d97706); box-shadow:0 8px 18px rgba(245,158,11,.35) }
-    .btn.ghost{
-      background:transparent;border:1px dashed #28406a;color:#b9c7e4
-    }
-    /* Decision buttons (player decisions): Supplier Order + Dispatch */
-    .btn.decision{
-      background: linear-gradient(180deg, var(--decision-1), var(--decision-2));
-      box-shadow: 0 8px 18px rgba(16,185,129,.35);
-      color:#fff;
-    }
-    .icon-btn{
-      width:40px;height:40px;border-radius:10px;border:1px solid #23345a;
-      background:linear-gradient(180deg, #0f1630, #0b132c);
-      color:#cfe0ff; display:grid;place-items:center; cursor:pointer
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:16px;
-    }
-    @media (max-width: 900px){
-      .grid{ grid-template-columns: 1fr; }
-    }
-    .card{
-      background: linear-gradient(180deg, #10183a, #0f1630);
-      border:1px solid #213258;
-      border-radius: var(--card-radius);
-      box-shadow: var(--shadow);
-      padding:16px;
-    }
-    .section-title{
-      display:flex;align-items:center;justify-content:space-between;margin-bottom:8px
-    }
-    .section-title h2{
-      font-size:16px;margin:0;font-weight:800;letter-spacing:.2px
-    }
-    .net{
-      display:grid; gap:12px;
-      grid-template-columns: repeat(2, 1fr);
-    }
-    @media (max-width: 780px){
-      .net{ grid-template-columns: 1fr; }
-    }
-    .node{
-      border:1px solid #23345a;
-      border-radius:14px;
-      padding:14px;
-      background: linear-gradient(180deg, #0d1531, #0b132c);
-    }
-    .node-header{
-      display:flex;align-items:center;justify-content:space-between;margin-bottom:10px
-    }
-    .node h3{margin:0;font-size:15px;letter-spacing:.2px}
-    .badge{
-      font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid #2a3a63;background:#0a1330;color:#d1ddfb
-    }
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .kpi{
-      display:flex;gap:8px;align-items:center;font-size:13px;color:#cfe0ff
-    }
-    .kpi .num{font-weight:800;color:#fff}
-    .muted{color:var(--muted)}
-    .spacer{height:8px}
-    .inputs{
-      display:grid; gap:8px;
-      grid-template-columns: 1fr auto;
-      align-items:center;
-    }
-    .inputs .two{ grid-column: span 2; }
-    .inputs .tri{ grid-column: span 2; }
-    .input{
-      display:flex;align-items:center; gap:8px;
-      padding:8px 10px;
-      border-radius:10px;
-      border:1px solid var(--input-bd);
-      background:var(--input-bg);
-      color:#eaf1ff;
-    }
-    .input input{
-      all:unset; flex:1; min-width:0;
-      font-variant-numeric: tabular-nums;
-    }
-    .note{
-      font-size:12px;color:#a7b8d8;opacity:.9
-    }
-    .pending{
-      font-size:12px; color:#cde3ff; background:rgba(96,165,250,.08);
-      border:1px solid rgba(96,165,250,.35); padding:6px 8px;border-radius:8px
-    }
-    .danger{
-      color:#ffced1;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35)
-    }
-    .ok{ color:#bbf7d0;background:rgba(34,197,94,.08); border-color: rgba(34,197,94,.35) }
-    .panel-title{font-weight:800;letter-spacing:.3px;margin:0 0 8px 0;font-size:15px}
-    .list{display:grid; gap:6px}
-    .kv{ display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:14px; padding:8px 10px; border-radius:10px; background:linear-gradient(180deg, #0f1630, #0d1531); border:1px solid #1f2d51 }
-    .money{ font-variant-numeric: tabular-nums; font-weight:800; }
-    .small{ font-size:12px; opacity:.9 }
-    .hr{ height:1px; background:linear-gradient(90deg, transparent, #22335a, transparent); margin:10px 0 }
-    .chart{
-      height:240px; border:1px solid #23345a; border-radius:12px; overflow:hidden; background:linear-gradient(180deg,#0d1531,#0b132c); display:flex; flex-direction:column
-    }
-    .chart-head{
-      padding:8px; display:flex;align-items:center; justify-content:space-between; gap:8px; border-bottom:1px solid #22335a
-    }
-    .chart-head .tabs{ display:flex; gap:6px; flex-wrap:wrap }
-    .tab{
-      font-size:12px; padding:6px 8px; border-radius:999px; border:1px solid #2a3a63; background:#0a1330; color:#cfe0ff; cursor:pointer
-    }
-    .tab.active{ background:linear-gradient(180deg,#6c7dff,#4f63ff); border-color:transparent; color:white }
-    canvas{ width:100%; height:180px }
-    .progress{
-      height:8px; background:#0b132c; border:1px solid #203157; border-radius:999px; overflow:hidden;
-    }
-    .progress > span{ display:block; height:100%; background:linear-gradient(90deg, #6c7dff, #60a5fa); width:0% }
-    /* Modal */
-    .modal{
-      position:fixed; inset:0; display:none; place-items:center; padding:16px; z-index:50;
-      background:rgba(5,10,20,.6); backdrop-filter: blur(6px);
-    }
-    .modal.show{ display:grid }
-    .modal-card{
-      max-width:920px; width:min(920px, 100%); background:linear-gradient(180deg,#10183a,#0f1630);
-      border:1px solid #23345a; border-radius:16px; box-shadow: var(--shadow);
-      padding:16px;
-    }
-    .modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px }
-    .modal-head h3{ margin:0; font-size:18px; font-weight:800 }
-    .modal-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px }
-    @media (max-width: 820px){ .modal-grid{ grid-template-columns: 1fr } }
-    .inline-help{ font-size:12px; color:#9eb3d6 }
-    /* Game over overlay */
-    .gameover{
-      position:fixed; inset:0; display:none; place-items:center; z-index:60;
-      padding:20px; background: rgba(6,10,20,.6); backdrop-filter: blur(8px);
-    }
-    .gameover.show{ display:grid; }
-    .gameover-card{
-      width:min(560px, 100%); border-radius:16px; border:1px solid #27407a; background:linear-gradient(180deg,#0d1531,#0b132c);
-      box-shadow: var(--shadow); padding:18px;
-    }
-    .gameover h3{ margin:0 0 6px 0; font-size:20px }
-    .footer{ margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap }
-    .sr{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden }
-    .hidden{ display:none !important; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain Simulation: Two-Echelon Inventory</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #c0392b;
+            --light-bg: #ecf0f1;
+            --card-bg: #ffffff;
+            --border-radius: 8px;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-    /* Retailers row: force 3 parallel columns on wide screens */
-    .retailers{
-      grid-column: 1 / -1; /* span full width of the network grid */
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:12px;
-    }
-    @media (max-width: 960px){
-      .retailers{ grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 640px){
-      .retailers{ grid-template-columns: 1fr; }
-    }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-    /* Input error highlight */
-    .error{
-      border-color:#ef4444 !important;
-      box-shadow: 0 0 0 2px rgba(239,68,68,.18) inset;
-    }
-  </style>
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        /* Header Area */
+        header {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; }
+        
+        .game-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .day-counter {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover { background: #2980b9; }
+        
+        .btn-success { background: var(--success-color); color: white; }
+        .btn-success:hover { background: #219150; }
+
+        .btn-danger { background: var(--danger-color); color: white; }
+        .btn-danger:hover { background: #a93226; }
+
+        .btn-info { background: #95a5a6; color: white; }
+        .btn-info:hover { background: #7f8c8d; }
+
+        .btn-warning { background: var(--warning-color); color: white; }
+        .btn-warning:hover { background: #d68910; }
+
+        /* Main Game Area */
+        .game-board {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .supply-chain-visual {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .node-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        /* Connecting Lines */
+        .connector-line {
+            position: absolute;
+            background: #bdc3c7;
+            z-index: 0;
+        }
+        .line-wh-ret {
+            top: 100px; 
+            left: 50%;
+            width: 2px;
+            height: 50px;
+            transform: translateX(-50%);
+        }
+        .line-horizontal {
+            top: 150px;
+            left: 16%;
+            right: 16%;
+            height: 2px;
+        }
+        .line-vertical-drop {
+            top: 150px;
+            width: 2px;
+            height: 30px;
+            background: #bdc3c7;
+            position: absolute;
+        }
+
+        .node {
+            background: white;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 15px;
+            width: 180px;
+            text-align: center;
+            z-index: 1;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .node.warehouse {
+            margin: 0 auto 60px auto;
+            border-color: var(--accent-color);
+            background: #fdfefe;
+        }
+
+        .node-icon { font-size: 2rem; margin-bottom: 5px; display: block;}
+        .node-title { font-weight: bold; display: block; margin-bottom: 10px; color: var(--primary-color);}
+        
+        .stock-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--success-color);
+            margin: 5px 0;
+        }
+        .stock-label { font-size: 0.8rem; color: #7f8c8d; }
+
+        .order-input-group {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .order-input-group input {
+            padding: 5px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .incoming-order {
+            font-size: 0.8rem;
+            color: var(--warning-color);
+            margin-top: 5px;
+            height: 1.2em; /* Reserve space */
+        }
+
+        /* Sidebar / Dashboard */
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--light-bg);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        .stats-table td {
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        
+        .stats-table tr:last-child td { border-bottom: none; }
+        .stats-table .val { text-align: right; font-weight: bold; font-family: monospace;}
+
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+
+        /* Auto Pilot Form */
+        .auto-pilot-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .form-group {
+            margin-bottom: 8px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #444;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .section-label {
+            grid-column: 1 / -1;
+            font-weight: bold;
+            font-size: 1rem;
+            color: var(--accent-color);
+            margin-top: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 800px;
+            border-radius: var(--border-radius);
+            position: relative;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(-20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover { color: black; }
+
+        .scenario-text {
+            line-height: 1.6;
+            color: #444;
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid var(--accent-color);
+            margin-bottom: 20px;
+        }
+
+        .scenario-text ul { padding-left: 20px; }
+        .scenario-text li { margin-bottom: 8px; }
+
+        /* Results Modal Specifics */
+        #resultsContent {
+            text-align: center;
+        }
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .result-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .result-label { font-size: 0.9rem; color: #666; }
+        .result-value { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); }
+        
+        .demand-info {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+            .node-container { flex-direction: column; align-items: center; gap: 20px;}
+            .line-horizontal, .line-vertical-drop { display: none; }
+            .node { width: 90%; margin-bottom: 10px; }
+            .node.warehouse { margin-bottom: 20px; }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>
-          <h1>Two Echelon Inventory Control</h1>
-          <div class="sub">Supply Chain Activity — Day <span id="dayText">1</span> / <span id="durText">100</span></div>
+
+<header>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1>📦 Style Co. Inventory</h1>
+        <button class="btn-info" onclick="showInstructions()">Scenario Info</button>
+        <button class="btn-warning" onclick="showAutoPilotModal()">⚙️ Auto-Pilot Config</button>
+    </div>
+    <div class="game-controls">
+        <div class="day-counter">Day: <span id="dayDisplay">1</span> / <span id="maxDaysDisplay">100</span></div>
+        <button class="btn-primary" id="nextDayBtn" onclick="nextDay()">Next Day ▶</button>
+        <button class="btn-success" id="autoPlayBtn" onclick="toggleAutoPlay()">Auto Play ⏩</button>
+        <button class="btn-danger" onclick="resetGame()">Reset ⟳</button>
+    </div>
+</header>
+
+<div class="container" id="gameContainer">
+    <!-- Left Side: Visual Supply Chain -->
+    <div class="game-board">
+        <div class="supply-chain-visual">
+            
+            <!-- Warehouse Node -->
+            <div class="node warehouse">
+                <span class="node-icon">🏭</span>
+                <span class="node-title">Central Warehouse</span>
+                <div class="stock-label">Current Stock</div>
+                <div class="stock-display" id="whStock">1000</div>
+                <div class="incoming-order" id="whIncoming"></div>
+                
+                <div class="order-input-group">
+                    <label style="font-size:0.8rem; text-align:left;">Order from Supplier:</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="number" id="whOrderInput" placeholder="Qty (Max 9999)" min="0" max="9999">
+                        <button class="btn-primary" onclick="placeOrder('WH')" style="padding:5px 10px;">Order</button>
+                    </div>
+                    <small style="font-size:0.7rem; color:#666;">Lead Time: 14 days | Cost: $150 + Unit Cost</small>
+                </div>
+            </div>
+
+            <!-- Visual Connectors -->
+            <div class="connector-line line-wh-ret"></div>
+            <div class="connector-line line-horizontal"></div>
+            <div class="connector-line line-vertical-drop" style="left: 16%"></div> <!-- MK -->
+            <div class="connector-line line-vertical-drop" style="left: 50%"></div> <!-- WC -->
+            <div class="connector-line line-vertical-drop" style="right: 16%"></div> <!-- TST -->
+
+            <!-- Retailer Nodes -->
+            <div class="node-container">
+                <!-- MK Style -->
+                <div class="node">
+                    <span class="node-icon">🏪</span>
+                    <span class="node-title">MK Style</span>
+                    <div class="stock-label">Stock</div>
+                    <div class="stock-display" id="mkStock">200</div>
+                    <div class="demand-info">Last Demand: <span id="mkLastDemand">0</span></div>
+                    <div class="incoming-order" id="mkIncoming"></div>
+                    
+                    <div class="order-input-group">
+                        <input type="number" id="mkOrderInput" placeholder="Order from WH">
+                        <button class="btn-primary" onclick="placeOrder('MK')" style="width:100%">Order</button>
+                    </div>
+                </div>
+
+                <!-- WC Style -->
+                <div class="node">
+                    <span class="node-icon">🏪</span>
+                    <span class="node-title">WC Style</span>
+                    <div class="stock-label">Stock</div>
+                    <div class="stock-display" id="wcStock">200</div>
+                    <div class="demand-info">Last Demand: <span id="wcLastDemand">0</span></div>
+                    <div class="incoming-order" id="wcIncoming"></div>
+
+                    <div class="order-input-group">
+                        <input type="number" id="wcOrderInput" placeholder="Order from WH">
+                        <button class="btn-primary" onclick="placeOrder('WC')" style="width:100%">Order</button>
+                    </div>
+                </div>
+
+                <!-- TST Style -->
+                <div class="node">
+                    <span class="node-icon">🏪</span>
+                    <span class="node-title">TST Style</span>
+                    <div class="stock-label">Stock</div>
+                    <div class="stock-display" id="tstStock">200</div>
+                    <div class="demand-info">Last Demand: <span id="tstLastDemand">0</span></div>
+                    <div class="incoming-order" id="tstIncoming"></div>
+
+                    <div class="order-input-group">
+                        <input type="number" id="tstOrderInput" placeholder="Order from WH">
+                        <button class="btn-primary" onclick="placeOrder('TST')" style="width:100%">Order</button>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 15px; font-size: 0.8rem; color: #7f8c8d;">
+                Retailer Lead Time: 3 Days | Transport Cost: $60
+            </div>
         </div>
-      </div>
-      <div class="controls">
-        <div class="chip" title="Game Duration">
-          <span>Duration:</span>
-          <input id="durationInput" type="number" min="1" max="9999" value="100" style="width:90px;background:transparent;border:none;color:#fff;font-weight:800; font-variant-numeric: tabular-nums" />
-          <span>days</span>
-        </div>
-        <button id="btnNext" class="btn" title="Advance to next day">Next Day ⏭︎</button>
-        <button id="btnAuto" class="btn ghost" title="Auto-run/pause">⏵ Auto</button>
-        <button id="btnReset" class="btn warn" title="Reset the game">RESET</button>
-        <button id="btnSettings" class="icon-btn" title="Settings">⚙</button>
-      </div>
-    </header>
-
-    <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
-
-    <div class="grid" style="margin-top:12px">
-      <!-- Left: Network -->
-      <div class="card">
-        <div class="section-title">
-          <h2>Network</h2>
-          <span class="badge">Two-Echelon: Supplier → Warehouse → Retailers</span>
-        </div>
-
-        <div class="net">
-          <!-- Supplier -->
-          <div class="node" id="supplierCard">
-            <div class="node-header">
-              <h3>Supplier</h3>
-              <span class="badge">Lead time: 14 days</span>
-            </div>
-            <div class="row">
-              <div class="kpi"><span class="muted">Order to</span> <span class="num">Warehouse</span></div>
-            </div>
-            <div class="spacer"></div>
-            <div class="inputs">
-              <label class="input two" id="supplierQtyWrap">
-                <span>Qty (max 9,999):</span>
-                <input id="supplierQty" type="number" min="0" max="9999" step="1" inputmode="numeric" placeholder="Enter quantity" />
-              </label>
-              <button id="btnSupplierOrder" class="btn decision">Place Supplier Order</button>
-              <div id="supplierPending" class="pending two" style="display:none"></div>
-              <div class="note two">Each unit costs $25. Per-order transport cost: $150.</div>
-            </div>
-          </div>
-
-          <!-- Warehouse -->
-          <div class="node" id="warehouseCard">
-            <div class="node-header">
-              <h3>Warehouse</h3>
-              <span class="badge">Stock: <span class="num" id="warehouseStock">1,000</span></span>
-            </div>
-            <div class="row">
-              <div class="kpi">Holding cost: <span class="num">$2.15</span> per unit per year</div>
-            </div>
-            <div class="spacer"></div>
-
-            <div class="row" style="margin-bottom:6px"><div class="muted">Dispatch to Retailers (Lead time: 3 days, $60 per dispatch)</div></div>
-
-            <div class="inputs">
-              <label class="input" id="toMKWrap">
-                <span>Order to MK:</span>
-                <input id="toMK" type="number" min="0" max="9999" step="1" inputmode="numeric" placeholder="0" />
-              </label>
-              <button id="btnToMK" class="btn decision">Dispatch</button>
-
-              <label class="input" id="toWCWrap">
-                <span>Order to WC:</span>
-                <input id="toWC" type="number" min="0" max="9999" step="1" inputmode="numeric" placeholder="0" />
-              </label>
-              <button id="btnToWC" class="btn decision">Dispatch</button>
-
-              <label class="input" id="toTSTWrap">
-                <span>Order to TST:</span>
-                <input id="toTST" type="number" min="0" max="9999" step="1" inputmode="numeric" placeholder="0" />
-              </label>
-              <button id="btnToTST" class="btn decision">Dispatch</button>
-
-              <div id="mkPending" class="pending tri" style="display:none"></div>
-              <div id="wcPending" class="pending tri" style="display:none"></div>
-              <div id="tstPending" class="pending tri" style="display:none"></div>
-
-              <div class="note two">Note: You may only place a new dispatch to a retailer when its previous shipment has arrived.</div>
-            </div>
-          </div>
-
-          <!-- Retailers: 3 parallel columns -->
-          <div class="retailers" aria-label="Retailers">
-            <div class="node">
-              <div class="node-header">
-                <h3>MK Style</h3>
-                <span class="badge">Retailer</span>
-              </div>
-              <div class="list">
-                <div class="kv"><span>Stock:</span> <strong id="mkStock" class="money">200</strong></div>
-                <div class="kv"><span>Demand (last day):</span> <strong id="mkDemand" class="money">0</strong></div>
-              </div>
-            </div>
-
-            <div class="node">
-              <div class="node-header">
-                <h3>WC Style</h3>
-                <span class="badge">Retailer</span>
-              </div>
-              <div class="list">
-                <div class="kv"><span>Stock:</span> <strong id="wcStock" class="money">200</strong></div>
-                <div class="kv"><span>Demand (last day):</span> <strong id="wcDemand" class="money">0</strong></div>
-              </div>
-            </div>
-
-            <div class="node">
-              <div class="node-header">
-                <h3>TST Style</h3>
-                <span class="badge">Retailer</span>
-              </div>
-              <div class="list">
-                <div class="kv"><span>Stock:</span> <strong id="tstStock" class="money">200</strong></div>
-                <div class="kv"><span>Demand (last day):</span> <strong id="tstDemand" class="money">0</strong></div>
-              </div>
-            </div>
-          </div>
-          <!-- End Retailers -->
-        </div>
-      </div>
-
-      <!-- Right: Analysis and Graphs -->
-      <div class="card">
-        <div class="section-title">
-          <h2>GRAPHS</h2>
-          <span class="badge">Live Dashboard</span>
-        </div>
-
-        <div class="chart" aria-label="Performance Chart">
-          <div class="chart-head">
-            <div class="tabs" role="tablist" aria-label="Chart series">
-              <button class="tab active" data-series="stock" role="tab" aria-selected="true">Total Stock</button>
-              <button class="tab" data-series="sales" role="tab" aria-selected="false">Sales Value</button>
-              <button class="tab" data-series="profit" role="tab" aria-selected="false">Net Profit</button>
-            </div>
-            <div class="muted small">Day <span id="chartDay">1</span></div>
-          </div>
-          <canvas id="chart" width="600" height="180"></canvas>
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="section-title" style="margin-top:8px">
-          <h2>COST ANALYSIS</h2>
-          <span class="badge">To Date</span>
-        </div>
-
-        <div class="list" role="table" aria-label="Cost Analysis">
-          <div class="kv" role="row">
-            <span role="cell">Quantity Sold (in Unit)</span>
-            <strong id="soldUnits" class="money" role="cell">0</strong>
-          </div>
-          <div class="kv" role="row">
-            <span role="cell">Sales Value (A)</span>
-            <strong id="salesValue" class="money" role="cell">$ 0</strong>
-          </div>
-          <div class="kv" role="row">
-            <span role="cell">Ordering Cost (B)</span>
-            <strong id="orderingCost" class="money" role="cell">$ 0</strong>
-          </div>
-          <div class="kv" role="row">
-            <span role="cell">Holding Cost (C)</span>
-            <strong id="holdingCost" class="money" role="cell">$ 0</strong>
-          </div>
-          <div class="kv" role="row">
-            <span role="cell">Gross Total (D = A - B - C)</span>
-            <strong id="grossTotal" class="money" role="cell">$ 0</strong>
-          </div>
-          <div class="kv" role="row">
-            <span role="cell">Cost of Goods Sold (E)</span>
-            <strong id="cogs" class="money" role="cell">$ 0</strong>
-          </div>
-          <div class="kv" role="row">
-            <span role="cell">Net Profit (F = D - E)</span>
-            <strong id="netProfit" class="money" role="cell">$ 0</strong>
-          </div>
-        </div>
-
-        <div class="footer">
-          <div class="inline-help">Selling price: $39. Supplier freight: $150/order. Warehouse→Retailer handling: $60/dispatch.</div>
-          <div class="inline-help">Warehouse holding: $2.15/unit/year. Retailer holding: $3.88/unit/year.</div>
-        </div>
-      </div>
     </div>
 
-    <div class="card" style="margin-top:12px">
-      <div class="section-title">
-        <h2>DESCRIPTIONS</h2>
-        <span class="badge">Game Background</span>
-      </div>
-      <p style="margin:0; color:#cfe0ff; line-height:1.5">
-        Style Co. Ltd is a corporate company selling T-shirts, and makes use of a central warehouse and three retailers where the T-shirts are sold to consumers. Each retailer makes a request to the warehouse when ordering stock for running the business. It is also necessary for the warehouse to place orders with their supplier when necessary so that they can always provide stock to the retailers.
-      </p>
-      <p style="margin:.6em 0 0 0; color:#cfe0ff; line-height:1.5">
-        Assume that you are the Purchasing Manager of the company and are responsible for placing orders with supplier and transport orders to the retailers when requested to do so. You are required to specify the time when orders should be placed and the quantity for each order so that the company can minimize the total cost of operation and to maximize the company profit.
-      </p>
-      <p style="margin:.6em 0 0 0; color:#cfe0ff; line-height:1.5">
-        There is no limit on the number of times that you place orders with the supplier, but the maximum quantity that you can place is limited to 9,999 T-shirts per order. Note: You can only place an order either with the Warehouse or a Retailer when all the goods have arrived for the previous order from the Warehouse / Retailer. Each T-shirt costs $25 to purchase, plus a $150 for the transportation cost from Supplier to Warehouse per occasion. The Lead Time when the Warehouse places orders with the Supplier is 14 days. The Lead Time when a Retailer places orders with the Warehouse is 3 days. The selling price of a Tee-shirt at any of the Retailers is $39 per each. A handling charges is required for the transportation of T-shirts from the Warehouse to each Retailer, this costs $60 per occasion.
-      </p>
-      <p style="margin:.6em 0 0 0; color:#cfe0ff; line-height:1.5">
-        In addition to the transportation cost specified above, there is a storage cost at both the Warehouse and each Retailer. This is $2.15 and $3.88 per Tee-shirt per year respectively. The daily demand for Tee-shirts at each of the retailers is not constant and varies from day to day.
-      </p>
-    </div>
-  </div>
-
-  <!-- Settings Modal -->
-  <div id="settingsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3 id="settingsTitle">Settings</h3>
-        <button id="btnCloseSettings" class="icon-btn" aria-label="Close settings">✕</button>
-      </div>
-      <div class="modal-grid">
-        <div class="card" style="margin:0">
-          <h4 class="panel-title">Game Duration</h4>
-          <div class="inputs">
-            <label class="input two">
-              <span>Days:</span>
-              <input id="durationInputModal" type="number" min="1" max="9999" value="100" />
-            </label>
-            <div class="note two">Default is 100 days. When the game ends, all dispatch/order inputs are disabled and an end-of-game message is shown.</div>
-          </div>
+    <!-- Right Side: Dashboard -->
+    <div class="dashboard">
+        <div class="card">
+            <h3>💰 Financial Overview</h3>
+            <table class="stats-table">
+                <tr>
+                    <td>Total Units Sold</td>
+                    <td class="val" id="totalSold">0</td>
+                </tr>
+                <tr>
+                    <td>Sales Value (A)</td>
+                    <td class="val" id="salesVal">$ 0</td>
+                </tr>
+                <tr>
+                    <td>Ordering Cost (B)</td>
+                    <td class="val" id="orderCost">$ 0</td>
+                </tr>
+                <tr>
+                    <td>Holding Cost (C)</td>
+                    <td class="val" id="holdCost">$ 0</td>
+                </tr>
+                <tr>
+                    <td style="border-top:1px solid #ccc; font-weight:bold;">Gross Total (D)</td>
+                    <td class="val" style="border-top:1px solid #ccc;" id="grossTotal">$ 0</td>
+                </tr>
+                <tr>
+                    <td>COGS (E)</td>
+                    <td class="val" id="cogs">$ 0</td>
+                </tr>
+                <tr style="background-color: #e8f8f5;">
+                    <td style="font-weight:bold; color:var(--success-color);">Net Profit (F)</td>
+                    <td class="val" style="color:var(--success-color);" id="netProfit">$ 0</td>
+                </tr>
+                <tr style="background-color: #fef9e7;">
+                    <td style="font-weight:bold; font-size: 0.85rem;">Avg Gain / Unit Sold</td>
+                    <td class="val" id="avgGain">$ 0.00</td>
+                </tr>
+            </table>
         </div>
-        <div class="card" style="margin:0">
-          <h4 class="panel-title">Demand Settings</h4>
-          <div class="inputs">
-            <div class="row two" role="radiogroup" aria-label="Demand distribution">
-              <label class="input" style="cursor:pointer">
-                <input id="radioUniform" type="radio" name="demandType" value="uniform" checked style="accent-color: #6c7dff" />
-                <span>Uniform Distribution</span>
-              </label>
-              <label class="input" style="cursor:pointer">
-                <input id="radioPoisson" type="radio" name="demandType" value="poisson" style="accent-color: #6c7dff" />
-                <span>Poisson Distribution</span>
-              </label>
-            </div>
 
-            <!-- Uniform fields -->
-            <div id="uniformFields" class="two" style="display:contents">
-              <label class="input" id="uniformMinWrap">
-                <span>Min:</span>
-                <input id="uniformMin" type="number" min="0" value="10" />
-              </label>
-              <label class="input" id="uniformMaxWrap">
-                <span>Max:</span>
-                <input id="uniformMax" type="number" min="0" value="40" />
-              </label>
+        <div class="card">
+            <h3>📈 Stock Levels</h3>
+            <div class="chart-container">
+                <canvas id="stockChart"></canvas>
             </div>
-
-            <!-- Poisson fields -->
-            <div id="poissonFields" class="two hidden">
-              <label class="input two" id="poissonLambdaWrap">
-                <span>Lambda:</span>
-                <input id="poissonLambda" type="number" min="0" step="0.1" value="25" />
-              </label>
-            </div>
-
-            <button id="btnApplySettings" class="btn">Apply</button>
-            <div id="demandConfirm" class="note two" aria-live="polite"></div>
-            <div class="note two">Note: Only enter Min/Max for Uniform, or Lambda for Poisson. Demand applies equally to all three retailers.</div>
-          </div>
         </div>
-      </div>
-      <div class="footer">
-        <div class="inline-help">Tip: Use smaller, more frequent shipments to reduce holding cost, but watch ordering costs and lead times.</div>
-        <button id="btnOKSettings" class="btn secondary">OK</button>
-      </div>
     </div>
-  </div>
+</div>
 
-  <!-- Game Over -->
-  <div id="gameOver" class="gameover" aria-live="polite">
-    <div class="gameover-card">
-      <h3>Game Over</h3>
-      <p style="margin:.2em 0 0 0; color:#cfe0ff">The simulation has ended after <strong id="endDays">100</strong> days. All order inputs are disabled.</p>
-      <div class="list" style="margin-top:10px">
-        <div class="kv"><span>Total Units Sold</span><strong id="endSold" class="money">0</strong></div>
-        <div class="kv"><span>Net Profit</span><strong id="endProfit" class="money">$ 0</strong></div>
-      </div>
-      <div class="footer" style="margin-top:12px">
-        <button id="btnPlayAgain" class="btn">Play Again</button>
-        <div class="inline-help">You can also adjust settings and duration before restarting.</div>
-      </div>
+<!-- Instructions Modal -->
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('infoModal')">&times;</span>
+        <h2>Game Background & Instructions</h2>
+        <div class="scenario-text">
+            <p><strong>Role:</strong> You are the Purchasing Manager for Style Co. Ltd.</p>
+            <p><strong>Objective:</strong> Minimize total operational costs and maximize profit over <strong>100 days</strong>.</p>
+            <p><strong>System:</strong> One Central Warehouse supplies three Retailers (MK, WC, TST).</p>
+            
+            <h3>Key Parameters:</h3>
+            <ul>
+                <li><strong>Selling Price:</strong> $39.00 per T-shirt</li>
+                <li><strong>Purchase Cost:</strong> $25.00 per T-shirt (Supplier)</li>
+                <li><strong>Demand:</strong> Uniform Distribution (10 to 20 units per day per retailer)</li>
+            </ul>
+
+            <h3>Costs & Lead Times:</h3>
+            <ul>
+                <li><strong>Warehouse Order:</strong>
+                    <ul>
+                        <li>Lead Time: 14 Days</li>
+                        <li>Transport Cost: $150 per order</li>
+                        <li>Holding Cost: $21.50 per unit/year</li>
+                    </ul>
+                </li>
+                <li><strong>Retailer Order:</strong>
+                    <ul>
+                        <li>Lead Time: 3 Days</li>
+                        <li>Transport Cost: $60 per order</li>
+                        <li>Holding Cost: $38.80 per unit/year</li>
+                    </ul>
+                </li>
+            </ul>
+            <p><em>Note: You can only place a new order for a location if the previous order has arrived. Max order quantity is 9,999.</em></p>
+        </div>
     </div>
-  </div>
+</div>
 
-  <script>
-    // ---------- Constants ----------
-    const LEAD_SUP_TO_WH = 14;
-    const LEAD_WH_TO_RT = 3;
-    const PRICE_SELL = 39;
-    const COST_PURCHASE = 25;
-    const COST_ORDER_SUP = 150;
-    const COST_ORDER_RT = 60;
-    const HOLD_WH_DAY = 2.15 / 365;
-    const HOLD_RT_DAY = 3.88 / 365;
-    const MAX_ORDER = 9999;
+<!-- Auto Pilot Modal -->
+<div id="autoPilotModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close" onclick="closeModal('autoPilotModal')">&times;</span>
+        <h2>⚙️ Auto-Pilot Configuration</h2>
+        <p style="color:#666; margin-top:-10px;">Define the rules for the "Auto Play" bot.</p>
+        
+        <div class="auto-pilot-form">
+            <div class="section-label">Retailers (MK, WC, TST)</div>
+            <div class="form-group">
+                <label>Buffer Stock Level (Reorder Point)</label>
+                <input type="number" id="apRetBuffer" value="100" min="0">
+            </div>
+            <div class="form-group">
+                <label>Order Quantity</label>
+                <input type="number" id="apRetQty" value="500" min="1">
+            </div>
 
-    // ---------- State ----------
-    const state = {
-      day: 1,
-      duration: 100,
-      gameEnded: false,
-      supplierPending: null, // {qty, daysLeft}
-      retailerPending: { MK: null, WC: null, TST: null }, // {qty, daysLeft}
-      warehouse: { stock: 1000 },
-      retailers: {
-        MK: { name: "MK Style", stock: 200, lastDemand: 0 },
-        WC: { name: "WC Style", stock: 200, lastDemand: 0 },
-        TST: { name: "TST Style", stock: 200, lastDemand: 0 }
-      },
-      totals: {
-        soldUnits: 0,
-        salesValue: 0,
-        orderingCost: 0,
-        holdingCost: 0,
-        cogs: 0
-      },
-      history: {
-        days: [1],
-        stock: [1000 + 200 + 200 + 200],
-        sales: [0],
-        profit: [0]
-      },
-      demand: {
-        type: "uniform",
-        min: 10,
-        max: 40,
-        lambda: 25
-      },
-      auto: { running: false, timer: null }
+            <div class="section-label">Central Warehouse</div>
+            <div class="form-group">
+                <label>Buffer Stock Level (Reorder Point)</label>
+                <input type="number" id="apWhBuffer" value="1000" min="0">
+            </div>
+            <div class="form-group">
+                <label>Order Quantity</label>
+                <input type="number" id="apWhQty" value="2000" min="1">
+            </div>
+        </div>
+        
+        <div style="margin-top:20px; text-align:right;">
+            <button class="btn-primary" onclick="closeModal('autoPilotModal')">Save & Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Results Modal -->
+<div id="resultsModal" class="modal">
+    <div class="modal-content" style="max-width: 1000px;">
+        <span class="close" onclick="closeModal('resultsModal')">&times;</span>
+        <h2>Simulation Complete</h2>
+        <div id="captureArea" style="background: white; padding: 20px;">
+            <div style="border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px;">
+                <h1 style="color:#2c3e50;">Style Co. Inventory Report</h1>
+                <p>Simulation Period: 100 Days</p>
+            </div>
+            
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-label">Net Profit</div>
+                    <div class="result-value" id="resNetProfit">$0</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Avg Gain Per Unit Sold</div>
+                    <div class="result-value" id="resAvgGain">$0</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Total Units Sold</div>
+                    <div class="result-value" id="resUnitsSold">0</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Ending Warehouse Stock</div>
+                    <div class="result-value" id="resWhStock">0</div>
+                </div>
+            </div>
+
+            <div style="height: 300px; width: 100%;">
+                <canvas id="resultChart"></canvas>
+            </div>
+            
+            <div style="margin-top: 20px; font-size: 0.8rem; color: #666; text-align: center;">
+                Generated by Supply Chain Activity Simulation
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <button class="btn-primary" onclick="downloadReport()">📸 Download Report (PNG)</button>
+            <button class="btn-danger" onclick="resetGame(); closeModal('resultsModal')">Restart Game</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Game Configuration & State ---
+    const CONFIG = {
+        maxDays: 100,
+        unitCost: 25,
+        sellingPrice: 39,
+        whTransportCost: 150,
+        retTransportCost: 60,
+        whHoldingCostYear: 21.5,
+        retHoldingCostYear: 38.8,
+        whLeadTime: 14,
+        retLeadTime: 3,
+        demandMin: 10,
+        demandMax: 20
     };
 
-    // ---------- Utilities ----------
-    const $ = sel => document.querySelector(sel);
-    const $$ = sel => document.querySelectorAll(sel);
-    const money = n => {
-      const sign = n < 0 ? "-" : "";
-      const v = Math.abs(n);
-      return sign + "$ " + v.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+    // Derived daily holding costs
+    const whHoldingDaily = CONFIG.whHoldingCostYear / 365;
+    const retHoldingDaily = CONFIG.retHoldingCostYear / 365;
+
+    let state = {
+        day: 1,
+        isRunning: false,
+        autoPlayInterval: null,
+        warehouse: { stock: 1000, incoming: null, incomingDay: null },
+        retailers: {
+            MK: { stock: 200, incoming: null, incomingDay: null, lastDemand: 0 },
+            WC: { stock: 200, incoming: null, incomingDay: null, lastDemand: 0 },
+            TST: { stock: 200, incoming: null, incomingDay: null, lastDemand: 0 }
+        },
+        financials: {
+            unitsSold: 0,
+            salesValue: 0,
+            orderingCost: 0,
+            holdingCost: 0,
+            cogs: 0
+        },
+        history: {
+            labels: [],
+            whStock: [],
+            mkStock: [],
+            wcStock: [],
+            tstStock: []
+        }
     };
-    const num = n => {
-      const v = Number(n);
-      return Number.isFinite(v) ? v : NaN;
-    };
-    function clamp(n, lo, hi){ return Math.min(hi, Math.max(lo, n)); }
 
-    // Demand sampling
-    function poisson(lambda){
-      if (lambda <= 0) return 0;
-      const L = Math.exp(-lambda);
-      let k = 0, p = 1;
-      do { k++; p *= Math.random(); } while (p > L);
-      return k - 1;
-    }
-    function uniformInt(min, max){
-      const lo = Math.floor(min), hi = Math.floor(max);
-      if (hi < lo) return 0;
-      return lo + Math.floor(Math.random() * (hi - lo + 1));
-    }
-    function sampleDemand(){
-      if (state.demand.type === "poisson"){
-        return poisson(Math.max(0, state.demand.lambda));
-      } else {
-        return uniformInt(Math.max(0, state.demand.min), Math.max(0, state.demand.max));
-      }
-    }
+    // --- Chart Setup ---
+    let mainChart;
+    let resultChart;
 
-    // ---------- Core Simulation ----------
-    function placeSupplierOrder(qty){
-      if (state.gameEnded) return;
-      qty = clamp(Math.floor(qty), 0, MAX_ORDER);
-      if (!Number.isFinite(qty) || qty <= 0){ markError("#supplierQtyWrap"); toast("Enter a positive quantity to order from Supplier."); return; }
-      clearError("#supplierQtyWrap");
-      if (state.supplierPending){
-        toast("You must wait for the current supplier order to arrive before placing a new one.");
-        return;
-      }
-      state.supplierPending = { qty, daysLeft: LEAD_SUP_TO_WH };
-      state.totals.orderingCost += COST_ORDER_SUP;
-      updateUI();
-    }
-
-    function placeRetailDispatch(key, qty){
-      if (state.gameEnded) return;
-      qty = clamp(Math.floor(qty), 0, MAX_ORDER);
-      const wrapId = key === "MK" ? "#toMKWrap" : key === "WC" ? "#toWCWrap" : "#toTSTWrap";
-      if (!Number.isFinite(qty) || qty <= 0){ markError(wrapId); toast("Enter a positive quantity to dispatch to " + state.retailers[key].name + "."); return; }
-      clearError(wrapId);
-      if (state.retailerPending[key]){
-        toast("You must wait for the current " + key + " shipment to arrive before placing a new one.");
-        return;
-      }
-      if (qty > state.warehouse.stock){
-        toast("Not enough stock at Warehouse for this dispatch.");
-        return;
-      }
-      // Reserve and ship
-      state.warehouse.stock -= qty;
-      state.retailerPending[key] = { qty, daysLeft: LEAD_WH_TO_RT };
-      state.totals.orderingCost += COST_ORDER_RT;
-      updateUI();
-    }
-
-    function arrivals(){
-      // Supplier to Warehouse
-      if (state.supplierPending){
-        state.supplierPending.daysLeft -= 1;
-        if (state.supplierPending.daysLeft <= 0){
-          state.warehouse.stock += state.supplierPending.qty;
-          state.supplierPending = null;
-        }
-      }
-      // Warehouse to Retailers
-      for (const key of Object.keys(state.retailerPending)){
-        const pend = state.retailerPending[key];
-        if (pend){
-          pend.daysLeft -= 1;
-          if (pend.daysLeft <= 0){
-            state.retailers[key].stock += pend.qty;
-            state.retailerPending[key] = null;
-          }
-        }
-      }
-    }
-
-    function demandAndSales(){
-      let daySold = 0;
-      for (const key of Object.keys(state.retailers)){
-        const r = state.retailers[key];
-        const d = sampleDemand();
-        r.lastDemand = d;
-        const sold = Math.min(d, r.stock);
-        r.stock -= sold;
-        daySold += sold;
-      }
-      if (daySold > 0){
-        state.totals.soldUnits += daySold;
-        state.totals.salesValue += daySold * PRICE_SELL;
-        state.totals.cogs += daySold * COST_PURCHASE;
-      }
-    }
-
-    function holdingCost(){
-      const wh = state.warehouse.stock;
-      const mk = state.retailers.MK.stock;
-      const wc = state.retailers.WC.stock;
-      const tst = state.retailers.TST.stock;
-      const cost = wh * HOLD_WH_DAY + (mk + wc + tst) * HOLD_RT_DAY;
-      state.totals.holdingCost += cost;
-    }
-
-    function nextDay(){
-      if (state.gameEnded) return;
-      arrivals();
-      demandAndSales();
-      holdingCost();
-
-      const totalStock = state.warehouse.stock + state.retailers.MK.stock + state.retailers.WC.stock + state.retailers.TST.stock;
-      const gross = state.totals.salesValue - state.totals.orderingCost - state.totals.holdingCost;
-      const net = gross - state.totals.cogs;
-      state.history.days.push(state.day);
-      state.history.stock.push(totalStock);
-      state.history.sales.push(state.totals.salesValue);
-      state.history.profit.push(net);
-
-      state.day += 1;
-      if (state.day > state.duration){
-        endGame();
-        return;
-      }
-      updateUI();
-    }
-
-    function endGame(){
-      state.gameEnded = true;
-      stopAuto();
-      updateUI();
-      $("#endDays").textContent = state.duration.toString();
-      $("#endSold").textContent = state.totals.soldUnits.toLocaleString();
-      const gross = state.totals.salesValue - state.totals.orderingCost - state.totals.holdingCost;
-      const net = gross - state.totals.cogs;
-      $("#endProfit").textContent = money(net);
-      $("#gameOver").classList.add("show");
-      toast("Game ended. All order inputs are now disabled.", 2500);
-    }
-
-    function resetGame(){
-      stopAuto();
-      const dur = clamp(num($("#durationInput").value), 1, 9999);
-      state.day = 1;
-      state.duration = dur;
-      state.gameEnded = false;
-      state.supplierPending = null;
-      state.retailerPending = { MK: null, WC: null, TST: null };
-      state.warehouse.stock = 1000;
-      state.retailers.MK.stock = 200;
-      state.retailers.WC.stock = 200;
-      state.retailers.TST.stock = 200;
-      state.retailers.MK.lastDemand = 0;
-      state.retailers.WC.lastDemand = 0;
-      state.retailers.TST.lastDemand = 0;
-      state.totals.soldUnits = 0;
-      state.totals.salesValue = 0;
-      state.totals.orderingCost = 0;
-      state.totals.holdingCost = 0;
-      state.totals.cogs = 0;
-      state.history.days = [1];
-      state.history.stock = [1600];
-      state.history.sales = [0];
-      state.history.profit = [0];
-      $("#gameOver").classList.remove("show");
-      updateUI(true);
-    }
-
-    // ---------- UI Helpers ----------
-    function markError(selector){
-      const el = document.querySelector(selector);
-      if (el) el.classList.add("error");
-    }
-    function clearError(selector){
-      const el = document.querySelector(selector);
-      if (el) el.classList.remove("error");
-    }
-
-    function setDisabledEndState(){
-      const end = state.gameEnded;
-      // Retailer dispatches
-      $("#toMK").disabled = end;
-      $("#toWC").disabled = end;
-      $("#toTST").disabled = end;
-      $("#btnToMK").disabled = end || !!state.retailerPending.MK || state.warehouse.stock <= 0;
-      $("#btnToWC").disabled = end || !!state.retailerPending.WC || state.warehouse.stock <= 0;
-      $("#btnToTST").disabled = end || !!state.retailerPending.TST || state.warehouse.stock <= 0;
-      // Supplier
-      $("#supplierQty").disabled = end;
-      $("#btnSupplierOrder").disabled = end || !!state.supplierPending;
-      // Controls
-      $("#btnNext").disabled = end;
-      $("#btnAuto").disabled = end;
-    }
-
-    function updateUI(updateProgressOnly=false){
-      $("#dayText").textContent = state.day.toString();
-      $("#durText").textContent = state.duration.toString();
-      const pct = Math.min(100, Math.max(0, Math.round((state.day-1) / state.duration * 100)));
-      $("#progressBar").style.width = pct + "%";
-
-      // Stocks
-      $("#warehouseStock").textContent = state.warehouse.stock.toLocaleString();
-      $("#mkStock").textContent = state.retailers.MK.stock.toLocaleString();
-      $("#wcStock").textContent = state.retailers.WC.stock.toLocaleString();
-      $("#tstStock").textContent = state.retailers.TST.stock.toLocaleString();
-
-      // Last day demands
-      $("#mkDemand").textContent = state.retailers.MK.lastDemand.toLocaleString();
-      $("#wcDemand").textContent = state.retailers.WC.lastDemand.toLocaleString();
-      $("#tstDemand").textContent = state.retailers.TST.lastDemand.toLocaleString();
-
-      // Pending shipments
-      const supPend = state.supplierPending;
-      const supEl = $("#supplierPending");
-      if (supPend){
-        supEl.style.display = "";
-        supEl.textContent = `In transit: ${supPend.qty.toLocaleString()} (ETA ${supPend.daysLeft} day${supPend.daysLeft===1?"":"s"})`;
-      } else {
-        supEl.style.display = "none";
-      }
-      const mkPend = state.retailerPending.MK;
-      const wcPend = state.retailerPending.WC;
-      const tstPend = state.retailerPending.TST;
-      const mkPEl = $("#mkPending"), wcPEl = $("#wcPending"), tstPEl = $("#tstPending");
-      if (mkPend){ mkPEl.style.display = ""; mkPEl.textContent = `MK inbound: ${mkPend.qty.toLocaleString()} (ETA ${mkPend.daysLeft} day${mkPend.daysLeft===1?"":"s"})`; } else { mkPEl.style.display = "none"; }
-      if (wcPend){ wcPEl.style.display = ""; wcPEl.textContent = `WC inbound: ${wcPend.qty.toLocaleString()} (ETA ${wcPend.daysLeft} day${wcPend.daysLeft===1?"":"s"})`; } else { wcPEl.style.display = "none"; }
-      if (tstPend){ tstPEl.style.display = ""; tstPEl.textContent = `TST inbound: ${tstPend.qty.toLocaleString()} (ETA ${tstPend.daysLeft} day${tstPend.daysLeft===1?"":"s"})`; } else { tstPEl.style.display = "none"; }
-
-      // Costs
-      const gross = state.totals.salesValue - state.totals.orderingCost - state.totals.holdingCost;
-      const net = gross - state.totals.cogs;
-      $("#soldUnits").textContent = state.totals.soldUnits.toLocaleString();
-      $("#salesValue").textContent = money(state.totals.salesValue);
-      $("#orderingCost").textContent = money(state.totals.orderingCost);
-      $("#holdingCost").textContent = money(state.totals.holdingCost);
-      $("#grossTotal").textContent = money(gross);
-      $("#cogs").textContent = money(state.totals.cogs);
-      $("#netProfit").textContent = money(net);
-
-      // Enable/Disable
-      setDisabledEndState();
-
-      // Chart
-      if (!updateProgressOnly) drawChart();
-
-      // Duration sync
-      $("#durationInput").value = state.duration.toString();
-      $("#durationInputModal").value = state.duration.toString();
-      $("#chartDay").textContent = (state.day-1).toString();
-    }
-
-    // ---------- Chart ----------
-    let currentSeries = "stock"; // "stock" | "sales" | "profit"
-    function drawChart(){
-      const cvs = $("#chart");
-      const ctx = cvs.getContext("2d");
-      const w = cvs.width, h = cvs.height;
-      ctx.clearRect(0,0,w,h);
-
-      const pad = { l: 36, r: 8, t: 12, b: 18 };
-      ctx.fillStyle = "#0b132c";
-      ctx.fillRect(0,0,w,h);
-
-      ctx.strokeStyle = "#22335a";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(pad.l, h - pad.b);
-      ctx.lineTo(w - pad.r, h - pad.b);
-      ctx.moveTo(pad.l, pad.t);
-      ctx.lineTo(pad.l, h - pad.b);
-      ctx.stroke();
-
-      const xs = state.history.days.map((_, i) => i);
-      let ys, color;
-      if (currentSeries === "stock"){
-        ys = state.history.stock;
-        color = ctx.createLinearGradient(0,0,0,h);
-        color.addColorStop(0, "#60a5fa");
-        color.addColorStop(1, "#4f63ff");
-      } else if (currentSeries === "sales"){
-        ys = state.history.sales;
-        color = ctx.createLinearGradient(0,0,0,h);
-        color.addColorStop(0, "#22c55e");
-        color.addColorStop(1, "#16a34a");
-      } else {
-        ys = state.history.profit;
-        color = ctx.createLinearGradient(0,0,0,h);
-        color.addColorStop(0, "#f59e0b");
-        color.addColorStop(1, "#d97706");
-      }
-      const xMin = 0, xMax = Math.max(1, xs.length-1);
-      let yMin = Math.min(...ys, 0);
-      let yMax = Math.max(...ys, 1);
-      if (yMax - yMin < 1e-6) { yMax = yMin + 1; }
-      function x2px(x){ return pad.l + (x - xMin) / (xMax - xMin) * (w - pad.l - pad.r); }
-      function y2px(y){ return (h - pad.b) - (y - yMin) / (yMax - yMin) * (h - pad.t - pad.b); }
-
-      // grid lines
-      ctx.strokeStyle = "#1c2a4f"; ctx.lineWidth=1;
-      for (let i=0;i<=4;i++){
-        const gy = pad.t + i * (h - pad.t - pad.b)/4;
-        ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(w - pad.r, gy); ctx.stroke();
-      }
-
-      // line
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = color;
-      ctx.beginPath();
-      ys.forEach((y, i) => {
-        const px = x2px(i), py = y2px(y);
-        if (i===0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      });
-      ctx.stroke();
-
-      // fill
-      const grad = ctx.createLinearGradient(0, pad.t, 0, h - pad.b);
-      grad.addColorStop(0, "rgba(108,125,255,.25)");
-      grad.addColorStop(1, "rgba(108,125,255,0)");
-      ctx.beginPath();
-      ys.forEach((y, i) => {
-        const px = x2px(i), py = y2px(y);
-        if (i===0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      });
-      ctx.lineTo(x2px(xs.length-1), h - pad.b);
-      ctx.lineTo(x2px(0), h - pad.b);
-      ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // labels
-      ctx.fillStyle = "#93acd7";
-      ctx.font = "12px system-ui, -apple-system, Segoe UI";
-      ctx.textAlign = "right";
-      ctx.fillText(formatShort(yMax), pad.l - 6, y2px(yMax));
-      ctx.fillText(formatShort((yMax+yMin)/2), pad.l - 6, y2px((yMax+yMin)/2));
-      ctx.fillText(formatShort(yMin), pad.l - 6, y2px(yMin));
-    }
-
-    function formatShort(n){
-      const a = Math.abs(n);
-      if (a >= 1e6) return (n/1e6).toFixed(1)+"M";
-      if (a >= 1e3) return (n/1e3).toFixed(1)+"k";
-      return Math.round(n).toString();
-    }
-
-    // ---------- Toast ----------
-    let toastTimer = null;
-    function toast(msg, ms=2000){
-      if (!msg) return;
-      const el = document.createElement("div");
-      el.textContent = msg;
-      el.style.position="fixed";
-      el.style.left="50%";
-      el.style.top="14px";
-      el.style.transform="translateX(-50%)";
-      el.style.background="linear-gradient(180deg,#172044,#111a3c)";
-      el.style.color="#e9eef8";
-      el.style.border="1px solid #2a3a63";
-      el.style.borderRadius="999px";
-      el.style.padding="10px 14px";
-      el.style.fontSize="12px";
-      el.style.boxShadow="0 8px 18px rgba(0,0,0,.35)";
-      el.style.zIndex="80";
-      document.body.appendChild(el);
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(()=>{ el.remove(); }, ms);
-    }
-
-    // ---------- Demand Settings UI ----------
-    function populateSettingsFromState(){
-      if (state.demand.type === "poisson"){
-        $("#radioPoisson").checked = true;
-        $("#radioUniform").checked = false;
-      } else {
-        $("#radioUniform").checked = true;
-        $("#radioPoisson").checked = false;
-      }
-      $("#uniformMin").value = state.demand.min.toString();
-      $("#uniformMax").value = state.demand.max.toString();
-      $("#poissonLambda").value = state.demand.lambda.toString();
-      $("#durationInputModal").value = state.duration.toString();
-      updateDemandFields();
-      updateDemandConfirm();
-      clearError("#uniformMinWrap"); clearError("#uniformMaxWrap"); clearError("#poissonLambdaWrap");
-    }
-
-    function updateDemandFields(){
-      const type = document.querySelector('input[name="demandType"]:checked')?.value || "uniform";
-      const showUniform = type === "uniform";
-      $("#uniformFields").classList.toggle("hidden", !showUniform);
-      $("#poissonFields").classList.toggle("hidden", showUniform);
-      $("#uniformMin").disabled = !showUniform;
-      $("#uniformMax").disabled = !showUniform;
-      $("#poissonLambda").disabled = showUniform;
-    }
-
-    function validateAndApplyDemand(){
-      const type = document.querySelector('input[name="demandType"]:checked')?.value || "uniform";
-      let ok = true, msg = "";
-      clearError("#uniformMinWrap"); clearError("#uniformMaxWrap"); clearError("#poissonLambdaWrap");
-
-      if (type === "uniform"){
-        const minVal = num($("#uniformMin").value);
-        const maxVal = num($("#uniformMax").value);
-        if (!Number.isFinite(minVal)){ ok = false; markError("#uniformMinWrap"); }
-        if (!Number.isFinite(maxVal)){ ok = false; markError("#uniformMaxWrap"); }
-        if (!ok){ toast("Please enter valid Min and Max values for Uniform demand."); return false; }
-        const imin = Math.max(0, Math.floor(minVal));
-        const imax = Math.max(0, Math.floor(maxVal));
-        if (imax < imin){
-          markError("#uniformMinWrap"); markError("#uniformMaxWrap");
-          toast("Uniform demand invalid: Min must be ≤ Max.");
-          return false;
-        }
-        state.demand.type = "uniform";
-        state.demand.min = imin;
-        state.demand.max = imax;
-        msg = `Uniform distribution confirmed: Min = ${imin}, Max = ${imax}.`;
-      } else {
-        const lam = num($("#poissonLambda").value);
-        if (!Number.isFinite(lam) || lam < 0){
-          markError("#poissonLambdaWrap");
-          toast("Please enter a valid non-negative Lambda for Poisson demand.");
-          return false;
-        }
-        state.demand.type = "poisson";
-        state.demand.lambda = lam;
-        msg = `Poisson distribution confirmed: Lambda = ${lam}.`;
-      }
-
-      updateDemandConfirm(msg);
-      toast("Settings applied.");
-      return true;
-    }
-
-    function updateDemandConfirm(explicitMsg){
-      const el = $("#demandConfirm");
-      if (explicitMsg){
-        el.textContent = explicitMsg;
-        return;
-      }
-      if (state.demand.type === "poisson"){
-        el.textContent = `Current: Poisson(λ = ${state.demand.lambda}).`;
-      } else {
-        el.textContent = `Current: Uniform(min = ${state.demand.min}, max = ${state.demand.max}).`;
-      }
-    }
-
-    // ---------- Auto Run ----------
-    function toggleAuto(){
-      if (state.gameEnded) return;
-      state.auto.running = !state.auto.running;
-      if (state.auto.running){
-        $("#btnAuto").textContent = "⏸ Pause";
-        state.auto.timer = setInterval(()=>{
-          if (state.gameEnded){ stopAuto(); return; }
-          nextDay();
-        }, 650);
-      } else {
-        stopAuto();
-      }
-    }
-    function stopAuto(){
-      state.auto.running = false;
-      if (state.auto.timer){ clearInterval(state.auto.timer); state.auto.timer = null; }
-      $("#btnAuto").textContent = "⏵ Auto";
-    }
-
-    // ---------- Event Bindings ----------
-    function bind(){
-      // Supplier
-      $("#btnSupplierOrder").addEventListener("click", ()=> {
-        placeSupplierOrder($("#supplierQty").value);
-        $("#supplierQty").value = "";
-      });
-
-      // Warehouse -> Retailers
-      $("#btnToMK").addEventListener("click", ()=> { placeRetailDispatch("MK", $("#toMK").value); $("#toMK").value=""; });
-      $("#btnToWC").addEventListener("click", ()=> { placeRetailDispatch("WC", $("#toWC").value); $("#toWC").value=""; });
-      $("#btnToTST").addEventListener("click", ()=> { placeRetailDispatch("TST", $("#toTST").value); $("#toTST").value=""; });
-
-      // Day controls
-      $("#btnNext").addEventListener("click", nextDay);
-      $("#btnAuto").addEventListener("click", toggleAuto);
-      $("#btnReset").addEventListener("click", ()=> { resetGame(); toast("Game reset."); });
-
-      // Duration (header)
-      $("#durationInput").addEventListener("change", (e)=>{
-        const v = clamp(num(e.target.value), 1, 9999);
-        state.duration = v;
-        $("#durText").textContent = v.toString();
-        updateUI(true);
-        if (state.day > state.duration && !state.gameEnded){ endGame(); }
-      });
-
-      // Settings open/close
-      $("#btnSettings").addEventListener("click", ()=> { populateSettingsFromState(); $("#settingsModal").classList.add("show"); });
-      $("#btnCloseSettings").addEventListener("click", ()=> $("#settingsModal").classList.remove("show"));
-      $("#btnOKSettings").addEventListener("click", ()=> $("#settingsModal").classList.remove("show"));
-
-      // Demand radio toggles
-      $$("#radioUniform, #radioPoisson").forEach(r => r.addEventListener("change", updateDemandFields));
-
-      // Apply settings (validates and confirms)
-      $("#btnApplySettings").addEventListener("click", ()=>{
-        const dur = clamp(num($("#durationInputModal").value), 1, 9999);
-        state.duration = dur;
-        $("#durationInput").value = dur.toString();
-        $("#durText").textContent = dur.toString();
-        const ok = validateAndApplyDemand();
-        updateUI(true);
-        if (state.day > state.duration && !state.gameEnded){ endGame(); }
-      });
-
-      // Tabs for chart
-      $$(".tab").forEach(tab=>{
-        tab.addEventListener("click", ()=>{
-          $$(".tab").forEach(t=>{ t.classList.remove("active"); t.setAttribute("aria-selected","false"); });
-          tab.classList.add("active");
-          tab.setAttribute("aria-selected","true");
-          currentSeries = tab.dataset.series;
-          drawChart();
+    function initCharts() {
+        const ctx = document.getElementById('stockChart').getContext('2d');
+        mainChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'WH', data: [], borderColor: '#3498db', tension: 0.1, pointRadius: 0 },
+                    { label: 'MK', data: [], borderColor: '#e74c3c', tension: 0.1, pointRadius: 0 },
+                    { label: 'WC', data: [], borderColor: '#f1c40f', tension: 0.1, pointRadius: 0 },
+                    { label: 'TST', data: [], borderColor: '#2ecc71', tension: 0.1, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: { y: { beginAtZero: true } }
+            }
         });
-      });
-
-      // Gameover actions
-      $("#btnPlayAgain").addEventListener("click", ()=> { $("#gameOver").classList.remove("show"); resetGame(); });
-
-      // Accessibility: Enter to submit supplier/dispatch inputs
-      ["#supplierQty","#toMK","#toWC","#toTST"].forEach(sel=>{
-        $(sel).addEventListener("keydown", (e)=>{
-          if (e.key === "Enter"){
-            if (sel === "#supplierQty"){ $("#btnSupplierOrder").click(); }
-            if (sel === "#toMK"){ $("#btnToMK").click(); }
-            if (sel === "#toWC"){ $("#btnToWC").click(); }
-            if (sel === "#toTST"){ $("#btnToTST").click(); }
-          }
-        });
-      });
     }
 
-    // ---------- Init ----------
-    bind();
+    // --- Game Logic ---
+
+    function getRandomDemand() {
+        return Math.floor(Math.random() * (CONFIG.demandMax - CONFIG.demandMin + 1)) + CONFIG.demandMin;
+    }
+
+    function placeOrder(entity) {
+        if(state.day >= CONFIG.maxDays) return;
+
+        let inputId, qty;
+        
+        if (entity === 'WH') {
+            if (state.warehouse.incoming !== null) {
+                // If manual click, warn user. If auto-pilot, just return silently.
+                if(!state.isRunning) alert("Cannot place order: Previous order has not arrived yet.");
+                return;
+            }
+            inputId = 'whOrderInput';
+            qty = parseInt(document.getElementById(inputId).value);
+            if (isNaN(qty) || qty <= 0 || qty > 9999) {
+                if(!state.isRunning) alert("Please enter a valid quantity (1-9999).");
+                return;
+            }
+            
+            // Execute WH Order
+            state.warehouse.incoming = qty;
+            state.warehouse.incomingDay = state.day + CONFIG.whLeadTime;
+            state.financials.orderingCost += CONFIG.whTransportCost;
+            document.getElementById(inputId).value = '';
+            updateUI();
+        } else {
+            // Retailer Order
+            if (state.retailers[entity].incoming !== null) {
+                if(!state.isRunning) alert(`Cannot place order for ${entity}: Previous order has not arrived.`);
+                return;
+            }
+            inputId = entity.toLowerCase() + 'OrderInput';
+            qty = parseInt(document.getElementById(inputId).value);
+            
+            if (isNaN(qty) || qty <= 0 || qty > 9999) {
+                if(!state.isRunning) alert("Please enter a valid quantity (1-9999).");
+                return;
+            }
+
+            let shipQty = qty;
+            if (state.warehouse.stock < qty) {
+                shipQty = state.warehouse.stock;
+                // Only alert if manual play to avoid spamming alerts in auto play
+                if(!state.isRunning) alert(`Warehouse only has ${state.warehouse.stock} units. Shipping partial order.`);
+            }
+
+            if (shipQty > 0) {
+                state.warehouse.stock -= shipQty;
+                state.retailers[entity].incoming = shipQty;
+                state.retailers[entity].incomingDay = state.day + CONFIG.retLeadTime;
+                state.financials.orderingCost += CONFIG.retTransportCost;
+            } else {
+                if(!state.isRunning) alert("Warehouse is empty! Cannot ship.");
+                return; 
+            }
+            
+            document.getElementById(inputId).value = '';
+            updateUI();
+        }
+    }
+
+    function runAutoPilotLogic() {
+        // Read Settings directly from the modal inputs
+        const retBuffer = parseInt(document.getElementById('apRetBuffer').value) || 0;
+        const retQty = parseInt(document.getElementById('apRetQty').value) || 0;
+        const whBuffer = parseInt(document.getElementById('apWhBuffer').value) || 0;
+        const whQty = parseInt(document.getElementById('apWhQty').value) || 0;
+
+        // 1. Check Warehouse
+        // Rule: If Stock <= Buffer AND No Incoming Order
+        if (state.warehouse.stock <= whBuffer && state.warehouse.incoming === null) {
+            document.getElementById('whOrderInput').value = whQty;
+            placeOrder('WH');
+        }
+
+        // 2. Check Retailers
+        ['MK', 'WC', 'TST'].forEach(ret => {
+            if (state.retailers[ret].stock <= retBuffer && state.retailers[ret].incoming === null) {
+                document.getElementById(ret.toLowerCase() + 'OrderInput').value = retQty;
+                placeOrder(ret);
+            }
+        });
+    }
+
+    function nextDay() {
+        if (state.day > CONFIG.maxDays) return;
+
+        // 1. Process Arrivals
+        if (state.warehouse.incomingDay === state.day) {
+            state.warehouse.stock += state.warehouse.incoming;
+            state.warehouse.incoming = null;
+            state.warehouse.incomingDay = null;
+        }
+
+        ['MK', 'WC', 'TST'].forEach(ret => {
+            if (state.retailers[ret].incomingDay === state.day) {
+                state.retailers[ret].stock += state.retailers[ret].incoming;
+                state.retailers[ret].incoming = null;
+                state.retailers[ret].incomingDay = null;
+            }
+        });
+
+        // 2. Process Demand & Sales
+        let dailyUnitsSold = 0;
+        
+        ['MK', 'WC', 'TST'].forEach(ret => {
+            let demand = getRandomDemand();
+            let sold = 0;
+            
+            if (state.retailers[ret].stock >= demand) {
+                sold = demand;
+                state.retailers[ret].stock -= demand;
+            } else {
+                sold = state.retailers[ret].stock;
+                state.retailers[ret].stock = 0;
+            }
+
+            state.retailers[ret].lastDemand = demand;
+            dailyUnitsSold += sold;
+        });
+
+        // 3. Update Financials
+        state.financials.unitsSold += dailyUnitsSold;
+        state.financials.salesValue += (dailyUnitsSold * CONFIG.sellingPrice);
+        state.financials.cogs += (dailyUnitsSold * CONFIG.unitCost);
+
+        // Calculate Holding Costs
+        let totalRetStock = state.retailers.MK.stock + state.retailers.WC.stock + state.retailers.TST.stock;
+        state.financials.holdingCost += (state.warehouse.stock * whHoldingDaily);
+        state.financials.holdingCost += (totalRetStock * retHoldingDaily);
+
+        // 4. Record History
+        state.history.labels.push(state.day);
+        state.history.whStock.push(state.warehouse.stock);
+        state.history.mkStock.push(state.retailers.MK.stock);
+        state.history.wcStock.push(state.retailers.WC.stock);
+        state.history.tstStock.push(state.retailers.TST.stock);
+
+        // 5. Advance Day
+        state.day++;
+
+        // 6. Check Game End
+        if (state.day > CONFIG.maxDays) {
+            endGame();
+        } else {
+            updateUI();
+            updateChart();
+        }
+    }
+
+    function updateUI() {
+        document.getElementById('dayDisplay').innerText = state.day > CONFIG.maxDays ? CONFIG.maxDays : state.day;
+        
+        // Stock Displays
+        document.getElementById('whStock').innerText = state.warehouse.stock;
+        document.getElementById('mkStock').innerText = state.retailers.MK.stock;
+        document.getElementById('wcStock').innerText = state.retailers.WC.stock;
+        document.getElementById('tstStock').innerText = state.retailers.TST.stock;
+
+        // Last Demand
+        document.getElementById('mkLastDemand').innerText = state.retailers.MK.lastDemand;
+        document.getElementById('wcLastDemand').innerText = state.retailers.WC.lastDemand;
+        document.getElementById('tstLastDemand').innerText = state.retailers.TST.lastDemand;
+
+        // Incoming Status
+        const updateIncoming = (entity, elemId) => {
+            const obj = entity === 'WH' ? state.warehouse : state.retailers[entity];
+            const el = document.getElementById(elemId);
+            if (obj.incoming !== null) {
+                el.innerText = `+${obj.incoming} arriving Day ${obj.incomingDay}`;
+            } else {
+                el.innerText = '';
+            }
+        };
+
+        updateIncoming('WH', 'whIncoming');
+        updateIncoming('MK', 'mkIncoming');
+        updateIncoming('WC', 'wcIncoming');
+        updateIncoming('TST', 'tstIncoming');
+
+        // Financial Table
+        const gross = state.financials.salesValue - state.financials.orderingCost - state.financials.holdingCost;
+        const net = gross - state.financials.cogs;
+        const avgGain = state.financials.unitsSold > 0 ? (net / state.financials.unitsSold) : 0;
+
+        document.getElementById('totalSold').innerText = state.financials.unitsSold;
+        document.getElementById('salesVal').innerText = '$ ' + state.financials.salesValue.toLocaleString();
+        document.getElementById('orderCost').innerText = '$ ' + state.financials.orderingCost.toLocaleString();
+        document.getElementById('holdCost').innerText = '$ ' + state.financials.holdingCost.toFixed(2);
+        document.getElementById('grossTotal').innerText = '$ ' + gross.toFixed(2);
+        document.getElementById('cogs').innerText = '$ ' + state.financials.cogs.toLocaleString();
+        document.getElementById('netProfit').innerText = '$ ' + net.toFixed(2);
+        document.getElementById('avgGain').innerText = '$ ' + avgGain.toFixed(2);
+    }
+
+    function updateChart() {
+        mainChart.data.labels = state.history.labels;
+        mainChart.data.datasets[0].data = state.history.whStock;
+        mainChart.data.datasets[1].data = state.history.mkStock;
+        mainChart.data.datasets[2].data = state.history.wcStock;
+        mainChart.data.datasets[3].data = state.history.tstStock;
+        mainChart.update();
+    }
+
+    function toggleAutoPlay() {
+        const btn = document.getElementById('autoPlayBtn');
+        if (state.isRunning) {
+            clearInterval(state.autoPlayInterval);
+            state.isRunning = false;
+            btn.innerText = "Auto Play ⏩";
+            btn.classList.remove('btn-danger');
+            btn.classList.add('btn-success');
+        } else {
+            if(state.day > CONFIG.maxDays) return;
+            state.isRunning = true;
+            btn.innerText = "Stop ⏹";
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-danger');
+            
+            state.autoPlayInterval = setInterval(() => {
+                if (state.day <= CONFIG.maxDays) {
+                    runAutoPilotLogic(); // Run strategy before day advances
+                    nextDay();
+                } else {
+                    toggleAutoPlay();
+                }
+            }, 200); 
+        }
+    }
+
+    function resetGame() {
+        if (state.isRunning) toggleAutoPlay();
+        
+        state = {
+            day: 1,
+            isRunning: false,
+            autoPlayInterval: null,
+            warehouse: { stock: 1000, incoming: null, incomingDay: null },
+            retailers: {
+                MK: { stock: 200, incoming: null, incomingDay: null, lastDemand: 0 },
+                WC: { stock: 200, incoming: null, incomingDay: null, lastDemand: 0 },
+                TST: { stock: 200, incoming: null, incomingDay: null, lastDemand: 0 }
+            },
+            financials: {
+                unitsSold: 0,
+                salesValue: 0,
+                orderingCost: 0,
+                holdingCost: 0,
+                cogs: 0
+            },
+            history: {
+                labels: [],
+                whStock: [],
+                mkStock: [],
+                wcStock: [],
+                tstStock: []
+            }
+        };
+        
+        // Reset Inputs
+        document.querySelectorAll('.order-input-group input').forEach(i => i.value = '');
+        
+        updateUI();
+        updateChart();
+    }
+
+    function endGame() {
+        if (state.isRunning) toggleAutoPlay();
+        
+        // Populate Results Modal
+        const gross = state.financials.salesValue - state.financials.orderingCost - state.financials.holdingCost;
+        const net = gross - state.financials.cogs;
+        const avgGain = state.financials.unitsSold > 0 ? (net / state.financials.unitsSold) : 0;
+
+        document.getElementById('resNetProfit').innerText = '$ ' + net.toFixed(2);
+        document.getElementById('resAvgGain').innerText = '$ ' + avgGain.toFixed(2);
+        document.getElementById('resUnitsSold').innerText = state.financials.unitsSold;
+        document.getElementById('resWhStock').innerText = state.warehouse.stock;
+
+        // Render Result Chart
+        const ctx = document.getElementById('resultChart').getContext('2d');
+        if (resultChart) resultChart.destroy();
+        
+        resultChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: state.history.labels,
+                datasets: [
+                    { label: 'WH Stock', data: state.history.whStock, borderColor: '#3498db', borderWidth: 1, pointRadius: 0 },
+                    { label: 'MK Stock', data: state.history.mkStock, borderColor: '#e74c3c', borderWidth: 1, pointRadius: 0 },
+                    { label: 'WC Stock', data: state.history.wcStock, borderColor: '#f1c40f', borderWidth: 1, pointRadius: 0 },
+                    { label: 'TST Stock', data: state.history.tstStock, borderColor: '#2ecc71', borderWidth: 1, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Stock Levels Over Time' }
+                }
+            }
+        });
+
+        document.getElementById('resultsModal').style.display = 'block';
+    }
+
+    function downloadReport() {
+        const captureElement = document.getElementById('captureArea');
+        
+        html2canvas(captureElement, {
+            scale: 2, 
+            backgroundColor: '#ffffff'
+        }).then(canvas => {
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = 1920;
+            finalCanvas.height = 1080;
+            const ctx = finalCanvas.getContext('2d');
+            
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, 1920, 1080);
+            
+            const scale = Math.min(1920 / canvas.width, 1080 / canvas.height) * 0.9;
+            const w = canvas.width * scale;
+            const h = canvas.height * scale;
+            const x = (1920 - w) / 2;
+            const y = (1080 - h) / 2;
+            
+            ctx.drawImage(canvas, x, y, w, h);
+            
+            ctx.font = "30px Arial";
+            ctx.fillStyle = "#333";
+            ctx.fillText("Style Co. Simulation Report", 50, 50);
+
+            const link = document.createElement('a');
+            link.download = 'Inventory_Report.png';
+            link.href = finalCanvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+
+    // --- Modal Logic ---
+    function showInstructions() {
+        document.getElementById('infoModal').style.display = 'block';
+    }
+
+    function showAutoPilotModal() {
+        document.getElementById('autoPilotModal').style.display = 'block';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = "none";
+        }
+    }
+
+    // --- Init ---
+    initCharts();
+    showInstructions();
     updateUI();
 
-    // React to stock changes for enabling dispatch buttons
-    const observer = new MutationObserver(setDisabledEndState);
-    observer.observe($("#warehouseStock"), { childList:true });
-  </script>
+</script>
+
 </body>
 </html>
