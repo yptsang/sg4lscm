@@ -3,664 +3,2027 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PaulT - Supply Chain Inventory Control</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <title>PaulT-Inventory Control</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-        .stock-bar { transition: width 0.5s ease, background-color 0.5s ease; }
-        .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-        .pulse-dot { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        .flow-arrow { animation: flowMove 1.5s infinite; }
-        @keyframes flowMove { 0%,100%{opacity:0.35} 50%{opacity:1} }
-        .notification-enter { animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
-        input[type="number"] { -moz-appearance:textfield; }
-        .tab-active { border-bottom:3px solid #4f46e5; color:#4f46e5; font-weight:600; }
-        .modal-overlay { background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); }
+        :root{
+            --bg:#f4f7fa;
+            --surface:#ffffff;
+            --text:#14171a;
+            --muted:#5b6773;
+            --border:rgba(20,23,26,.12);
+            --shadow:0 10px 30px rgba(17,24,39,.08);
+            --shadow-sm:0 2px 12px rgba(17,24,39,.08);
+            --brand:#0b68ff;
+            --good:#16a34a;
+            --warn:#f59e0b;
+            --bad:#ef4444;
+            --focus:rgba(11,104,255,.35);
+        }
+        *{ box-sizing:border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #0b68ff, #1340c7);
+            color: white;
+        }
+        #header .header-left{
+            display:flex;
+            flex-direction:column;
+            gap:4px;
+            min-width:0;
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 1.15rem;
+            letter-spacing:.2px;
+        }
+        #header .header-sub{
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+            align-items:center;
+            font-size:.9rem;
+            opacity:.92;
+        }
+        .chip{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:6px 10px;
+            border-radius:999px;
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.18);
+            backdrop-filter: blur(8px);
+            white-space:nowrap;
+        }
+        .chip .dot{
+            width:8px;
+            height:8px;
+            border-radius:99px;
+            background: rgba(255,255,255,.9);
+        }
+        #settings-btn{
+            display:inline-flex;
+            align-items:center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.22);
+            background: rgba(255,255,255,.12);
+            color: rgba(255,255,255,.98);
+            cursor: pointer;
+            font-weight: 900;
+            letter-spacing: .2px;
+            transition: transform .15s ease, background .15s ease, border-color .15s ease;
+        }
+        #settings-btn svg{
+            width: 18px;
+            height: 18px;
+            display:block;
+        }
+        #settings-btn .chev{
+            opacity: .9;
+            font-weight: 900;
+        }
+        #settings-btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.3); }
+        #settings-btn:active{ transform: translateY(0px) scale(.99); }
+        #settings-btn:focus-visible{ outline: none; box-shadow: 0 0 0 4px var(--focus); }
+        #container {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+        #left, #right {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #left {
+            flex: 1;
+            border-right: 1px solid #ddd;
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+        }
+        #right {
+            flex: 1;
+        }
+        #supplier, #warehouse, #retailers, .collapse {
+            padding: 15px;
+            background-color: var(--surface);
+            border-radius: 14px;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            border: 1px solid var(--border);
+        }
+        .collapse{
+            padding: 0;
+            overflow:hidden;
+        }
+        .collapse > summary{
+            list-style: none;
+            cursor: pointer;
+            user-select:none;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap: 12px;
+            padding: 14px 14px 12px 14px;
+            font-weight: 900;
+            letter-spacing: .2px;
+        }
+        .collapse > summary::-webkit-details-marker{ display:none; }
+        .collapse > summary::after{
+            content: "▾";
+            font-weight: 900;
+            color: rgba(91,103,115,.95);
+            transition: transform .15s ease;
+        }
+        .collapse[open] > summary::after{ transform: rotate(180deg); }
+        .collapse-body{
+            border-top: 1px solid var(--border);
+            padding: 12px 14px 14px 14px;
+        }
+        .helper{
+            color: var(--muted);
+            font-weight: 650;
+            font-size: .9rem;
+            line-height: 1.4;
+            margin: 0;
+        }
+        .helper strong{ color: rgba(20,23,26,.9); }
+        .kpi-table{
+            width: 100%;
+            border-collapse: collapse;
+            font-variant-numeric: tabular-nums;
+        }
+        .kpi-table th, .kpi-table td{
+            border-bottom: 1px solid rgba(20,23,26,.08);
+            padding: 10px 8px;
+            text-align: right;
+        }
+        .kpi-table th:first-child, .kpi-table td:first-child{ text-align:left; }
+        .kpi-table th{
+            color: var(--muted);
+            font-weight: 900;
+            font-size: .85rem;
+            letter-spacing: .2px;
+        }
+        .kpi-good{ color: var(--good); font-weight: 900; }
+        .kpi-warn{ color: var(--warn); font-weight: 900; }
+        .kpi-bad{ color: var(--bad); font-weight: 900; }
+        .policy-grid{
+            display:grid;
+            grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            align-items:end;
+            padding-top: 8px;
+        }
+        .policy-grid > div{
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+            font-weight: 900;
+            color: rgba(20,23,26,.9);
+        }
+        .policy-grid label{
+            font-weight: 900;
+            color: rgba(20,23,26,.9);
+        }
+        .policy-grid .hint{
+            font-weight: 650;
+            color: var(--muted);
+            font-size: .82rem;
+            line-height: 1.25;
+        }
+        .policy-grid select{
+            border: 1px solid rgba(20,23,26,.15);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-weight: 800;
+            background: white;
+        }
+        .pill-muted{
+            background: rgba(255,255,255,.12);
+            border: 1px solid rgba(255,255,255,.18);
+        }
+        #supplier {
+            text-align: center;
+        }
+        #supplier input {
+            display: block;
+            margin: 10px auto;
+            width: 120px;
+        }
+        #warehouse {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #warehouse .order-row {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 10px;
+        }
+        #warehouse .order-item {
+            text-align: center;
+            flex: 1;
+            padding: 10px 10px 12px 10px;
+            border-radius: 12px;
+            transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+            border: 1px solid transparent;
+        }
+        #warehouse .order-item:hover{
+            background: rgba(17,24,39,.02);
+            border-color: rgba(20,23,26,.08);
+            box-shadow: 0 6px 16px rgba(17,24,39,.06);
+            transform: translateY(-1px);
+        }
+        #retailers {
+            display: flex;
+            justify-content: space-around;
+        }
+        .retailer {
+            text-align: center;
+            flex: 1;
+            padding: 0 10px;
+            border-radius: 12px;
+            transition: background .15s ease, transform .15s ease;
+        }
+        .retailer:hover{
+            background: rgba(17,24,39,.02);
+            transform: translateY(-1px);
+        }
+        input[type="number"]{
+            border: 1px solid rgba(20,23,26,.15);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-weight: 600;
+            outline:none;
+            transition: box-shadow .15s ease, border-color .15s ease;
+        }
+        input[type="number"]:focus{
+            border-color: rgba(11,104,255,.45);
+            box-shadow: 0 0 0 4px var(--focus);
+        }
+        #cost_table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        #cost_table th, #cost_table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #cost_table th {
+            background-color: #f8f9fa;
+        }
+        #descriptions {
+            white-space: pre-wrap;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 150px;
+            overflow: auto;
+        }
+        #graph {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #buttons {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background-color: #f4f7fa;
+            border-top: 1px solid #ddd;
+        }
+        button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform .15s ease, filter .15s ease;
+        }
+        button:hover{ transform: translateY(-1px); filter: brightness(1.03); }
+        button:active{ transform: translateY(0px) scale(.99); }
+        #ok {
+            background-color: #28a745;
+            color: white;
+        }
+        #pause{
+            background: rgba(17,24,39,.04);
+            color: rgba(20,23,26,.9);
+            border: 1px solid var(--border);
+        }
+        #reset {
+            background-color: #dc3545;
+            color: white;
+        }
+        .transit-info {
+            font-size: 0.8em;
+            color: #b42318;
+            margin-top: 5px;
+        }
+        .status-pill{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(17,24,39,.02);
+            font-weight: 700;
+            font-size: .85rem;
+            color: rgba(20,23,26,.9);
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        .status-pill::before{
+            content:"";
+            width:10px;
+            height:10px;
+            border-radius:99px;
+            background: rgba(91,103,115,.55);
+        }
+        .status-pill.good::before{ background: var(--good); }
+        .status-pill.warn::before{ background: var(--warn); }
+        .status-pill.bad::before{ background: var(--bad); }
+        .metric-badge{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:6px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(17,24,39,.02);
+            font-weight: 700;
+            margin-top: 6px;
+        }
+        .metric-badge .label{ color: var(--muted); font-weight: 700; font-size: .8rem; }
+        .metric-badge .value{ font-variant-numeric: tabular-nums; }
+        .lost-pill{
+            margin-left: 8px;
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding:4px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(239,68,68,.26);
+            background: rgba(239,68,68,.10);
+            color: #b42318;
+            font-weight: 900;
+            font-size: .8rem;
+        }
+        .pulse{
+            animation: pulsePop .5s ease;
+        }
+        @keyframes pulsePop{
+            0%{ transform: scale(1); }
+            35%{ transform: scale(1.06); }
+            100%{ transform: scale(1); }
+        }
+        .animation-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .anim-off *{ scroll-behavior:auto !important; }
+        @media (prefers-reduced-motion: reduce){
+            *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior:auto !important; }
+        }
+        #modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        #modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 16px;
+            border-radius: 16px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border: 1px solid rgba(20,23,26,.12);
+            max-height: 82vh;
+            overflow: auto;
+        }
+        #close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .settings-head{
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .settings-head h2{
+            margin: 0;
+            font-size: 1.15rem;
+            letter-spacing: .2px;
+        }
+        .settings-grid{
+            display:grid;
+            gap: 12px;
+        }
+        .settings-section{
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: rgba(17,24,39,.015);
+            overflow:hidden;
+        }
+        .settings-section > .section-title{
+            padding: 12px 12px 10px 12px;
+            font-weight: 900;
+            letter-spacing: .2px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap: 10px;
+        }
+        .settings-section > .section-body{
+            border-top: 1px solid rgba(20,23,26,.08);
+            padding: 12px;
+        }
+        .settings-actions{
+            position: sticky;
+            bottom: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,.0), rgba(255,255,255,.92) 22%, rgba(255,255,255,.98));
+            padding-top: 10px;
+        }
+        .settings-actions button{
+            width: 100%;
+            margin: 0;
+        }
+        .settings-note{
+            margin: 0;
+            color: var(--muted);
+            font-weight: 650;
+            line-height: 1.4;
+            font-size: .9rem;
+        }
+        #demand-type {
+            margin-bottom: 10px;
+        }
+        .field{
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+            margin: 10px 0;
+            font-weight: 700;
+            color: rgba(20,23,26,.9);
+        }
+        .field small{
+            font-weight: 600;
+            color: var(--muted);
+        }
+        .field-error{
+            color: #b42318;
+            font-weight: 700;
+            margin-top: 2px;
+            min-height: 20px;
+        }
+        .checkbox-row{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+        .checkbox-row input{ width: 18px; height: 18px; }
+        #report-modal{
+            display:none;
+            position:fixed;
+            inset:0;
+            background: rgba(0,0,0,.45);
+            z-index: 2;
+            padding: 60px 18px 18px 18px;
+        }
+        #report-content{
+            background: var(--surface);
+            max-width: 720px;
+            margin: 0 auto;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255,255,255,.2);
+            overflow:hidden;
+        }
+        #report-head{
+            padding: 18px 18px 14px 18px;
+            background: radial-gradient(700px 180px at 15% 0%, rgba(11,104,255,.16), transparent 65%), linear-gradient(135deg, rgba(11,104,255,.08), rgba(17,24,39,.02));
+            border-bottom: 1px solid var(--border);
+            display:flex;
+            justify-content:space-between;
+            gap:12px;
+            align-items:flex-start;
+        }
+        #report-head h2{
+            margin: 0;
+            font-size: 1.15rem;
+            letter-spacing: .2px;
+        }
+        #report-head p{
+            margin: 6px 0 0 0;
+            color: var(--muted);
+            font-weight: 600;
+            line-height: 1.4;
+        }
+        #close-report{
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,.75);
+            color: rgba(20,23,26,.85);
+            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            cursor:pointer;
+            font-size: 1.05rem;
+        }
+        #report-body{
+            padding: 16px 18px 18px 18px;
+            display:grid;
+            gap: 12px;
+        }
+        #report-metrics{
+            display:grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .metric-card{
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 12px 10px 12px;
+            background: rgba(17,24,39,.015);
+        }
+        .metric-card .k{
+            color: var(--muted);
+            font-weight: 800;
+            font-size: .85rem;
+            letter-spacing:.2px;
+        }
+        .metric-card .v{
+            margin-top: 6px;
+            font-size: 1.25rem;
+            font-weight: 900;
+            font-variant-numeric: tabular-nums;
+        }
+        .metric-card.good .v{ color: var(--good); }
+        .metric-card.bad .v{ color: var(--bad); }
+        #report-actions{
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+            align-items:center;
+            justify-content:space-between;
+            padding-top: 6px;
+        }
+        .btn-secondary{
+            background: rgba(17,24,39,.04);
+            color: rgba(20,23,26,.9);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-weight: 900;
+        }
+        .btn-primary{
+            background: linear-gradient(135deg, #0b68ff, #1340c7);
+            color: white;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-weight: 900;
+        }
+        .btn-danger{
+            background: #dc3545;
+            color: white;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-weight: 900;
+        }
+        #tooltip{
+            position: fixed;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity .12s ease, transform .12s ease;
+            max-width: min(320px, calc(100vw - 24px));
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(17,24,39,.92);
+            color: rgba(255,255,255,.96);
+            font-weight: 650;
+            font-size: .85rem;
+            line-height: 1.35;
+            box-shadow: 0 18px 60px rgba(0,0,0,.22);
+            border: 1px solid rgba(255,255,255,.12);
+        }
+        #tooltip.show{
+            opacity: 1;
+            transform: translateY(0px);
+        }
+        @media (max-width: 768px) {
+            #container {
+                flex-direction: column;
+            }
+            #left, #right {
+                border: none;
+            }
+            #retailers {
+                flex-direction: column;
+            }
+            #warehouse .order-row {
+                flex-direction: column;
+            }
+            #report-metrics{
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-
-<!-- Header -->
-<header class="bg-indigo-700 text-white shadow-lg">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-tshirt text-2xl"></i>
-            <h1 class="text-lg font-bold tracking-tight">PaulT Inventory Control</h1>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-            <div class="bg-indigo-800 rounded-lg px-4 py-2 flex items-center gap-3">
-                <span class="text-indigo-300 text-xs uppercase tracking-wide">Day</span>
-                <span id="dayDisplay" class="text-2xl font-bold tabular-nums">0</span>
+<body>
+    <div id="header">
+        <div class="header-left">
+            <h1>Two‑Echelon Inventory Game</h1>
+            <div class="header-sub">
+                <span class="chip" data-tooltip="Day counter advances each time you press OK.">
+                    <span class="dot"></span>
+                    Day: <span id="day">1</span>
+                </span>
+                <span class="chip" data-tooltip="Run progress toward the configured report threshold. The simulation continues after the report triggers.">
+                    <span class="dot"></span>
+                    Run: <span id="run_progress">0</span>/<span id="run_target">100</span>
+                </span>
+                <span class="chip pill-muted" id="mode_chip" data-tooltip="Manual: you decide order quantities. Autoplay: the system orders using your chosen policy.">
+                    <span class="dot"></span>
+                    Mode: <span id="mode_value">Manual</span>
+                </span>
             </div>
-            <button id="btnStep" onclick="advanceDay()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-lg transition" title="Next Day">
-                <i class="fas fa-forward-step"></i>
-            </button>
-            <button id="btnPlay" onclick="togglePlay()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-lg transition" title="Auto Play">
-                <i class="fas fa-play" id="playIcon"></i>
-            </button>
-            <select id="speedSelect" onchange="changeSpeed()" class="bg-indigo-800 text-white rounded-lg px-2 py-2 text-sm border border-indigo-600 cursor-pointer">
-                <option value="1000">1×</option>
-                <option value="500">2×</option>
-                <option value="250">4×</option>
-                <option value="100">10×</option>
-            </select>
         </div>
-        <div class="flex items-center gap-2">
-            <button onclick="showModal('infoModal')" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-lg text-sm transition">
-                <i class="fas fa-info-circle sm:mr-1"></i><span class="hidden sm:inline"> Info</span>
-            </button>
-            <button onclick="showModal('settingsModal')" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-lg text-sm transition">
-                <i class="fas fa-cog sm:mr-1"></i><span class="hidden sm:inline"> Settings</span>
-            </button>
-            <button onclick="resetGame()" class="bg-red-500 hover:bg-red-400 px-3 py-2 rounded-lg text-sm transition">
-                <i class="fas fa-rotate-right sm:mr-1"></i><span class="hidden sm:inline"> Reset</span>
-            </button>
-        </div>
+        <button id="settings-btn" aria-label="Open settings" data-tooltip="Open settings (policies, demand, run length)">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M10 6h11" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"></path>
+                <circle cx="6" cy="6" r="2" fill="white"></circle>
+                <path d="M3 12h11" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"></path>
+                <circle cx="17" cy="12" r="2" fill="white"></circle>
+                <path d="M10 18h11" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"></path>
+                <circle cx="6" cy="18" r="2" fill="white"></circle>
+            </svg>
+            Settings <span class="chev">▾</span>
+        </button>
     </div>
-</header>
-
-<!-- Notifications -->
-<div id="notifications" class="fixed top-20 right-4 z-50 flex flex-col gap-2" style="max-width:300px"></div>
-
-<!-- Main Content -->
-<main class="max-w-7xl mx-auto px-4 py-6">
-
-    <!-- Supply Chain Flow -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
-
-        <!-- Supplier + Warehouse -->
-        <div class="lg:col-span-5 flex flex-col gap-3">
-
-            <!-- Supplier Card -->
-            <div class="bg-white rounded-xl shadow-md p-5 border-l-4 border-gray-500">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
-                        <i class="fas fa-industry text-gray-600"></i>
-                    </div>
-                    <div>
-                        <h2 class="font-bold text-gray-800">Supplier</h2>
-                        <span class="text-xs text-gray-500">Lead Time: 14 days &nbsp;|&nbsp; $25/unit + $150/order</span>
-                    </div>
+    <div id="container">
+        <div id="left">
+            <details class="collapse" open>
+                <summary data-tooltip="A quick guide to help you get started.">Quick Guide</summary>
+                <div class="collapse-body">
+                    <p class="helper"><strong>Goal:</strong> keep retailers stocked while maximizing net profit.</p>
+                    <p class="helper"><strong>How:</strong> enter order quantities, then press <strong>OK</strong> to advance one day.</p>
+                    <p class="helper"><strong>Watch:</strong> the Stock status badges (Sufficient / Reorder / Stockout) and the Cost Analysis.</p>
                 </div>
-                <div class="flex gap-2 items-end">
-                    <div class="flex-1">
-                        <label class="text-xs text-gray-500 mb-1 block">Order Quantity</label>
-                        <input type="number" id="supplierOrderQty" min="1" max="9999" placeholder="Max 9,999"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
-                    </div>
-                    <button onclick="placeSupplierOrder()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition">
-                        <i class="fas fa-truck mr-1"></i> Order
-                    </button>
-                </div>
-                <div id="supplierStatus" class="mt-2 text-xs text-gray-400 min-h-4"></div>
+            </details>
+            <div id="supplier">
+                <img src="https://cdn-icons-png.flaticon.com/512/3321/3321752.png" alt="Supplier Icon" style="width: 50px; height: 50px;">
+                <h3>Supplier</h3>
+                <input id="supplier_input" type="number" min="0" max="9999" value="0" placeholder="Units" aria-label="Order units from supplier" data-tooltip="Order from Supplier to Warehouse (lead time: 14 days). Each supplier shipment adds a $150 transport cost.">
+                <div id="sup_transit" class="transit-info"></div>
+                <div class="animation-container" id="sup_anim"></div>
             </div>
-
-            <!-- Arrow -->
-            <div class="flex justify-center text-gray-300"><i class="fas fa-arrow-down text-xl flow-arrow"></i></div>
-
-            <!-- Warehouse Card -->
-            <div class="bg-white rounded-xl shadow-md p-5 border-l-4 border-indigo-500">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
-                            <i class="fas fa-warehouse text-indigo-600"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-bold text-gray-800">Warehouse</h2>
-                            <span class="text-xs text-gray-500">Storage: $2.15/unit/year</span>
-                        </div>
+            <div id="warehouse">
+                <h3>Warehouse</h3>
+                <div style="font-size: 1.6rem; font-weight: 600;" data-tooltip="Central stock feeding all retailers.">Stock: <span id="warehouse_stock">1000</span><span id="warehouse_status" class="status-pill good">Sufficient</span></div>
+                <img src="https://cdn-icons-png.flaticon.com/512/3774/3774895.png" alt="Warehouse Icon" style="width: 50px; height: 50px; margin-top: 10px;">
+                <div class="order-row">
+                    <div class="order-item">
+                        Order to MK: <input id="ret1_input" type="number" min="0" value="0" placeholder="Units" aria-label="Ship units to MK" data-tooltip="Ship from Warehouse to MK (lead time: 3 days). Each shipment adds a $60 handling cost.">
+                        <div id="ret1_transit" class="transit-info"></div>
+                        <div class="animation-container" id="ret1_anim"></div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-2xl font-bold text-indigo-600 tabular-nums" id="warehouseStock">1000</div>
-                        <div class="text-xs text-gray-500">units</div>
+                    <div class="order-item">
+                        Order to WC: <input id="ret2_input" type="number" min="0" value="0" placeholder="Units" aria-label="Ship units to WC" data-tooltip="Ship from Warehouse to WC (lead time: 3 days). Each shipment adds a $60 handling cost.">
+                        <div id="ret2_transit" class="transit-info"></div>
+                        <div class="animation-container" id="ret2_anim"></div>
+                    </div>
+                    <div class="order-item">
+                        Order to TST: <input id="ret3_input" type="number" min="0" value="0" placeholder="Units" aria-label="Ship units to TST" data-tooltip="Ship from Warehouse to TST (lead time: 3 days). Each shipment adds a $60 handling cost.">
+                        <div id="ret3_transit" class="transit-info"></div>
+                        <div class="animation-container" id="ret3_anim"></div>
                     </div>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
-                    <div id="warehouseStockBar" class="stock-bar h-3 rounded-full bg-green-500" style="width:100%"></div>
+            </div>
+            <div id="retailers">
+                <div class="retailer">
+                    <img src="https://cdn-icons-png.flaticon.com/512/9725/9725546.png" alt="Retailer Icon" style="width: 40px; height: 40px;">
+                    <h4>MK Style</h4>
+                    <div style="font-size: 1.6rem; font-weight: 600;" data-tooltip="On-hand inventory at MK. Red means stockout.">Stock: <span id="ret1_stock">200</span><span id="ret1_status" class="status-pill good">Sufficient</span><br></div>
+                    <div class="metric-badge" data-tooltip="Daily customer demand (units). If demand exceeds stock, the gap is counted as lost sales.">
+                        <span class="label">Demand</span><span class="value" id="ret1_demand">0</span>
+                        <span class="lost-pill" id="ret1_lost_wrap" hidden>Lost <span id="ret1_lost">0</span></span>
+                    </div>
                 </div>
-
-                <!-- Send to Retailers -->
-                <div class="border-t pt-3">
-                    <h3 class="text-xs font-semibold text-gray-500 uppercase mb-3 tracking-wide">
-                        <i class="fas fa-paper-plane mr-1"></i> Send to Retailers
-                        <span class="font-normal normal-case">(3-day lead time, $60/order)</span>
-                    </h3>
-                    <div class="space-y-2">
-                        <div class="flex items-center gap-2">
-                            <span class="w-10 text-xs font-bold text-emerald-600">MK</span>
-                            <input type="number" id="orderMK" min="1" placeholder="Qty" class="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
-                            <button onclick="placeRetailerOrder('MK')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
-                                Send <i class="fas fa-arrow-right ml-1"></i>
-                            </button>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-10 text-xs font-bold text-amber-600">WC</span>
-                            <input type="number" id="orderWC" min="1" placeholder="Qty" class="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-amber-500 outline-none">
-                            <button onclick="placeRetailerOrder('WC')" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
-                                Send <i class="fas fa-arrow-right ml-1"></i>
-                            </button>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-10 text-xs font-bold text-rose-600">TST</span>
-                            <input type="number" id="orderTST" min="1" placeholder="Qty" class="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-rose-500 outline-none">
-                            <button onclick="placeRetailerOrder('TST')" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
-                                Send <i class="fas fa-arrow-right ml-1"></i>
-                            </button>
-                        </div>
+                <div class="retailer">
+                    <img src="https://cdn-icons-png.flaticon.com/512/9725/9725546.png" alt="Retailer Icon" style="width: 40px; height: 40px;">
+                    <h4>WC Style</h4>
+                    <div style="font-size: 1.6rem; font-weight: 600;" data-tooltip="On-hand inventory at WC.">Stock: <span id="ret2_stock">200</span><span id="ret2_status" class="status-pill good">Sufficient</span><br></div>
+                    <div class="metric-badge" data-tooltip="Daily customer demand (units). If demand exceeds stock, the gap is counted as lost sales.">
+                        <span class="label">Demand</span><span class="value" id="ret2_demand">0</span>
+                        <span class="lost-pill" id="ret2_lost_wrap" hidden>Lost <span id="ret2_lost">0</span></span>
+                    </div>
+                </div>
+                <div class="retailer">
+                    <img src="https://cdn-icons-png.flaticon.com/512/9725/9725546.png" alt="Retailer Icon" style="width: 40px; height: 40px;">
+                    <h4>TST Style</h4>
+                    <div style="font-size: 1.6rem; font-weight: 600;" data-tooltip="On-hand inventory at TST.">Stock: <span id="ret3_stock">200</span><span id="ret3_status" class="status-pill good">Sufficient</span><br></div>
+                    <div class="metric-badge" data-tooltip="Daily customer demand (units). If demand exceeds stock, the gap is counted as lost sales.">
+                        <span class="label">Demand</span><span class="value" id="ret3_demand">0</span>
+                        <span class="lost-pill" id="ret3_lost_wrap" hidden>Lost <span id="ret3_lost">0</span></span>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Flow Arrow Desktop/Mobile -->
-        <div class="lg:col-span-1 flex lg:items-center justify-center text-gray-300 py-2">
-            <i class="fas fa-arrow-right text-2xl flow-arrow hidden lg:block"></i>
-            <i class="fas fa-arrow-down text-2xl flow-arrow lg:hidden"></i>
-        </div>
-
-        <!-- Retailers -->
-        <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-            <!-- MK -->
-            <div class="bg-white rounded-xl shadow-md p-5 border-l-4 border-emerald-500 card-hover">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-                        <i class="fas fa-store text-emerald-600 text-sm"></i>
-                    </div>
-                    <h2 class="font-bold text-gray-800 text-sm">MK Style</h2>
-                </div>
-                <div class="mb-2">
-                    <div class="flex justify-between items-baseline">
-                        <span class="text-xs text-gray-500">Stock</span>
-                        <span class="text-xl font-bold text-emerald-600 tabular-nums" id="mkStock">200</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                        <div id="mkStockBar" class="stock-bar h-2 rounded-full bg-emerald-500" style="width:100%"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-center mt-3">
-                    <div class="bg-gray-50 rounded-lg py-2">
-                        <div class="text-xs text-gray-400">Demand</div>
-                        <div class="font-bold text-gray-700 tabular-nums" id="mkDemand">0</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg py-2">
-                        <div class="text-xs text-gray-400">Lost</div>
-                        <div class="font-bold text-red-500 tabular-nums" id="mkLost">0</div>
-                    </div>
-                </div>
-                <div id="mkPending" class="mt-2 text-xs text-center min-h-4"></div>
-            </div>
-
-            <!-- WC -->
-            <div class="bg-white rounded-xl shadow-md p-5 border-l-4 border-amber-500 card-hover">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
-                        <i class="fas fa-store text-amber-600 text-sm"></i>
-                    </div>
-                    <h2 class="font-bold text-gray-800 text-sm">WC Style</h2>
-                </div>
-                <div class="mb-2">
-                    <div class="flex justify-between items-baseline">
-                        <span class="text-xs text-gray-500">Stock</span>
-                        <span class="text-xl font-bold text-amber-600 tabular-nums" id="wcStock">200</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                        <div id="wcStockBar" class="stock-bar h-2 rounded-full bg-amber-500" style="width:100%"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-center mt-3">
-                    <div class="bg-gray-50 rounded-lg py-2">
-                        <div class="text-xs text-gray-400">Demand</div>
-                        <div class="font-bold text-gray-700 tabular-nums" id="wcDemand">0</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg py-2">
-                        <div class="text-xs text-gray-400">Lost</div>
-                        <div class="font-bold text-red-500 tabular-nums" id="wcLost">0</div>
-                    </div>
-                </div>
-                <div id="wcPending" class="mt-2 text-xs text-center min-h-4"></div>
-            </div>
-
-            <!-- TST -->
-            <div class="bg-white rounded-xl shadow-md p-5 border-l-4 border-rose-500 card-hover">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-8 h-8 bg-rose-100 rounded-full flex items-center justify-center shrink-0">
-                        <i class="fas fa-store text-rose-600 text-sm"></i>
-                    </div>
-                    <h2 class="font-bold text-gray-800 text-sm">TST Style</h2>
-                </div>
-                <div class="mb-2">
-                    <div class="flex justify-between items-baseline">
-                        <span class="text-xs text-gray-500">Stock</span>
-                        <span class="text-xl font-bold text-rose-600 tabular-nums" id="tstStock">200</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-                        <div id="tstStockBar" class="stock-bar h-2 rounded-full bg-rose-500" style="width:100%"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-center mt-3">
-                    <div class="bg-gray-50 rounded-lg py-2">
-                        <div class="text-xs text-gray-400">Demand</div>
-                        <div class="font-bold text-gray-700 tabular-nums" id="tstDemand">0</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg py-2">
-                        <div class="text-xs text-gray-400">Lost</div>
-                        <div class="font-bold text-red-500 tabular-nums" id="tstLost">0</div>
-                    </div>
-                </div>
-                <div id="tstPending" class="mt-2 text-xs text-center min-h-4"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bottom Tabs Section -->
-    <div class="bg-white rounded-xl shadow-md overflow-hidden">
-        <div class="flex border-b overflow-x-auto">
-            <button onclick="switchTab('costs')" id="tabCosts" class="px-5 py-3 text-sm font-medium text-gray-500 hover:text-indigo-600 whitespace-nowrap border-b-2 border-transparent tab-active transition">
-                <i class="fas fa-calculator mr-1"></i> Cost Analysis
-            </button>
-            <button onclick="switchTab('charts')" id="tabCharts" class="px-5 py-3 text-sm font-medium text-gray-500 hover:text-indigo-600 whitespace-nowrap border-b-2 border-transparent transition">
-                <i class="fas fa-chart-line mr-1"></i> Charts
-            </button>
-            <button onclick="switchTab('log')" id="tabLog" class="px-5 py-3 text-sm font-medium text-gray-500 hover:text-indigo-600 whitespace-nowrap border-b-2 border-transparent transition">
-                <i class="fas fa-list mr-1"></i> Event Log
-            </button>
-        </div>
-
-        <!-- Cost Analysis -->
-        <div id="panelCosts" class="p-5">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b-2 border-gray-200">
-                            <th class="text-left py-2 px-3 text-gray-500 font-semibold text-xs uppercase tracking-wide">Metric</th>
-                            <th class="text-right py-2 px-3 text-gray-500 font-semibold text-xs uppercase tracking-wide">Current Run</th>
+        <div id="right">
+            <h3>GRAPHS</h3>
+            <canvas id="graph"></canvas>
+            <details class="collapse" id="kpi-details" open>
+                <summary data-tooltip="Service level and fill rate help you see whether your policy meets demand without stockouts.">Service Level & Fill Rate (KPIs)</summary>
+                <div class="collapse-body">
+                    <table class="kpi-table" aria-label="Service level and fill rate KPIs">
+                        <tr>
+                            <th>Location</th>
+                            <th>Demand</th>
+                            <th>Sold</th>
+                            <th>Lost</th>
+                            <th>Fill Rate</th>
+                            <th>Service Level</th>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="border-b"><td class="py-2.5 px-3 text-gray-700">Quantity Sold (units)</td><td class="py-2.5 px-3 text-right font-mono tabular-nums" id="costQtySold">0</td></tr>
-                        <tr class="border-b bg-green-50"><td class="py-2.5 px-3 text-gray-700 font-medium">Sales Revenue (A)</td><td class="py-2.5 px-3 text-right font-mono text-green-700 tabular-nums" id="costSalesRev">$ 0.00</td></tr>
-                        <tr class="border-b"><td class="py-2.5 px-3 text-gray-700">Ordering Cost (B)</td><td class="py-2.5 px-3 text-right font-mono text-red-600 tabular-nums" id="costOrdering">$ 0.00</td></tr>
-                        <tr class="border-b"><td class="py-2.5 px-3 text-gray-700">Holding Cost (C)</td><td class="py-2.5 px-3 text-right font-mono text-red-600 tabular-nums" id="costHolding">$ 0.00</td></tr>
-                        <tr class="border-b bg-blue-50"><td class="py-2.5 px-3 text-gray-700 font-semibold">Gross Total (D = A − B − C)</td><td class="py-2.5 px-3 text-right font-mono font-bold tabular-nums" id="costGross">$ 0.00</td></tr>
-                        <tr class="border-b"><td class="py-2.5 px-3 text-gray-700">Cost of Goods Sold (E)</td><td class="py-2.5 px-3 text-right font-mono text-red-600 tabular-nums" id="costCOGS">$ 0.00</td></tr>
-                        <tr class="bg-indigo-50"><td class="py-3 px-3 text-gray-800 font-bold">Net Profit (F = D − E)</td><td class="py-3 px-3 text-right font-mono font-bold text-lg tabular-nums" id="costNetProfit">$ 0.00</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <p class="mt-3 text-xs text-gray-400"><i class="fas fa-info-circle mr-1"></i>Holding cost calculated daily: Warehouse $2.15/unit/yr, Retailers $3.88/unit/yr.</p>
-        </div>
-
-        <!-- Charts -->
-        <div id="panelCharts" class="p-5 hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div><h3 class="text-sm font-semibold text-gray-600 mb-2">Stock Levels Over Time</h3><canvas id="stockChart" height="260"></canvas></div>
-                <div><h3 class="text-sm font-semibold text-gray-600 mb-2">Daily Demand &amp; Cumulative Profit</h3><canvas id="demandChart" height="260"></canvas></div>
-            </div>
-        </div>
-
-        <!-- Event Log -->
-        <div id="panelLog" class="p-5 hidden">
-            <div id="eventLog" class="max-h-72 overflow-y-auto space-y-0.5 text-sm font-mono">
-                <div class="text-gray-400 text-center py-8"><i class="fas fa-inbox mr-2"></i>Game events will appear here as you play…</div>
-            </div>
-        </div>
-    </div>
-</main>
-
-<!-- Info Modal -->
-<div id="infoModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-    <div class="modal-overlay absolute inset-0" onclick="hideModal('infoModal')"></div>
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full relative z-10 overflow-y-auto" style="max-height:90vh">
-        <div class="p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-gray-800"><i class="fas fa-info-circle text-indigo-500 mr-2"></i>Game Background</h2>
-                <button onclick="hideModal('infoModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-lg"></i></button>
-            </div>
-            <div class="text-sm text-gray-600 space-y-3 leading-relaxed">
-                <p><strong>Style Co. Ltd</strong> sells T-shirts through a central warehouse and three retailers (MK, WC, TST). Each retailer requests stock from the warehouse, which in turn orders from the supplier.</p>
-                <p>As the <strong>Purchasing Manager</strong>, your goal is to <strong>minimize total costs</strong> and <strong>maximize profit</strong> by deciding when and how much to order.</p>
-                <div class="bg-indigo-50 rounded-xl p-4 space-y-1.5 text-xs">
-                    <p class="font-semibold text-indigo-700 text-sm mb-1">Key Parameters</p>
-                    <p>🛒 Purchase: <strong>$25/unit</strong> + <strong>$150</strong> transport per supplier order</p>
-                    <p>🚚 Warehouse → Retailer: <strong>$60</strong> per dispatch</p>
-                    <p>💰 Selling price: <strong>$39/unit</strong></p>
-                    <p>⏱ Supplier lead time: <strong>14 days</strong></p>
-                    <p>⏱ Retailer lead time: <strong>3 days</strong></p>
-                    <p>🏢 Warehouse storage: <strong>$2.15/unit/year</strong></p>
-                    <p>🏪 Retailer storage: <strong>$3.88/unit/year</strong></p>
-                    <p>📦 Max supplier order: <strong>9,999 units</strong></p>
+                        <tr>
+                            <td>MK</td>
+                            <td id="kpi_r1_demand">0</td>
+                            <td id="kpi_r1_sold">0</td>
+                            <td id="kpi_r1_lost">0</td>
+                            <td id="kpi_r1_fill">100%</td>
+                            <td id="kpi_r1_service">100%</td>
+                        </tr>
+                        <tr>
+                            <td>WC</td>
+                            <td id="kpi_r2_demand">0</td>
+                            <td id="kpi_r2_sold">0</td>
+                            <td id="kpi_r2_lost">0</td>
+                            <td id="kpi_r2_fill">100%</td>
+                            <td id="kpi_r2_service">100%</td>
+                        </tr>
+                        <tr>
+                            <td>TST</td>
+                            <td id="kpi_r3_demand">0</td>
+                            <td id="kpi_r3_sold">0</td>
+                            <td id="kpi_r3_lost">0</td>
+                            <td id="kpi_r3_fill">100%</td>
+                            <td id="kpi_r3_service">100%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Overall</strong></td>
+                            <td id="kpi_all_demand">0</td>
+                            <td id="kpi_all_sold">0</td>
+                            <td id="kpi_all_lost">0</td>
+                            <td id="kpi_all_fill">100%</td>
+                            <td id="kpi_all_service">100%</td>
+                        </tr>
+                    </table>
                 </div>
-                <p class="text-amber-700 bg-amber-50 rounded-lg p-3"><i class="fas fa-exclamation-triangle mr-1"></i><strong>Note:</strong> You can only place a new order when the previous order has fully arrived at that location.</p>
+            </details>
+            <details class="collapse" id="cost-details" open>
+                <summary data-tooltip="A running breakdown of sales, costs, and profit.">Cost Analysis</summary>
+                <div class="collapse-body">
+                    <div id="cost_table">
+                        <table>
+                            <tr><th></th><th>Original</th><th>Updated</th></tr>
+                            <tr><td>Quantity Sold (in Unit)</td><td id="orig_qty">0</td><td id="upd_qty">0</td></tr>
+                            <tr><td>Sales Value (A)</td><td id="orig_sales">$ 0</td><td id="upd_sales">$ 0</td></tr>
+                            <tr><td>Ordering Cost (B)</td><td id="orig_ordering">$ 0</td><td id="upd_ordering">$ 0</td></tr>
+                            <tr><td>Holding Cost (C)</td><td id="orig_holding">$ 0</td><td id="upd_holding">$ 0</td></tr>
+                            <tr><td>Gross Total (D = A - B - C)</td><td id="orig_gross">$ 0</td><td id="upd_gross">$ 0</td></tr>
+                            <tr><td>Cost of Goods Sold (E)</td><td id="orig_cogs">$ 0</td><td id="upd_cogs">$ 0</td></tr>
+                            <tr><td>Net Profit (F = D - E)</td><td id="orig_net">$ 0</td><td id="upd_net">$ 0</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </details>
+            <details class="collapse" id="desc-details">
+                <summary data-tooltip="Shows the step-by-step calculation used for the updated totals.">Step‑by‑Step Calculation</summary>
+                <div class="collapse-body">
+                    <div id="descriptions" aria-label="Step by step calculation output"></div>
+                </div>
+            </details>
+        </div>
+    </div>
+    <div id="buttons">
+        <button id="ok" data-tooltip="Advance the simulation by one day.">OK</button>
+        <button id="pause" data-tooltip="Pause or resume autoplay running." style="display:none;">Pause</button>
+        <button id="reset" data-tooltip="Reset stocks, costs, and charts back to day 1.">RESET</button>
+    </div>
+
+    <div id="modal">
+        <div id="modal-content">
+            <div class="settings-head">
+                <h2>Settings</h2>
+                <span id="close-modal" aria-label="Close settings" role="button">&times;</span>
+            </div>
+            <p class="settings-note">Changes apply after you click Apply (the game resets to day 1).</p>
+
+            <div class="settings-grid">
+                <div class="settings-section">
+                    <div class="section-title">Run</div>
+                    <div class="section-body">
+                        <label class="field" for="days-length">
+                            Days length (report at)
+                            <small>Default is 100 days. If autoplay is enabled, pressing OK can auto-run until this length.</small>
+                            <input id="days-length" type="number" inputmode="numeric" min="1" step="1" value="99">
+                        </label>
+                        <div id="days-length-error" class="field-error" role="alert" aria-live="polite"></div>
+                        <label class="checkbox-row" data-tooltip="Turn off to disable motion effects (recommended if you feel distracted).">
+                            <input id="toggle-animations" type="checkbox">
+                            Enable animations
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title">Demand</div>
+                    <div class="section-body">
+                        <select id="demand-type">
+                            <option value="uniform">Uniform Distribution</option>
+                            <option value="poisson">Poisson Distribution</option>
+                        </select>
+                        <div id="uniform-settings" style="margin-top:10px;">
+                            Min: <input id="uniform-min" type="number" value="10"><br>
+                            Max: <input id="uniform-max" type="number" value="20">
+                        </div>
+                        <div id="poisson-settings" style="display:none; margin-top:10px;">
+                            Lambda: <input id="poisson-lambda" type="number" value="15">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-title">Autoplay Policies</div>
+                    <div class="section-body">
+                        <label class="checkbox-row" data-tooltip="When enabled, the system will place orders automatically each day using your policy settings.">
+                            <input id="autoplay-enabled" type="checkbox">
+                            Enable autoplay ordering
+                        </label>
+                        <div id="autoplay-error" class="field-error" role="alert" aria-live="polite"></div>
+                        <label class="field" for="autoplay-ms">
+                            Autoplay time per day (ms)
+                            <small>Default is 1000 ms (1 second) per day.</small>
+                            <input id="autoplay-ms" type="number" inputmode="numeric" min="0" step="50" value="1000">
+                        </label>
+
+                        <details class="collapse" id="autoplay-details">
+                            <summary data-tooltip="Autoplay places replenishment orders using typical inventory policies.">Policy Parameters</summary>
+                            <div class="collapse-body">
+                                <div class="policy-grid" aria-label="Supplier to Warehouse policy">
+                                    <div>
+                                        <label for="sup-policy">Supplier → Warehouse</label>
+                                        <div class="hint">Uses warehouse inventory position = on‑hand + in‑transit.</div>
+                                        <select id="sup-policy">
+                                            <option value="tq">(t, q)</option>
+                                            <option value="sq">(s, q)</option>
+                                            <option value="tS">(t, S)</option>
+                                            <option value="sS">(s, S)</option>
+                                        </select>
+                                    </div>
+                                    <div id="sup-t-wrap">
+                                        <label for="sup-t">t (days)</label>
+                                        <input id="sup-t" type="number" min="1" step="1" value="7">
+                                    </div>
+                                    <div id="sup-q-wrap">
+                                        <label for="sup-q">q (units)</label>
+                                        <input id="sup-q" type="number" min="0" step="1" value="3000">
+                                    </div>
+                                    <div id="sup-s-wrap">
+                                        <label for="sup-s">s (units)</label>
+                                        <input id="sup-s" type="number" min="0" step="1" value="800">
+                                    </div>
+                                    <div id="sup-S-wrap">
+                                        <label for="sup-S">S (units)</label>
+                                        <input id="sup-S" type="number" min="0" step="1" value="4000">
+                                    </div>
+                                </div>
+
+                                <div class="policy-grid" aria-label="Warehouse to MK policy">
+                                    <div>
+                                        <label for="r1-policy">Warehouse → MK</label>
+                                        <div class="hint">Uses retailer inventory position = on‑hand + in‑transit.</div>
+                                        <select id="r1-policy">
+                                            <option value="tq">(t, q)</option>
+                                            <option value="sq">(s, q)</option>
+                                            <option value="tS">(t, S)</option>
+                                            <option value="sS">(s, S)</option>
+                                        </select>
+                                    </div>
+                                    <div id="r1-t-wrap">
+                                        <label for="r1-t">t (days)</label>
+                                        <input id="r1-t" type="number" min="1" step="1" value="3">
+                                    </div>
+                                    <div id="r1-q-wrap">
+                                        <label for="r1-q">q (units)</label>
+                                        <input id="r1-q" type="number" min="0" step="1" value="180">
+                                    </div>
+                                    <div id="r1-s-wrap">
+                                        <label for="r1-s">s (units)</label>
+                                        <input id="r1-s" type="number" min="0" step="1" value="60">
+                                    </div>
+                                    <div id="r1-S-wrap">
+                                        <label for="r1-S">S (units)</label>
+                                        <input id="r1-S" type="number" min="0" step="1" value="220">
+                                    </div>
+                                </div>
+
+                                <div class="policy-grid" aria-label="Warehouse to WC policy">
+                                    <div>
+                                        <label for="r2-policy">Warehouse → WC</label>
+                                        <div class="hint">Orders are capped by available warehouse stock.</div>
+                                        <select id="r2-policy">
+                                            <option value="tq">(t, q)</option>
+                                            <option value="sq">(s, q)</option>
+                                            <option value="tS">(t, S)</option>
+                                            <option value="sS">(s, S)</option>
+                                        </select>
+                                    </div>
+                                    <div id="r2-t-wrap">
+                                        <label for="r2-t">t (days)</label>
+                                        <input id="r2-t" type="number" min="1" step="1" value="3">
+                                    </div>
+                                    <div id="r2-q-wrap">
+                                        <label for="r2-q">q (units)</label>
+                                        <input id="r2-q" type="number" min="0" step="1" value="180">
+                                    </div>
+                                    <div id="r2-s-wrap">
+                                        <label for="r2-s">s (units)</label>
+                                        <input id="r2-s" type="number" min="0" step="1" value="60">
+                                    </div>
+                                    <div id="r2-S-wrap">
+                                        <label for="r2-S">S (units)</label>
+                                        <input id="r2-S" type="number" min="0" step="1" value="220">
+                                    </div>
+                                </div>
+
+                                <div class="policy-grid" aria-label="Warehouse to TST policy">
+                                    <div>
+                                        <label for="r3-policy">Warehouse → TST</label>
+                                        <div class="hint">If a shipment is already in transit, no new order is placed.</div>
+                                        <select id="r3-policy">
+                                            <option value="tq">(t, q)</option>
+                                            <option value="sq">(s, q)</option>
+                                            <option value="tS">(t, S)</option>
+                                            <option value="sS">(s, S)</option>
+                                        </select>
+                                    </div>
+                                    <div id="r3-t-wrap">
+                                        <label for="r3-t">t (days)</label>
+                                        <input id="r3-t" type="number" min="1" step="1" value="3">
+                                    </div>
+                                    <div id="r3-q-wrap">
+                                        <label for="r3-q">q (units)</label>
+                                        <input id="r3-q" type="number" min="0" step="1" value="180">
+                                    </div>
+                                    <div id="r3-s-wrap">
+                                        <label for="r3-s">s (units)</label>
+                                        <input id="r3-s" type="number" min="0" step="1" value="60">
+                                    </div>
+                                    <div id="r3-S-wrap">
+                                        <label for="r3-S">S (units)</label>
+                                        <input id="r3-S" type="number" min="0" step="1" value="220">
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+
+                <details class="collapse settings-section" id="background-details">
+                    <summary class="section-title" data-tooltip="Background story and cost assumptions.">Game Background</summary>
+                    <div class="section-body">
+                        <p class="helper">Style Co. Ltd is a corporate company selling T-shirts, and makes use of a central warehouse and three retailers where the T-shirts are sold to consumers. Each retailer makes a request to the warehouse when ordering stock for running the business. It is also necessary for the warehouse to place orders with their supplier when necessary so that they can always provide stock to the retailers.
+
+Assume that you are the Purchasing Manager of the company and are responsible for placing orders with supplier and transport orders to the retailers when requested to do so. You are required to specify the time when orders should be placed and the quantity for each order so that the company can minimize the total cost of operation and to maximize the company profit.
+
+There is no limit on the number of times that you place orders with the supplier, but the maximum quantity that you can place is limited to 9,999 T-shirts per order. Note: You can only place an order either with the Warehouse or a Retailer when all the goods have arrived for the previous order from the Warehouse / Retailer. Each T-shirt costs $25 to purchase, plus a $150 for the transportation cost from Supplier to Warehouse per occasion. The Lead Time when the Warehouse places orders with the Supplier is 14 days. The Lead Time when a Retailer places orders with the Warehouse is 3 days. The selling price of a Tee-shirt at any of the Retailers is $39 per each. A handling charges is required for the transportation of T-shirts from the Warehouse to each Retailer, this costs $60 per occasion.
+
+In addition to the transportation cost specified above, there is a storage cost at both the Warehouse and each Retailer. This is $2.15 and $3.88 per Tee-shirt per year respectively. The daily demand for Tee-shirts at each of the retailers is not constant and varies from day to day.
+                        </p>
+                    </div>
+                </details>
+            </div>
+
+            <div class="settings-actions">
+                <button id="apply-settings">Apply</button>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Settings Modal -->
-<div id="settingsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-    <div class="modal-overlay absolute inset-0" onclick="hideModal('settingsModal')"></div>
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full relative z-10">
-        <div class="p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold text-gray-800"><i class="fas fa-cog text-indigo-500 mr-2"></i>Demand Settings</h2>
-                <button onclick="hideModal('settingsModal')" class="text-gray-400 hover:text-gray-600 transition"><i class="fas fa-times text-lg"></i></button>
-            </div>
-            <div class="space-y-4">
+    <div id="report-modal" role="dialog" aria-modal="true" aria-label="Run results report">
+        <div id="report-content">
+            <div id="report-head">
                 <div>
-                    <label class="text-sm font-medium text-gray-700 block mb-2">Distribution Type</label>
-                    <div class="flex gap-2">
-                        <button onclick="setDistribution('uniform')" id="btnUniform" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium bg-indigo-600 text-white transition">Uniform</button>
-                        <button onclick="setDistribution('poisson')" id="btnPoisson" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 transition">Poisson</button>
+                    <h2 id="report-title">Run Results</h2>
+                    <p id="report-subtitle">Summary for the configured run duration.</p>
+                </div>
+                <button id="close-report" aria-label="Close report" data-tooltip="Close and continue simulating.">&times;</button>
+            </div>
+            <div id="report-body">
+                <div id="report-metrics">
+                    <div class="metric-card" id="metric-sold">
+                        <div class="k">Total Units Sold</div>
+                        <div class="v" id="report-units-sold">0</div>
+                    </div>
+                    <div class="metric-card" id="metric-profit">
+                        <div class="k">Total Profit</div>
+                        <div class="v" id="report-total-profit">$0</div>
+                    </div>
+                    <div class="metric-card" id="metric-avg">
+                        <div class="k">Avg Profit / Unit</div>
+                        <div class="v" id="report-avg-profit">$0.00</div>
                     </div>
                 </div>
-                <div id="uniformSettings">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div><label class="text-xs text-gray-500 block mb-1">Min Demand</label><input type="number" id="demandMin" value="5" min="0" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></div>
-                        <div><label class="text-xs text-gray-500 block mb-1">Max Demand</label><input type="number" id="demandMax" value="15" min="0" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                <div id="report-actions">
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                        <button class="btn-secondary" id="export-csv" data-tooltip="Download the metrics as a CSV file.">Export CSV</button>
+                        <button class="btn-secondary" id="export-text" data-tooltip="Download the metrics as a plain text file.">Export Text</button>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                        <button class="btn-primary" id="continue-sim" data-tooltip="Keep simulating beyond the run threshold.">Continue</button>
+                        <button class="btn-danger" id="reset-sim" data-tooltip="Reset and start a new run from day 1.">Reset</button>
                     </div>
                 </div>
-                <div id="poissonSettings" class="hidden">
-                    <label class="text-xs text-gray-500 block mb-1">Lambda (λ)</label>
-                    <input type="number" id="demandLambda" value="10" min="1" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <button onclick="applySettings()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-lg font-medium transition">
-                    <i class="fas fa-check mr-1"></i> Apply Settings
-                </button>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-// ========== GAME STATE ==========
-let state = {
-    day: 0, running: false, timer: null, speed: 1000,
-    warehouse: { stock: 1000, pendingOrder: null },
-    retailers: {
-        MK:  { stock: 200, pendingOrder: null, todayDemand: 0, totalSold: 0, totalLost: 0 },
-        WC:  { stock: 200, pendingOrder: null, todayDemand: 0, totalSold: 0, totalLost: 0 },
-        TST: { stock: 200, pendingOrder: null, todayDemand: 0, totalSold: 0, totalLost: 0 }
-    },
-    demand: { type: 'uniform', min: 5, max: 15, lambda: 10 },
-    costs: { sales: 0, ordering: 0, holding: 0, cogs: 0 },
-    history: { days: [], whStock: [], mkStock: [], wcStock: [], tstStock: [], totalDemand: [], profit: [] },
-    eventLog: []
-};
+    <div id="tooltip" role="tooltip"></div>
 
-// ========== DEMAND ==========
-function generateDemand() {
-    if (state.demand.type === 'uniform') {
-        return Math.floor(Math.random() * (state.demand.max - state.demand.min + 1)) + state.demand.min;
-    }
-    let L = Math.exp(-state.demand.lambda), k = 0, p = 1;
-    do { k++; p *= Math.random(); } while (p > L);
-    return k - 1;
-}
+    <script>
+        let day = 1;
+        let ticks = 0;
+        const DEFAULT_DAYS_LENGTH = 100;
+        let daysLength = DEFAULT_DAYS_LENGTH;
+        let thresholdSnapshot = null;
+        let animationsEnabled = true;
 
-// ========== CORE LOGIC ==========
-function advanceDay() {
-    state.day++;
-    let events = [];
+        let warehouse_stock = 1000;
+        let retailer_stocks = [200, 200, 200];
+        let demands = [0, 0, 0];
+        let lost_sales_today = [0, 0, 0];
+        let in_transit_sup = [];
+        let in_transit_ret = [[], [], []];
+        let cum_sold = 0;
+        let cum_sales = 0;
+        let cum_ordering = 0;
+        let cum_holding = 0;
+        let cum_cogs = 0;
+        let cum_gross = 0;
+        let cum_net = 0;
+        let orig_sold = 0;
+        let orig_sales = 0;
+        let orig_ordering = 0;
+        let orig_holding = 0;
+        let orig_cogs = 0;
+        let orig_gross = 0;
+        let orig_net = 0;
 
-    // Deliveries
-    if (state.warehouse.pendingOrder && state.day >= state.warehouse.pendingOrder.arrivalDay) {
-        let q = state.warehouse.pendingOrder.qty;
-        state.warehouse.stock += q;
-        state.warehouse.pendingOrder = null;
-        events.push({ t: 'delivery', m: '📦 ' + q + ' units delivered to Warehouse' });
-    }
-    ['MK','WC','TST'].forEach(n => {
-        let r = state.retailers[n];
-        if (r.pendingOrder && state.day >= r.pendingOrder.arrivalDay) {
-            let q = r.pendingOrder.qty;
-            r.stock += q;
-            r.pendingOrder = null;
-            events.push({ t: 'delivery', m: '📦 ' + q + ' units delivered to ' + n });
+        let demandType = 'uniform';
+        let uniformMin = 10;
+        let uniformMax = 20;
+        let poissonLambda = 15;
+
+        let autoplayEnabled = false;
+        let policies = {
+            sup: { type: 'tq', t: 7, q: 3000, s: 800, S: 4000 },
+            ret: [
+                { type: 'sq', t: 3, q: 180, s: 60, S: 220 },
+                { type: 'sq', t: 3, q: 180, s: 60, S: 220 },
+                { type: 'sq', t: 3, q: 180, s: 60, S: 220 }
+            ]
+        };
+
+        let cum_demand_per = [0, 0, 0];
+        let cum_sold_per = [0, 0, 0];
+        let cum_lost_per = [0, 0, 0];
+        let stockout_days = [0, 0, 0];
+
+        let isAutoRunning = false;
+        let autoRunStopAtTicks = null;
+        const DEFAULT_AUTOPLAY_MS_PER_DAY = 1000;
+        let autoplayMsPerDay = DEFAULT_AUTOPLAY_MS_PER_DAY;
+
+        let chart;
+        const chartData = {
+            labels: [],
+            datasets: [
+                { label: 'Total Demand', data: [], yAxisID: 'y1', borderColor: 'black' },
+                { label: 'Stock in Warehouse', data: [], yAxisID: 'y1', borderColor: 'blue' },
+                { label: 'Stock in Retailers', data: [], yAxisID: 'y1', borderColor: 'green' },
+                { label: 'Net Profit', data: [], yAxisID: 'y2', borderColor: 'orange' }
+            ]
+        };
+
+        function initChart() {
+            const ctx = document.getElementById('graph').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Days' },
+                            min: 0,
+                            max: 200
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Inventory Stock (100 units)' },
+                            min: 0
+                        },
+                        y2: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Net Profit ($000)' },
+                            grid: { drawOnChartArea: false },
+                            min: 0
+                        }
+                    }
+                }
+            });
         }
-    });
 
-    // Demand & Sales
-    let totalD = 0;
-    ['MK','WC','TST'].forEach(n => {
-        let r = state.retailers[n], d = generateDemand();
-        r.todayDemand = d; totalD += d;
-        let sold = Math.min(d, r.stock), lost = d - sold;
-        r.stock -= sold; r.totalSold += sold; r.totalLost += lost;
-        state.costs.sales += sold * 39;
-        state.costs.cogs += sold * 25;
-        if (lost > 0) events.push({ t: 'warning', m: '⚠️ ' + n + ': ' + lost + ' units demand unmet' });
-    });
+        function fmtNumber(n) {
+            return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(n) || 0);
+        }
 
-    // Holding costs
-    state.costs.holding += state.warehouse.stock * (2.15 / 365);
-    ['MK','WC','TST'].forEach(n => { state.costs.holding += state.retailers[n].stock * (3.88 / 365); });
+        function fmtCurrency(n, fractionDigits = 0) {
+            const value = Number(n) || 0;
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }).format(value);
+        }
 
-    // History
-    state.history.days.push(state.day);
-    state.history.whStock.push(state.warehouse.stock);
-    state.history.mkStock.push(state.retailers.MK.stock);
-    state.history.wcStock.push(state.retailers.WC.stock);
-    state.history.tstStock.push(state.retailers.TST.stock);
-    state.history.totalDemand.push(totalD);
-    state.history.profit.push(state.costs.sales - state.costs.ordering - state.costs.holding - state.costs.cogs);
+        function fmtPercent(value, fractionDigits = 0) {
+            const v = Number(value);
+            if (!Number.isFinite(v)) return '—';
+            return new Intl.NumberFormat('en-US', { style: 'percent', minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }).format(v);
+        }
 
-    events.forEach(e => addLogEntry(state.day, e.m, e.t));
-    updateUI();
-    updateCharts();
-}
+        function validateDaysLength(raw) {
+            const parsed = Number(raw);
+            if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+                return { ok: false, error: 'Please enter a whole number of days (e.g., 100).' };
+            }
+            if (parsed < 1) {
+                return { ok: false, error: 'Days length must be at least 1.' };
+            }
+            return { ok: true, value: parsed };
+        }
 
-function placeSupplierOrder() {
-    let qty = parseInt(document.getElementById('supplierOrderQty').value);
-    if (!qty || qty < 1) return showNotification('Enter a valid quantity.', 'error');
-    if (qty > 9999) return showNotification('Maximum order is 9,999 units.', 'error');
-    if (state.warehouse.pendingOrder) return showNotification('Previous warehouse order hasn\'t arrived yet!', 'error');
-    if (state.day === 0) return showNotification('Advance at least one day before ordering.', 'error');
-    state.warehouse.pendingOrder = { qty, arrivalDay: state.day + 14 };
-    state.costs.ordering += 150;
-    document.getElementById('supplierOrderQty').value = '';
-    addLogEntry(state.day, '🛒 Ordered ' + qty + ' units from Supplier → arrives Day ' + (state.day + 14), 'order');
-    showNotification('Ordered ' + qty + ' from Supplier', 'success');
-    updateUI();
-}
+        function getStatusForStock(stock, reorderPoint) {
+            const s = Number(stock) || 0;
+            if (s <= 0) return 'bad';
+            if (s <= reorderPoint) return 'warn';
+            return 'good';
+        }
 
-function placeRetailerOrder(name) {
-    let qty = parseInt(document.getElementById('order' + name).value), r = state.retailers[name];
-    if (!qty || qty < 1) return showNotification('Enter a valid quantity.', 'error');
-    if (r.pendingOrder) return showNotification('Previous order to ' + name + ' hasn\'t arrived!', 'error');
-    if (qty > state.warehouse.stock) return showNotification('Not enough warehouse stock! (' + state.warehouse.stock + ' available)', 'error');
-    if (state.day === 0) return showNotification('Advance at least one day before ordering.', 'error');
-    state.warehouse.stock -= qty;
-    r.pendingOrder = { qty, arrivalDay: state.day + 3 };
-    state.costs.ordering += 60;
-    document.getElementById('order' + name).value = '';
-    addLogEntry(state.day, '📤 Sent ' + qty + ' units to ' + name + ' → arrives Day ' + (state.day + 3), 'order');
-    showNotification('Sent ' + qty + ' to ' + name, 'success');
-    updateUI();
-}
+        function calcDailyHolding(warehouseStock, retailerStocks) {
+            const retSum = retailerStocks.reduce((a, b) => a + b, 0);
+            return Math.round((warehouseStock * 2.15 + retSum * 3.88) / 365);
+        }
 
-// ========== PLAY CONTROL ==========
-function togglePlay() {
-    state.running = !state.running;
-    document.getElementById('playIcon').className = state.running ? 'fas fa-pause' : 'fas fa-play';
-    if (state.running) state.timer = setInterval(advanceDay, state.speed);
-    else clearInterval(state.timer);
-}
-function changeSpeed() {
-    state.speed = parseInt(document.getElementById('speedSelect').value);
-    if (state.running) { clearInterval(state.timer); state.timer = setInterval(advanceDay, state.speed); }
-}
+        function clampNonNegInt(n) {
+            const parsed = Number(n);
+            if (!Number.isFinite(parsed)) return 0;
+            return Math.max(0, Math.floor(parsed));
+        }
 
-// ========== UI UPDATE ==========
-function updateUI() {
-    document.getElementById('dayDisplay').textContent = state.day;
+        function getInventoryPositionWarehouse() {
+            const inTransit = in_transit_sup.reduce((sum, o) => sum + (o.qty || 0), 0);
+            return warehouse_stock + inTransit;
+        }
 
-    // Warehouse
-    document.getElementById('warehouseStock').textContent = state.warehouse.stock.toLocaleString();
-    let whPct = Math.min(100, (state.warehouse.stock / 2000) * 100);
-    let whBar = document.getElementById('warehouseStockBar');
-    whBar.style.width = Math.max(1, whPct) + '%';
-    whBar.className = 'stock-bar h-3 rounded-full ' + stockColor(whPct);
+        function getInventoryPositionRetailer(i) {
+            const inTransit = in_transit_ret[i].reduce((sum, o) => sum + (o.qty || 0), 0);
+            return retailer_stocks[i] + inTransit;
+        }
 
-    let ss = document.getElementById('supplierStatus');
-    if (state.warehouse.pendingOrder) {
-        let dl = state.warehouse.pendingOrder.arrivalDay - state.day;
-        ss.innerHTML = '<span class="text-indigo-500 pulse-dot">● </span><span class="text-indigo-600 font-medium">' + state.warehouse.pendingOrder.qty + ' units arriving in ' + dl + ' day(s)</span>';
-    } else ss.innerHTML = '<span class="text-gray-400">No pending order</span>';
+        function computePolicyOrderQty(policy, inventoryPosition, tickIndex) {
+            const type = policy.type;
+            const t = clampNonNegInt(policy.t);
+            const q = clampNonNegInt(policy.q);
+            const s = clampNonNegInt(policy.s);
+            const S = clampNonNegInt(policy.S);
 
-    // Retailers
-    ['MK','WC','TST'].forEach(n => {
-        let r = state.retailers[n], id = n.toLowerCase();
-        document.getElementById(id + 'Stock').textContent = r.stock;
-        document.getElementById(id + 'Demand').textContent = r.todayDemand;
-        document.getElementById(id + 'Lost').textContent = r.totalLost;
-        let pct = Math.min(100, (r.stock / 400) * 100);
-        let bar = document.getElementById(id + 'StockBar');
-        bar.style.width = Math.max(1, pct) + '%';
-        bar.className = 'stock-bar h-2 rounded-full ' + stockColor(pct);
-        let pe = document.getElementById(id + 'Pending');
-        if (r.pendingOrder) {
-            let dl = r.pendingOrder.arrivalDay - state.day;
-            pe.innerHTML = '<span class="text-indigo-500 pulse-dot">●</span> <span class="text-indigo-600 font-medium">' + r.pendingOrder.qty + ' units in ' + dl + ' day(s)</span>';
-        } else pe.innerHTML = '';
-    });
+            if (type === 'tq') {
+                if (t < 1) return 0;
+                if (tickIndex % t !== 0) return 0;
+                return q;
+            }
+            if (type === 'sq') {
+                if (inventoryPosition > s) return 0;
+                return q;
+            }
+            if (type === 'tS') {
+                if (t < 1) return 0;
+                if (tickIndex % t !== 0) return 0;
+                return Math.max(0, S - inventoryPosition);
+            }
+            if (type === 'sS') {
+                if (inventoryPosition > s) return 0;
+                return Math.max(0, S - inventoryPosition);
+            }
+            return 0;
+        }
 
-    // Costs
-    let ts = state.retailers.MK.totalSold + state.retailers.WC.totalSold + state.retailers.TST.totalSold;
-    document.getElementById('costQtySold').textContent = ts.toLocaleString();
-    document.getElementById('costSalesRev').textContent = '$ ' + state.costs.sales.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-    document.getElementById('costOrdering').textContent = '$ ' + state.costs.ordering.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-    document.getElementById('costHolding').textContent = '$ ' + state.costs.holding.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-    let gross = state.costs.sales - state.costs.ordering - state.costs.holding;
-    document.getElementById('costGross').textContent = '$ ' + gross.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-    document.getElementById('costGross').className = 'py-2.5 px-3 text-right font-mono font-bold tabular-nums ' + (gross >= 0 ? 'text-green-700' : 'text-red-600');
-    document.getElementById('costCOGS').textContent = '$ ' + state.costs.cogs.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-    let net = gross - state.costs.cogs;
-    document.getElementById('costNetProfit').textContent = '$ ' + net.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-    document.getElementById('costNetProfit').className = 'py-3 px-3 text-right font-mono font-bold text-lg tabular-nums ' + (net >= 0 ? 'text-green-700' : 'text-red-600');
-}
+        function setAutoplayModeUi() {
+            document.getElementById('mode_value').textContent = autoplayEnabled ? 'Autoplay' : 'Manual';
+        }
 
-function stockColor(pct) { return pct > 50 ? 'bg-green-500' : pct > 20 ? 'bg-amber-400' : 'bg-red-500'; }
+        function setAutoRunningUi() {
+            const pauseBtn = document.getElementById('pause');
+            if (!pauseBtn) return;
+            const shouldShow = autoplayEnabled && (ticks < daysLength);
+            pauseBtn.style.display = shouldShow ? '' : 'none';
+            pauseBtn.textContent = 'Pause';
+            pauseBtn.disabled = !isAutoRunning;
+        }
 
-// ========== CHARTS ==========
-let stockChart, demandChart;
-function initCharts() {
-    stockChart = new Chart(document.getElementById('stockChart').getContext('2d'), {
-        type: 'line',
-        data: { labels: [], datasets: [
-            { label: 'Warehouse', data: [], borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.08)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-            { label: 'MK', data: [], borderColor: '#10b981', tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
-            { label: 'WC', data: [], borderColor: '#f59e0b', tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
-            { label: 'TST', data: [], borderColor: '#f43f5e', tension: 0.3, pointRadius: 0, borderWidth: 1.5 }
-        ]},
-        options: { responsive: true, animation: false, plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 6, font: {size:11} } } }, scales: { x: { title: { display: true, text: 'Day' } }, y: { title: { display: true, text: 'Units' }, beginAtZero: true } } }
-    });
-    demandChart = new Chart(document.getElementById('demandChart').getContext('2d'), {
-        data: { labels: [], datasets: [
-            { type: 'bar', label: 'Total Demand', data: [], backgroundColor: 'rgba(99,102,241,0.25)', borderColor: '#6366f1', borderWidth: 1 },
-            { type: 'line', label: 'Net Profit', data: [], borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y1' }
-        ]},
-        options: { responsive: true, animation: false, plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 6, font: {size:11} } } }, scales: { x: { title: { display: true, text: 'Day' } }, y: { title: { display: true, text: 'Demand' }, beginAtZero: true, position: 'left' }, y1: { title: { display: true, text: 'Profit ($)' }, position: 'right', grid: { drawOnChartArea: false } } } }
-    });
-}
-function updateCharts() {
-    let h = state.history;
-    stockChart.data.labels = h.days;
-    stockChart.data.datasets[0].data = h.whStock;
-    stockChart.data.datasets[1].data = h.mkStock;
-    stockChart.data.datasets[2].data = h.wcStock;
-    stockChart.data.datasets[3].data = h.tstStock;
-    stockChart.update('none');
-    demandChart.data.labels = h.days;
-    demandChart.data.datasets[0].data = h.totalDemand;
-    demandChart.data.datasets[1].data = h.profit;
-    demandChart.update('none');
-}
+        function stopAutoRun() {
+            isAutoRunning = false;
+            autoRunStopAtTicks = null;
+            setAutoRunningUi();
+        }
 
-// ========== TABS ==========
-function switchTab(tab) {
-    ['Costs','Charts','Log'].forEach(t => {
-        document.getElementById('tab' + t).classList.remove('tab-active');
-        document.getElementById('panel' + t).classList.add('hidden');
-    });
-    let name = tab.charAt(0).toUpperCase() + tab.slice(1);
-    document.getElementById('tab' + name).classList.add('tab-active');
-    document.getElementById('panel' + name).classList.remove('hidden');
-    if (tab === 'charts') { stockChart.resize(); demandChart.resize(); }
-}
+        function performOneStep() {
+            onOK();
+        }
 
-// ========== MODALS ==========
-function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
-function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+        async function runAutoUntil(stopAtTicks) {
+            if (isAutoRunning) return;
+            isAutoRunning = true;
+            autoRunStopAtTicks = stopAtTicks;
+            setAutoRunningUi();
 
-// ========== SETTINGS ==========
-function setDistribution(type) {
-    state.demand.type = type;
-    document.getElementById('btnUniform').className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition ' + (type === 'uniform' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700');
-    document.getElementById('btnPoisson').className = 'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition ' + (type === 'poisson' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700');
-    document.getElementById('uniformSettings').classList.toggle('hidden', type !== 'uniform');
-    document.getElementById('poissonSettings').classList.toggle('hidden', type !== 'poisson');
-}
-function applySettings() {
-    state.demand.min = Math.max(0, parseInt(document.getElementById('demandMin').value) || 0);
-    state.demand.max = Math.max(state.demand.min, parseInt(document.getElementById('demandMax').value) || 0);
-    state.demand.lambda = Math.max(1, parseInt(document.getElementById('demandLambda').value) || 1);
-    hideModal('settingsModal');
-    showNotification('Demand settings updated!', 'success');
-}
+            while (isAutoRunning) {
+                if (thresholdSnapshot) {
+                    stopAutoRun();
+                    break;
+                }
+                if (autoRunStopAtTicks != null && ticks >= autoRunStopAtTicks) {
+                    stopAutoRun();
+                    break;
+                }
+                performOneStep();
+                await new Promise(r => setTimeout(r, Math.max(0, clampNonNegInt(autoplayMsPerDay))));
+            }
+        }
 
-// ========== NOTIFICATIONS ==========
-function showNotification(msg, type) {
-    let c = document.getElementById('notifications'), d = document.createElement('div');
-    let colors = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-indigo-600', warning: 'bg-amber-600' };
-    d.className = (colors[type] || colors.info) + ' text-white px-4 py-2.5 rounded-xl shadow-lg text-sm notification-enter flex items-center gap-2';
-    let icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle', warning: 'fa-exclamation-triangle' };
-    d.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '"></i><span>' + msg + '</span>';
-    c.appendChild(d);
-    setTimeout(() => { d.style.transition = 'opacity 0.4s'; d.style.opacity = '0'; setTimeout(() => d.remove(), 400); }, 3000);
-}
+        function generateDemand() {
+            if (demandType === 'uniform') {
+                return Math.floor(Math.random() * (uniformMax - uniformMin + 1) + uniformMin);
+            } else if (demandType === 'poisson') {
+                // Simple Poisson simulation
+                let L = Math.exp(-poissonLambda);
+                let k = 0;
+                let p = 1;
+                do {
+                    p *= Math.random();
+                    k++;
+                } while (p > L);
+                return k - 1;
+            }
+        }
 
-// ========== EVENT LOG ==========
-function addLogEntry(day, msg, type) {
-    state.eventLog.push({ day, msg, type });
-    let log = document.getElementById('eventLog');
-    if (state.eventLog.length === 1) log.innerHTML = '';
-    let colors = { order: 'text-indigo-700', delivery: 'text-emerald-700', warning: 'text-red-600', info: 'text-gray-600' };
-    let e = document.createElement('div');
-    e.className = (colors[type] || colors.info) + ' py-1.5 border-b border-gray-100 text-xs';
-    e.innerHTML = '<span class="text-gray-400 mr-2 inline-block w-16">[Day ' + day + ']</span>' + msg;
-    log.insertBefore(e, log.firstChild);
-}
+        function updateGraph() {
+            chartData.labels.push(day);
+            chartData.datasets[0].data.push(demands.reduce((a, b) => a + b, 0) / 100);
+            chartData.datasets[1].data.push(warehouse_stock / 100);
+            chartData.datasets[2].data.push(retailer_stocks.reduce((a, b) => a + b, 0) / 100);
+            chartData.datasets[3].data.push(cum_net / 1000);
+            const desiredMax = Math.max(200, day + 5, daysLength + 20);
+            chart.options.scales.x.max = desiredMax;
+            chart.update();
+        }
 
-// ========== RESET ==========
-function resetGame() {
-    if (state.running) togglePlay();
-    state.day = 0;
-    state.warehouse = { stock: 1000, pendingOrder: null };
-    state.retailers = {
-        MK:  { stock: 200, pendingOrder: null, todayDemand: 0, totalSold: 0, totalLost: 0 },
-        WC:  { stock: 200, pendingOrder: null, todayDemand: 0, totalSold: 0, totalLost: 0 },
-        TST: { stock: 200, pendingOrder: null, todayDemand: 0, totalSold: 0, totalLost: 0 }
-    };
-    state.costs = { sales: 0, ordering: 0, holding: 0, cogs: 0 };
-    state.history = { days: [], whStock: [], mkStock: [], wcStock: [], tstStock: [], totalDemand: [], profit: [] };
-    state.eventLog = [];
-    document.getElementById('eventLog').innerHTML = '<div class="text-gray-400 text-center py-8"><i class="fas fa-inbox mr-2"></i>Game events will appear here as you play…</div>';
-    ['supplierOrderQty','orderMK','orderWC','orderTST'].forEach(id => document.getElementById(id).value = '');
-    updateUI(); updateCharts();
-    showNotification('Game reset!', 'info');
-}
+        function setKpiCellClass(el, rate) {
+            el.classList.remove('kpi-good', 'kpi-warn', 'kpi-bad');
+            if (!Number.isFinite(rate)) return;
+            if (rate >= 0.95) el.classList.add('kpi-good');
+            else if (rate >= 0.90) el.classList.add('kpi-warn');
+            else el.classList.add('kpi-bad');
+        }
 
-// ========== INIT ==========
-window.addEventListener('DOMContentLoaded', () => { initCharts(); updateUI(); });
-</script>
+        function updateKpisUI() {
+            const totalDemand = cum_demand_per.reduce((a, b) => a + b, 0);
+            const totalSold = cum_sold_per.reduce((a, b) => a + b, 0);
+            const totalLost = cum_lost_per.reduce((a, b) => a + b, 0);
+            const totalDays = Math.max(1, ticks);
+
+            const rows = [
+                { key: 'r1', demand: cum_demand_per[0], sold: cum_sold_per[0], lost: cum_lost_per[0], stockoutDays: stockout_days[0] },
+                { key: 'r2', demand: cum_demand_per[1], sold: cum_sold_per[1], lost: cum_lost_per[1], stockoutDays: stockout_days[1] },
+                { key: 'r3', demand: cum_demand_per[2], sold: cum_sold_per[2], lost: cum_lost_per[2], stockoutDays: stockout_days[2] }
+            ];
+
+            for (const r of rows) {
+                const fillRate = r.demand > 0 ? (r.sold / r.demand) : 1;
+                const serviceLevel = 1 - (r.stockoutDays / totalDays);
+                document.getElementById(`kpi_${r.key}_demand`).textContent = fmtNumber(r.demand);
+                document.getElementById(`kpi_${r.key}_sold`).textContent = fmtNumber(r.sold);
+                document.getElementById(`kpi_${r.key}_lost`).textContent = fmtNumber(r.lost);
+                const fillEl = document.getElementById(`kpi_${r.key}_fill`);
+                const svcEl = document.getElementById(`kpi_${r.key}_service`);
+                fillEl.textContent = fmtPercent(fillRate, 1);
+                svcEl.textContent = fmtPercent(serviceLevel, 1);
+                setKpiCellClass(fillEl, fillRate);
+                setKpiCellClass(svcEl, serviceLevel);
+            }
+
+            const overallFill = totalDemand > 0 ? (totalSold / totalDemand) : 1;
+            const overallSvc = 1 - (stockout_days.reduce((a, b) => a + b, 0) / (3 * totalDays));
+            document.getElementById('kpi_all_demand').textContent = fmtNumber(totalDemand);
+            document.getElementById('kpi_all_sold').textContent = fmtNumber(totalSold);
+            document.getElementById('kpi_all_lost').textContent = fmtNumber(totalLost);
+            const allFillEl = document.getElementById('kpi_all_fill');
+            const allSvcEl = document.getElementById('kpi_all_service');
+            allFillEl.textContent = fmtPercent(overallFill, 1);
+            allSvcEl.textContent = fmtPercent(overallSvc, 1);
+            setKpiCellClass(allFillEl, overallFill);
+            setKpiCellClass(allSvcEl, overallSvc);
+        }
+
+        function applyPulse(el) {
+            if (!animationsEnabled) return;
+            el.classList.remove('pulse');
+            void el.offsetWidth;
+            el.classList.add('pulse');
+        }
+
+        function setStatusPill(el, status) {
+            el.classList.remove('good', 'warn', 'bad');
+            el.classList.add(status);
+            if (status === 'good') el.textContent = 'Sufficient';
+            if (status === 'warn') el.textContent = 'Reorder';
+            if (status === 'bad') el.textContent = 'Stockout';
+        }
+
+        function updateUI() {
+            document.getElementById('day').innerText = day;
+            document.getElementById('run_progress').innerText = ticks;
+            document.getElementById('run_target').innerText = daysLength;
+            document.getElementById('warehouse_stock').innerText = warehouse_stock;
+            document.getElementById('ret1_stock').innerText = retailer_stocks[0];
+            document.getElementById('ret2_stock').innerText = retailer_stocks[1];
+            document.getElementById('ret3_stock').innerText = retailer_stocks[2];
+            document.getElementById('ret1_demand').innerText = demands[0];
+            document.getElementById('ret2_demand').innerText = demands[1];
+            document.getElementById('ret3_demand').innerText = demands[2];
+            document.getElementById('ret1_lost').innerText = lost_sales_today[0];
+            document.getElementById('ret2_lost').innerText = lost_sales_today[1];
+            document.getElementById('ret3_lost').innerText = lost_sales_today[2];
+            document.getElementById('ret1_lost_wrap').hidden = lost_sales_today[0] <= 0;
+            document.getElementById('ret2_lost_wrap').hidden = lost_sales_today[1] <= 0;
+            document.getElementById('ret3_lost_wrap').hidden = lost_sales_today[2] <= 0;
+
+            document.getElementById('orig_qty').innerText = orig_sold;
+            document.getElementById('orig_sales').innerText = '$ ' + orig_sales;
+            document.getElementById('orig_ordering').innerText = '$ ' + orig_ordering;
+            document.getElementById('orig_holding').innerText = '$ ' + orig_holding;
+            document.getElementById('orig_gross').innerText = '$ ' + orig_gross;
+            document.getElementById('orig_cogs').innerText = '$ ' + orig_cogs;
+            document.getElementById('orig_net').innerText = '$ ' + orig_net;
+
+            document.getElementById('upd_qty').innerText = cum_sold;
+            document.getElementById('upd_sales').innerText = '$ ' + cum_sales;
+            document.getElementById('upd_ordering').innerText = '$ ' + cum_ordering;
+            document.getElementById('upd_holding').innerText = '$ ' + cum_holding;
+            document.getElementById('upd_gross').innerText = '$ ' + cum_gross;
+            document.getElementById('upd_cogs').innerText = '$ ' + cum_cogs;
+            document.getElementById('upd_net').innerText = '$ ' + cum_net;
+
+            const whStatus = getStatusForStock(warehouse_stock, 300);
+            const r1Status = getStatusForStock(retailer_stocks[0], 60);
+            const r2Status = getStatusForStock(retailer_stocks[1], 60);
+            const r3Status = getStatusForStock(retailer_stocks[2], 60);
+
+            setStatusPill(document.getElementById('warehouse_status'), whStatus);
+            setStatusPill(document.getElementById('ret1_status'), r1Status);
+            setStatusPill(document.getElementById('ret2_status'), r2Status);
+            setStatusPill(document.getElementById('ret3_status'), r3Status);
+
+            // Update transit info and disable inputs
+            const supInput = document.getElementById('supplier_input');
+            supInput.disabled = in_transit_sup.length > 0 || autoplayEnabled;
+            document.getElementById('sup_transit').innerText = in_transit_sup.length > 0 ? 'In transit: ' + in_transit_sup[0].qty + ', days left: ' + in_transit_sup[0].days_left : '';
+
+            for (let i = 0; i < 3; i++) {
+                const retInput = document.getElementById('ret' + (i+1) + '_input');
+                retInput.disabled = in_transit_ret[i].length > 0 || autoplayEnabled;
+                document.getElementById('ret' + (i+1) + '_transit').innerText = in_transit_ret[i].length > 0 ? 'In transit: ' + in_transit_ret[i][0].qty + ', days left: ' + in_transit_ret[i][0].days_left : '';
+            }
+
+            setAutoplayModeUi();
+            updateKpisUI();
+            setAutoRunningUi();
+        }
+
+        function updateDescriptions(sold_per, sup_add, ret_add, ret_sum) {
+            let desc = '';
+            desc += 'Quantity Sold = ' + orig_sold + ' + ' + sold_per.join(' + ') + ' = ' + cum_sold + '\n';
+            desc += 'Sales Value = ' + cum_sold + ' x $39 = $' + cum_sales + '\n';
+            desc += 'Ordering Cost = $' + orig_ordering + ' + ' + sup_add + ' + ' + ret_add[0] + ' + ' + ret_add[1] + ' + ' + ret_add[2] + ' = $' + cum_ordering + '\n';
+            desc += 'Holding Cost = $' + orig_holding + ' + (' + warehouse_stock + ' x $2.15 + ' + ret_sum + ' x $3.88) / 365 = $' + cum_holding + '\n';
+            desc += 'Gross Profit = $' + cum_sales + ' - $' + cum_ordering + ' - $' + cum_holding + ' = $' + cum_gross + '\n';
+            desc += 'COGS = ' + cum_sold + ' x $25 = $' + cum_cogs + '\n';
+            desc += 'Net Profit = $' + cum_gross + ' - $' + cum_cogs + ' = $' + cum_net;
+            document.getElementById('descriptions').innerText = desc;
+        }
+
+        function onOK() {
+            orig_sold = cum_sold;
+            orig_sales = cum_sales;
+            orig_ordering = cum_ordering;
+            orig_holding = cum_holding;
+            orig_cogs = cum_cogs;
+            orig_gross = cum_gross;
+            orig_net = cum_net;
+
+            if (autoplayEnabled) {
+                const supQty = in_transit_sup.length > 0 ? 0 : computePolicyOrderQty(policies.sup, getInventoryPositionWarehouse(), ticks);
+                document.getElementById('supplier_input').value = String(Math.min(9999, clampNonNegInt(supQty)));
+
+                let remainingWarehouse = warehouse_stock;
+                for (let i = 0; i < 3; i++) {
+                    const desired = in_transit_ret[i].length > 0 ? 0 : computePolicyOrderQty(policies.ret[i], getInventoryPositionRetailer(i), ticks);
+                    const qty = Math.min(clampNonNegInt(desired), remainingWarehouse);
+                    remainingWarehouse -= qty;
+                    document.getElementById(`ret${i + 1}_input`).value = String(qty);
+                }
+            }
+
+            // Place orders
+            let sup_input = parseInt(document.getElementById('supplier_input').value) || 0;
+            let sup_add = '$0';
+            if (sup_input > 0) {
+                if (in_transit_sup.length > 0) {
+                    alert('Cannot place order to supplier while one is in transit.');
+                } else if (sup_input > 9999) {
+                    alert('Maximum order to supplier is 9999.');
+                } else {
+                    in_transit_sup.push({ qty: sup_input, days_left: 14 });
+                    cum_ordering += 150;
+                    sup_add = '$150';
+                }
+            }
+            document.getElementById('supplier_input').value = 0;
+
+            let ret_inputs = [
+                parseInt(document.getElementById('ret1_input').value) || 0,
+                parseInt(document.getElementById('ret2_input').value) || 0,
+                parseInt(document.getElementById('ret3_input').value) || 0
+            ];
+            let ret_add = ['$0', '$0', '$0'];
+            for (let i = 0; i < 3; i++) {
+                if (ret_inputs[i] > 0) {
+                    if (in_transit_ret[i].length > 0) {
+                        alert('Cannot place order to retailer ' + (i + 1) + ' while one is in transit.');
+                    } else if (ret_inputs[i] > warehouse_stock) {
+                        alert('Insufficient stock in warehouse for order to this retailer.');
+                    } else {
+                        in_transit_ret[i].push({ qty: ret_inputs[i], days_left: 3 });
+                        warehouse_stock -= ret_inputs[i];
+                        cum_ordering += 60;
+                        ret_add[i] = '$60';
+                    }
+                }
+                document.getElementById('ret' + (i + 1) + '_input').value = 0;
+            }
+
+            // Advance day
+            day++;
+            ticks += 1;
+
+            // Decrement and deliver transits
+            for (let i = in_transit_sup.length - 1; i >= 0; i--) {
+                in_transit_sup[i].days_left--;
+                if (in_transit_sup[i].days_left <= 0) {
+                    warehouse_stock += in_transit_sup[i].qty;
+                    in_transit_sup.splice(i, 1);
+                }
+            }
+            for (let j = 0; j < 3; j++) {
+                for (let i = in_transit_ret[j].length - 1; i >= 0; i--) {
+                    in_transit_ret[j][i].days_left--;
+                    if (in_transit_ret[j][i].days_left <= 0) {
+                        retailer_stocks[j] += in_transit_ret[j][i].qty;
+                        in_transit_ret[j].splice(i, 1);
+                    }
+                }
+            }
+
+            // Generate new demands
+            demands = [generateDemand(), generateDemand(), generateDemand()];
+            lost_sales_today = [0, 0, 0];
+
+            // Deduct demands and calculate sold
+            let sold_today = 0;
+            let sold_per = [];
+            for (let i = 0; i < 3; i++) {
+                cum_demand_per[i] += demands[i];
+                let sold = Math.min(retailer_stocks[i], demands[i]);
+                let lost = Math.max(0, demands[i] - sold);
+                retailer_stocks[i] -= sold;
+                sold_per.push(sold);
+                sold_today += sold;
+                lost_sales_today[i] = lost;
+                cum_sold_per[i] += sold;
+                cum_lost_per[i] += lost;
+                if (lost > 0) stockout_days[i] += 1;
+            }
+
+            cum_sold += sold_today;
+            cum_sales = cum_sold * 39;
+            cum_cogs = cum_sold * 25;
+
+            // Calculate holding
+            let ret_sum = retailer_stocks.reduce((a, b) => a + b, 0);
+            let daily_holding = Math.round((warehouse_stock * 2.15 + ret_sum * 3.88) / 365);
+            cum_holding += daily_holding;
+
+            // Update gross and net
+            cum_gross = cum_sales - cum_ordering - cum_holding;
+            cum_net = cum_gross - cum_cogs;
+
+            // Update descriptions
+            updateDescriptions(sold_per, sup_add, ret_add, ret_sum);
+
+            // Update graph
+            updateGraph();
+
+            updateUI();
+
+            if (!thresholdSnapshot && ticks === daysLength) {
+                thresholdSnapshot = { ticks, cum_sold, cum_net };
+                showReport();
+            }
+
+            applyPulse(document.getElementById('warehouse_stock'));
+            applyPulse(document.getElementById('ret1_stock'));
+            applyPulse(document.getElementById('ret2_stock'));
+            applyPulse(document.getElementById('ret3_stock'));
+            applyPulse(document.getElementById('ret1_demand'));
+            applyPulse(document.getElementById('ret2_demand'));
+            applyPulse(document.getElementById('ret3_demand'));
+        }
+
+        function onReset() {
+            stopAutoRun();
+            day = 1;
+            ticks = 0;
+            thresholdSnapshot = null;
+            warehouse_stock = 1000;
+            retailer_stocks = [200, 200, 200];
+            demands = [0, 0, 0];
+            lost_sales_today = [0, 0, 0];
+            in_transit_sup = [];
+            in_transit_ret = [[], [], []];
+            cum_sold = 0;
+            cum_sales = 0;
+            cum_ordering = 0;
+            cum_holding = 0;
+            cum_cogs = 0;
+            cum_gross = 0;
+            cum_net = 0;
+            orig_sold = 0;
+            orig_sales = 0;
+            orig_ordering = 0;
+            orig_holding = 0;
+            orig_cogs = 0;
+            orig_gross = 0;
+            orig_net = 0;
+            cum_demand_per = [0, 0, 0];
+            cum_sold_per = [0, 0, 0];
+            cum_lost_per = [0, 0, 0];
+            stockout_days = [0, 0, 0];
+            chartData.labels = [];
+            chartData.datasets.forEach(ds => ds.data = []);
+            chartData.labels.push(day);
+            chartData.datasets[0].data.push(demands.reduce((a, b) => a + b, 0) / 100);
+            chartData.datasets[1].data.push(warehouse_stock / 100);
+            chartData.datasets[2].data.push(retailer_stocks.reduce((a, b) => a + b, 0) / 100);
+            chartData.datasets[3].data.push(cum_net / 1000);
+            chart.update();
+            document.getElementById('descriptions').innerText = '';
+            updateUI();
+        }
+
+        function openReport() {
+            const reportModal = document.getElementById('report-modal');
+            reportModal.style.display = 'block';
+        }
+
+        function closeReport() {
+            const reportModal = document.getElementById('report-modal');
+            reportModal.style.display = 'none';
+        }
+
+        function buildReportPayload() {
+            if (!thresholdSnapshot) {
+                return { days: daysLength, unitsSold: 0, totalProfit: 0, avgProfit: 0 };
+            }
+            const unitsSold = thresholdSnapshot.cum_sold;
+            const totalProfit = thresholdSnapshot.cum_net;
+            const avgProfit = unitsSold > 0 ? (totalProfit / unitsSold) : 0;
+            return { days: thresholdSnapshot.ticks, unitsSold, totalProfit, avgProfit };
+        }
+
+        function showReport() {
+            const payload = buildReportPayload();
+            document.getElementById('report-title').textContent = `Run Results (First ${payload.days} Days)`;
+            document.getElementById('report-subtitle').textContent = 'The simulation continues after this report. Export the metrics or start a new run.';
+
+            document.getElementById('report-units-sold').textContent = fmtNumber(payload.unitsSold);
+            document.getElementById('report-total-profit').textContent = fmtCurrency(payload.totalProfit, 0);
+            document.getElementById('report-avg-profit').textContent = fmtCurrency(payload.avgProfit, 2);
+
+            const profitCard = document.getElementById('metric-profit');
+            profitCard.classList.remove('good', 'bad');
+            profitCard.classList.add(payload.totalProfit >= 0 ? 'good' : 'bad');
+
+            stopAutoRun();
+            openReport();
+        }
+
+        function downloadFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 250);
+        }
+
+        function exportReportCsv() {
+            const payload = buildReportPayload();
+            const lines = [
+                'days,units_sold,total_profit,avg_profit_per_unit',
+                `${payload.days},${payload.unitsSold},${payload.totalProfit},${payload.avgProfit}`
+            ];
+            downloadFile(`two-echelon-results-day-${payload.days}.csv`, lines.join('\n'), 'text/csv;charset=utf-8');
+        }
+
+        function exportReportText() {
+            const payload = buildReportPayload();
+            const text =
+                `Two-Echelon Supply Chain Report\n` +
+                `Days: ${payload.days}\n` +
+                `Total units sold: ${fmtNumber(payload.unitsSold)}\n` +
+                `Total profit: ${fmtCurrency(payload.totalProfit, 0)}\n` +
+                `Average profit per unit: ${fmtCurrency(payload.avgProfit, 2)}\n`;
+            downloadFile(`two-echelon-results-day-${payload.days}.txt`, text, 'text/plain;charset=utf-8');
+        }
+
+        function applyAnimationsPreference(enabled) {
+            animationsEnabled = Boolean(enabled);
+            document.body.classList.toggle('anim-off', !animationsEnabled);
+            localStorage.setItem('scm_animationsEnabled', animationsEnabled ? '1' : '0');
+        }
+
+        function loadPreferences() {
+            const storedDays = localStorage.getItem('scm_daysLength');
+            const storedAnim = localStorage.getItem('scm_animationsEnabled');
+            const storedAutoplay = localStorage.getItem('scm_autoplayEnabled');
+            const storedPolicies = localStorage.getItem('scm_policies');
+            const storedAutoMs = localStorage.getItem('scm_autoplayMsPerDay');
+
+            if (storedDays != null) {
+                const v = validateDaysLength(storedDays);
+                if (v.ok) daysLength = v.value;
+            }
+            const prefersReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (storedAnim != null) {
+                animationsEnabled = storedAnim === '1';
+            } else {
+                animationsEnabled = !prefersReduce;
+            }
+            document.getElementById('days-length').value = String(daysLength);
+            document.getElementById('toggle-animations').checked = animationsEnabled;
+            document.getElementById('run_target').innerText = daysLength;
+            applyAnimationsPreference(animationsEnabled);
+
+            if (storedAutoplay != null) autoplayEnabled = storedAutoplay === '1';
+            if (storedAutoMs != null) autoplayMsPerDay = clampNonNegInt(storedAutoMs);
+            if (storedPolicies) {
+                try {
+                    const parsed = JSON.parse(storedPolicies);
+                    if (parsed && parsed.sup && parsed.ret && parsed.ret.length === 3) policies = parsed;
+                } catch {}
+            }
+            autoplayEnabledInput.checked = autoplayEnabled;
+            autoplayMsInput.value = String(autoplayMsPerDay);
+            applyPolicyToDom('sup', policies.sup);
+            applyPolicyToDom('r1', policies.ret[0]);
+            applyPolicyToDom('r2', policies.ret[1]);
+            applyPolicyToDom('r3', policies.ret[2]);
+            setAutoplayModeUi();
+        }
+
+        function setupTooltips() {
+            const tip = document.getElementById('tooltip');
+            let activeEl = null;
+
+            const position = (clientX, clientY) => {
+                const pad = 12;
+                const rect = tip.getBoundingClientRect();
+                let x = clientX + 14;
+                let y = clientY + 14;
+                if (x + rect.width + pad > window.innerWidth) x = window.innerWidth - rect.width - pad;
+                if (y + rect.height + pad > window.innerHeight) y = window.innerHeight - rect.height - pad;
+                tip.style.left = `${Math.max(pad, x)}px`;
+                tip.style.top = `${Math.max(pad, y)}px`;
+            };
+
+            const show = (el, x, y) => {
+                const text = el.getAttribute('data-tooltip');
+                if (!text) return;
+                activeEl = el;
+                tip.textContent = text;
+                tip.classList.add('show');
+                position(x, y);
+            };
+            const hide = () => {
+                activeEl = null;
+                tip.classList.remove('show');
+            };
+
+            document.addEventListener('pointerover', (e) => {
+                const el = e.target.closest('[data-tooltip]');
+                if (!el) return;
+                show(el, e.clientX, e.clientY);
+            });
+            document.addEventListener('pointerout', (e) => {
+                if (!activeEl) return;
+                if (e.relatedTarget && activeEl.contains(e.relatedTarget)) return;
+                hide();
+            });
+            document.addEventListener('pointermove', (e) => {
+                if (!activeEl) return;
+                position(e.clientX, e.clientY);
+            });
+            window.addEventListener('scroll', () => {
+                hide();
+            }, { passive: true });
+        }
+
+        function runUnitTests() {
+            const results = [];
+            const assert = (name, condition) => {
+                results.push({ name, ok: Boolean(condition) });
+            };
+
+            assert('validateDaysLength accepts 100', validateDaysLength('100').ok);
+            assert('validateDaysLength rejects negative', !validateDaysLength('-1').ok);
+            assert('status good above reorder', getStatusForStock(100, 60) === 'good');
+            assert('status warn at reorder', getStatusForStock(60, 60) === 'warn');
+            assert('status bad at 0', getStatusForStock(0, 60) === 'bad');
+            assert('daily holding is integer', Number.isInteger(calcDailyHolding(1000, [200, 200, 200])));
+            assert('currency formatting produces $', fmtCurrency(123).includes('$'));
+
+            const state = {
+                warehouse_stock: 1000,
+                retailer_stocks: [200, 200, 200],
+                cum_sold: 0,
+                cum_sales: 0,
+                cum_ordering: 0,
+                cum_holding: 0,
+                cum_cogs: 0,
+                cum_gross: 0,
+                cum_net: 0
+            };
+            const fixedDemand = [10, 10, 10];
+            for (let d = 0; d < 5; d++) {
+                let soldToday = 0;
+                for (let i = 0; i < 3; i++) {
+                    const sold = Math.min(state.retailer_stocks[i], fixedDemand[i]);
+                    state.retailer_stocks[i] -= sold;
+                    soldToday += sold;
+                }
+                state.cum_sold += soldToday;
+                state.cum_sales = state.cum_sold * 39;
+                state.cum_cogs = state.cum_sold * 25;
+                state.cum_holding += calcDailyHolding(state.warehouse_stock, state.retailer_stocks);
+                state.cum_gross = state.cum_sales - state.cum_ordering - state.cum_holding;
+                state.cum_net = state.cum_gross - state.cum_cogs;
+            }
+            assert('E2E 5 days sold = 150', state.cum_sold === 150);
+            assert('E2E 5 days sales = 5850', state.cum_sales === 5850);
+            assert('E2E net is finite', Number.isFinite(state.cum_net));
+
+            return results;
+        }
+
+        // Modal logic
+        const modal = document.getElementById('modal');
+        const settingsBtn = document.getElementById('settings-btn');
+        const closeModal = document.getElementById('close-modal');
+        const demandTypeSelect = document.getElementById('demand-type');
+        const uniformSettings = document.getElementById('uniform-settings');
+        const poissonSettings = document.getElementById('poisson-settings');
+        const applySettings = document.getElementById('apply-settings');
+        const daysLengthInput = document.getElementById('days-length');
+        const daysLengthError = document.getElementById('days-length-error');
+        const animationsToggle = document.getElementById('toggle-animations');
+        const autoplayEnabledInput = document.getElementById('autoplay-enabled');
+        const autoplayError = document.getElementById('autoplay-error');
+        const autoplayMsInput = document.getElementById('autoplay-ms');
+
+        function getPolicyFromDom(prefix) {
+            return {
+                type: document.getElementById(`${prefix}-policy`).value,
+                t: clampNonNegInt(document.getElementById(`${prefix}-t`).value),
+                q: clampNonNegInt(document.getElementById(`${prefix}-q`).value),
+                s: clampNonNegInt(document.getElementById(`${prefix}-s`).value),
+                S: clampNonNegInt(document.getElementById(`${prefix}-S`).value)
+            };
+        }
+
+        function applyPolicyToDom(prefix, policy) {
+            document.getElementById(`${prefix}-policy`).value = policy.type;
+            document.getElementById(`${prefix}-t`).value = String(policy.t);
+            document.getElementById(`${prefix}-q`).value = String(policy.q);
+            document.getElementById(`${prefix}-s`).value = String(policy.s);
+            document.getElementById(`${prefix}-S`).value = String(policy.S);
+            updatePolicyFieldVisibility(prefix);
+        }
+
+        function updatePolicyFieldVisibility(prefix) {
+            const type = document.getElementById(`${prefix}-policy`).value;
+            const showT = type === 'tq' || type === 'tS';
+            const showS = type === 'sq' || type === 'sS';
+            const showQ = type === 'tq' || type === 'sq';
+            const showBigS = type === 'tS' || type === 'sS';
+            document.getElementById(`${prefix}-t-wrap`).style.display = showT ? 'flex' : 'none';
+            document.getElementById(`${prefix}-s-wrap`).style.display = showS ? 'flex' : 'none';
+            document.getElementById(`${prefix}-q-wrap`).style.display = showQ ? 'flex' : 'none';
+            document.getElementById(`${prefix}-S-wrap`).style.display = showBigS ? 'flex' : 'none';
+        }
+
+        function validatePolicy(policy) {
+            const t = clampNonNegInt(policy.t);
+            const q = clampNonNegInt(policy.q);
+            const s = clampNonNegInt(policy.s);
+            const S = clampNonNegInt(policy.S);
+            if ((policy.type === 'tq' || policy.type === 'tS') && t < 1) return { ok: false, error: 't must be at least 1 day for (t, ·) policies.' };
+            if ((policy.type === 'tq' || policy.type === 'sq') && q < 0) return { ok: false, error: 'q must be a non‑negative number.' };
+            if ((policy.type === 'sq' || policy.type === 'sS') && s < 0) return { ok: false, error: 's must be a non‑negative number.' };
+            if ((policy.type === 'tS' || policy.type === 'sS') && S < 0) return { ok: false, error: 'S must be a non‑negative number.' };
+            if ((policy.type === 'sS') && S < s) return { ok: false, error: 'For (s, S), S must be ≥ s.' };
+            return { ok: true };
+        }
+
+        settingsBtn.onclick = () => { modal.style.display = 'block'; };
+        closeModal.onclick = () => { modal.style.display = 'none'; };
+        window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
+
+        demandTypeSelect.onchange = () => {
+            if (demandTypeSelect.value === 'uniform') {
+                uniformSettings.style.display = 'block';
+                poissonSettings.style.display = 'none';
+            } else {
+                uniformSettings.style.display = 'none';
+                poissonSettings.style.display = 'block';
+            }
+        };
+
+        applySettings.onclick = () => {
+            demandType = demandTypeSelect.value;
+            if (demandType === 'uniform') {
+                uniformMin = parseInt(document.getElementById('uniform-min').value) || 10;
+                uniformMax = parseInt(document.getElementById('uniform-max').value) || 20;
+            } else {
+                poissonLambda = parseInt(document.getElementById('poisson-lambda').value) || 15;
+            }
+            const validated = validateDaysLength(daysLengthInput.value);
+            if (!validated.ok) {
+                daysLengthError.textContent = validated.error;
+                daysLengthInput.focus();
+                return;
+            }
+            daysLengthError.textContent = '';
+            daysLength = validated.value;
+            localStorage.setItem('scm_daysLength', String(daysLength));
+            applyAnimationsPreference(animationsToggle.checked);
+
+            autoplayEnabled = autoplayEnabledInput.checked;
+            autoplayMsPerDay = clampNonNegInt(autoplayMsInput.value);
+            localStorage.setItem('scm_autoplayMsPerDay', String(autoplayMsPerDay));
+            const nextPolicies = {
+                sup: getPolicyFromDom('sup'),
+                ret: [getPolicyFromDom('r1'), getPolicyFromDom('r2'), getPolicyFromDom('r3')]
+            };
+            const checks = [validatePolicy(nextPolicies.sup), validatePolicy(nextPolicies.ret[0]), validatePolicy(nextPolicies.ret[1]), validatePolicy(nextPolicies.ret[2])];
+            const firstError = checks.find(c => !c.ok);
+            if (firstError) {
+                autoplayError.textContent = firstError.error;
+                return;
+            }
+            autoplayError.textContent = '';
+            policies = nextPolicies;
+            localStorage.setItem('scm_autoplayEnabled', autoplayEnabled ? '1' : '0');
+            localStorage.setItem('scm_policies', JSON.stringify(policies));
+
+            modal.style.display = 'none';
+            onReset();  // Reset game to apply new settings
+        };
+
+        document.getElementById('close-report').addEventListener('click', closeReport);
+        document.getElementById('continue-sim').addEventListener('click', closeReport);
+        document.getElementById('reset-sim').addEventListener('click', () => { closeReport(); onReset(); });
+        document.getElementById('export-csv').addEventListener('click', exportReportCsv);
+        document.getElementById('export-text').addEventListener('click', exportReportText);
+        document.getElementById('report-modal').addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'report-modal') closeReport();
+        });
+
+        document.getElementById('ok').addEventListener('click', () => {
+            if (autoplayEnabled && ticks < daysLength) {
+                runAutoUntil(daysLength);
+                return;
+            }
+            onOK();
+        });
+        document.getElementById('pause').addEventListener('click', () => {
+            if (!autoplayEnabled) return;
+            if (thresholdSnapshot) return;
+            if (ticks >= daysLength) return;
+            if (!isAutoRunning) return;
+            stopAutoRun();
+        });
+        document.getElementById('reset').addEventListener('click', onReset);
+        initChart();
+        setupTooltips();
+        loadPreferences();
+        document.getElementById('sup-policy').addEventListener('change', () => updatePolicyFieldVisibility('sup'));
+        document.getElementById('r1-policy').addEventListener('change', () => updatePolicyFieldVisibility('r1'));
+        document.getElementById('r2-policy').addEventListener('change', () => updatePolicyFieldVisibility('r2'));
+        document.getElementById('r3-policy').addEventListener('change', () => updatePolicyFieldVisibility('r3'));
+        onReset();
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('test') === '1') {
+            const results = runUnitTests();
+            const passed = results.filter(r => r.ok).length;
+            const total = results.length;
+            thresholdSnapshot = { ticks: 0, cum_sold: 0, cum_net: 0 };
+            document.getElementById('report-title').textContent = 'Test Results';
+            document.getElementById('report-subtitle').textContent = `${passed}/${total} tests passed.`;
+            document.getElementById('report-units-sold').textContent = `${passed}/${total}`;
+            document.getElementById('report-total-profit').textContent = results.some(r => !r.ok) ? 'FAIL' : 'PASS';
+            document.getElementById('report-avg-profit').textContent = '';
+            openReport();
+        }
+    </script>
 </body>
 </html>
