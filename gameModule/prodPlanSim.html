@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production Scheduling Simulation</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root {
+  --bg-primary: #f0f4f8;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e2e8f0;
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: #dbeafe;
+  --success: #059669;
+  --success-light: #d1fae5;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --danger: #dc2626;
+  --danger-light: #fee2e2;
+  --border: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'DM Sans', sans-serif;
+  --font-heading: 'DM Sans', sans-serif;
+}
+
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-light: #1e3a5f;
+  --success: #10b981;
+  --success-light: #064e3b;
+  --warning: #f59e0b;
+  --warning-light: #78350f;
+  --danger: #ef4444;
+  --danger-light: #7f1d1d;
+  --border: #334155;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.app-header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-title i { font-size: 20px; }
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.header-badge {
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.header-badge.warning {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.header-badge.danger {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.nav-tabs {
+  display: flex;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nav-tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  font-family: var(--font-sans);
+}
+
+.nav-tab:hover { color: var(--text-primary); }
+.nav-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.main-content {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.card-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title i { color: var(--accent); font-size: 16px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .main-content { padding: 12px; }
+  .app-header { padding: 10px 12px; }
+  .header-info { gap: 8px; }
+}
+
+.stat-item {
+  padding: 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-value.positive { color: var(--success); }
+.stat-value.negative { color: var(--danger); }
+
+.btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-success {
+  background: var(--success);
+  color: white;
+}
+.btn-success:hover { opacity: 0.9; }
+
+.btn-warning {
+  background: var(--warning);
+  color: white;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.btn-outline:hover {
+  background: var(--bg-tertiary);
+}
+
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+input[type="number"], input[type="text"], input[type="password"], select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.form-group { margin-bottom: 14px; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th, td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+
+td { font-family: var(--font-mono); font-size: 12px; }
+
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-title i { color: var(--accent); }
+
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alert-warning {
+  background: var(--warning-light);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+.alert-danger {
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.alert-info {
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.alert-success {
+  background: var(--success-light);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.welcome-screen {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.welcome-screen h1 {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.welcome-screen p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin: 12px 0;
+}
+
+.toggle-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.toggle-switch input { width: auto; }
+
+.instructor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .instructor-grid { grid-template-columns: 1fr; }
+}
+
+.instructor-grid .form-group {
+  margin-bottom: 8px;
+}
+
+.instructor-grid label {
+  font-size: 11px;
+}
+
+.instructor-grid input {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.sub-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sub-tab {
+  padding: 6px 12px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+
+.sub-tab.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.history-table td.num { text-align: right; }
+.history-table th.num { text-align: right; }
+
+.capacity-bar {
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.capacity-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.capacity-bar-fill.over { background: var(--danger); }
+
+.inline-help {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">
+    <i class="fas fa-industry"></i>
+    <span>Aerials Sim</span>
+  </div>
+  <div class="header-info">
+    <span id="headerTeam" class="hidden"></span>
+    <span id="headerWeek" class="header-badge hidden"></span>
+    <span id="headerLevel" class="header-badge hidden"></span>
+    <span id="headerWarning" class="header-badge warning hidden"></span>
+  </div>
+</header>
+
+<nav class="nav-tabs" id="navTabs">
+  <button class="nav-tab active" data-screen="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+  <button class="nav-tab" data-screen="history"><i class="fas fa-history"></i> History</button>
+  <button class="nav-tab" data-screen="reports"><i class="fas fa-file-alt"></i> Reports</button>
+  <button class="nav-tab" data-screen="charts"><i class="fas fa-chart-line"></i> Charts</button>
+  <button class="nav-tab" data-screen="instructor"><i class="fas fa-cog"></i> Instructor</button>
+</nav>
+
+<main class="main-content">
+
+  <!-- WELCOME SCREEN -->
+  <div class="screen active" id="screenWelcome">
+    <div class="welcome-screen">
+      <h1><i class="fas fa-industry"></i> Production Scheduling Simulation</h1>
+      <p>A turn-based manufacturing management game. Run a firm assembling car aerials across 21 weeks — order materials, schedule production, manage finances.</p>
+      <div class="card" style="max-width:400px;margin:0 auto;text-align:left;">
+        <div class="card-title"><i class="fas fa-users"></i> Team Setup</div>
+        <div class="form-group">
+          <label for="teamNameInput">Team Name</label>
+          <input type="text" id="teamNameInput" placeholder="Enter your team name..." value="">
+        </div>
+        <div class="btn-group" style="justify-content:center;">
+          <button class="btn btn-primary" onclick="startNewGame()"><i class="fas fa-play"></i> Start New Game</button>
+          <button class="btn btn-outline" onclick="document.getElementById('importFileInput').click()"><i class="fas fa-upload"></i> Import Game</button>
+          <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importGame(event)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="screen" id="screenDashboard">
+    <div id="overdraftWarning" class="alert alert-danger hidden">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span><strong>OVERDRAFT WARNING:</strong> You have exceeded the maximum overdraft limit. See the umpire!</span>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><i class="fas fa-boxes-stacked"></i> Raw Material Stock</div>
+        <div class="grid-3">
+          <div class="stat-item">
+            <div class="stat-label">Bodies</div>
+            <div class="stat-value" id="stockBodies">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Aerials</div>
+            <div class="stat-value" id="stockAerials">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Accessories</div>
+            <div class="stat-value" id="stockAccessories">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fas fa-box"></i> Finished Goods</div>
+        <div class="grid-2">
+          <div class="stat-item">
+            <div class="stat-label">Standard</div>
+            <div class="stat-value" id="stockFinSTD">0</div>
+          </div>
+          <div class="stat-item" id="stockFinXLContainer">
+            <div class="stat-label">XL</div>
+            <div class="stat-value" id="stockFinXL">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><i class="fas fa-university"></i> Bank Accounts</div>
+        <div class="grid-2">
+          <div class="stat-item">
+            <div class="stat-label">Current A/C</div>
+            <div class="stat-value" id="bankCurrent">£0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Deposit A/C</div>
+            <div class="stat-value" id="bankDeposit">£0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Total Balance</div>
+            <div class="stat-value" id="bankTotal">£0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Overdraft Limit</div>
+            <div class="stat-value" id="bankODLimit">£0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fas fa-gears"></i> Production Capacity</div>
+        <div id="capacityPanel"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-clipboard-list"></i> Weekly Decisions</div>
+      <div id="decisionsPreview"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="openOrderModal()"><i class="fas fa-truck"></i> Order Materials</button>
+        <button class="btn btn-primary" onclick="openProductionModal()"><i class="fas fa-industry"></i> Schedule Production</button>
+        <button class="btn btn-primary" onclick="openBankModal()"><i class="fas fa-piggy-bank"></i> Bank Transfer</button>
+        <button class="btn btn-success" onclick="commitWeek()"><i class="fas fa-check-circle"></i> Commit Week</button>
+        <button class="btn btn-outline" onclick="exportGame()"><i class="fas fa-download"></i> Export Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY SCREEN -->
+  <div class="screen" id="screenHistory">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-table"></i> Historical Sales Data</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Use this data to forecast future demand. Accounting periods (APs) are 4 weeks each.</p>
+      <div class="table-container" id="historyTableContainer"></div>
+    </div>
+  </div>
+
+  <!-- REPORTS SCREEN -->
+  <div class="screen" id="screenReports">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-file-alt"></i> Weekly Reports</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <label style="margin:0;">View Week:</label>
+        <select id="reportWeekSelect" style="width:auto;" onchange="renderReport()"></select>
+        <button class="btn btn-sm btn-outline" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
+      </div>
+      <div id="reportContent"></div>
+    </div>
+  </div>
+
+  <!-- CHARTS SCREEN -->
+  <div class="screen" id="screenCharts">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-chart-line"></i> Performance Charts</div>
+      <div class="sub-tabs" id="chartTabs">
+        <button class="sub-tab active" data-chart="financial">Financial</button>
+        <button class="sub-tab" data-chart="production">Production</button>
+        <button class="sub-tab" data-chart="stock">Stock</button>
+        <button class="sub-tab" data-chart="losses">Losses</button>
+      </div>
+      <div class="chart-container"><canvas id="chartCanvas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- INSTRUCTOR SCREEN -->
+  <div class="screen" id="screenInstructor">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-lock"></i> Instructor Panel</div>
+      <div id="instructorLocked">
+        <p style="margin-bottom:12px;color:var(--text-secondary);">Enter the instructor password to access configuration.</p>
+        <div class="form-group" style="max-width:300px;">
+          <label for="instructorPass">Password</label>
+          <input type="password" id="instructorPass" placeholder="Enter password...">
+        </div>
+        <button class="btn btn-primary" onclick="unlockInstructor()"><i class="fas fa-unlock"></i> Unlock</button>
+      </div>
+      <div id="instructorPanel" class="hidden">
+        <div class="sub-tabs" id="instrTabs">
+          <button class="sub-tab active" data-itab="general">General</button>
+          <button class="sub-tab" data-itab="costs">Costs & Finance</button>
+          <button class="sub-tab" data-itab="production">Production</button>
+          <button class="sub-tab" data-itab="demand">Demand</button>
+          <button class="sub-tab" data-itab="flags">Flags & Quirks</button>
+          <button class="sub-tab" data-itab="actions">Actions</button>
+        </div>
+        <div id="instrContent"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ORDER MODAL -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal">
+    <div class="modal-title"><i class="fas fa-truck"></i> Order Materials</div>
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle"></i>
+      <span>Bodies &amp; Aerials arrive next week. Accessories arrive in 2 weeks. Max order value: £<span id="orderMaxVal"></span></span>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Bodies (£8/unit)</label>
+        <input type="number" id="orderBody" min="0" value="0" oninput="updateOrderPreview()">
+      </div>
+      <div class="form-group">
+        <label>Aerials (£6/unit)</label>
+        <input type="number" id="orderAerial" min="0" value="0" oninput="updateOrderPreview()">
+      </div>
+      <div class="form-group">
+        <label>Accessories (£1/unit)</label>
+        <input type="number" id="orderAccessory" min="0" value="0" oninput="updateOrderPreview()">
+      </div>
+    </div>
+    <div id="orderPreview" style="margin:12px 0;font-size:13px;"></div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="confirmOrder()"><i class="fas fa-check"></i> Confirm Order</button>
+      <button class="btn btn-outline" onclick="closeModal('orderModal')"><i class="fas fa-times"></i> Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCTION MODAL -->
+<div class="modal-overlay" id="productionModal">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-title"><i class="fas fa-industry"></i> Schedule Production</div>
+    <div id="prodCapInfo" class="alert alert-info" style="font-size:12px;"></div>
+    <div class="table-container">
+      <table id="prodTable">
+        <thead>
+          <tr>
+            <th>Shift</th>
+            <th>Capacity</th>
+            <th>STD</th>
+            <th id="prodXLHeader" class="hidden">XL</th>
+            <th>Total</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="prodTableBody"></tbody>
+      </table>
+    </div>
+    <div id="prodEveningRow" style="margin:12px 0;">
+      <label>Evening Shifts (0-<span id="maxEveLabel">5</span>):</label>
+      <input type="number" id="prodEveningShifts" min="0" max="5" value="0" style="width:80px;" oninput="updateProdPreview()">
+    </div>
+    <div id="prodPreview" style="margin:12px 0;font-size:12px;"></div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="confirmProduction()"><i class="fas fa-check"></i> Confirm Schedule</button>
+      <button class="btn btn-outline" onclick="closeModal('productionModal')"><i class="fas fa-times"></i> Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- BANK MODAL -->
+<div class="modal-overlay" id="bankModal">
+  <div class="modal">
+    <div class="modal-title"><i class="fas fa-piggy-bank"></i> Bank Transfer</div>
+    <div style="margin-bottom:12px;font-size:13px;color:var(--text-secondary);">
+      Positive = deposit to savings. Negative = withdraw from savings to current.
+    </div>
+    <div class="form-group">
+      <label>Transfer Amount (£)</label>
+      <input type="number" id="bankAmount" value="0">
+      <div class="inline-help">Current → Deposit (positive), Deposit → Current (negative)</div>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="confirmBank()"><i class="fas fa-check"></i> Confirm</button>
+      <button class="btn btn-outline" onclick="closeModal('bankModal')"><i class="fas fa-times"></i> Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM ALERT MODAL -->
+<div class="modal-overlay" id="alertModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title" id="alertModalTitle"><i class="fas fa-info-circle"></i> Notice</div>
+    <p id="alertModalMessage" style="margin-bottom:16px;color:var(--text-secondary);"></p>
+    <div class="btn-group" style="justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="closeModal('alertModal')">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title" id="confirmModalTitle"><i class="fas fa-question-circle"></i> Confirm</div>
+    <p id="confirmModalMessage" style="margin-bottom:16px;color:var(--text-secondary);"></p>
+    <div class="btn-group" style="justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn btn-primary" id="confirmModalOK">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURATION DEFAULTS
+   ============================================================ */
+const DEFAULT_CONFIG = {
+  openingCurrentAccount: 0,
+  openingDepositAccount: -318000,
+  openingStock: { body: 11000, aerial: 13000, accessory: 12000, finishedSTD: 4000 },
+  fixedCostPerWeek: 37000,
+  orderingCostPerOrder: 50,
+  materialCost: { body: 8, aerial: 6, accessory: 1 },
+  lineUpgradeCost: 75000,
+  lendingRate: 0.10,
+  depositRate: 0.085,
+  overdraftLimit: 500000,
+  penaltyRate: 0.12,
+  inventoryHoldingRate: 0.005,
+  orderingValueLimit: 300000,
+  sellNotBuyFlag: 1,
+  bom: {
+    std: { body: 1, aerial: 1, accessory: 1 },
+    xl: { body: 1, aerial: 1, accessory: 2 }
+  },
+  salePrice: { std: 45, xl: 55 },
+  scrapPct: 5,
+  reworkPct: 2,
+  machineDownPct: 3,
+  shifts: {
+    std: {
+      day: { capacity: 5000, semiFixed: 23000, labour: 10 },
+      night: { capacity: 3500, semiFixed: 22000, labour: 16 },
+      saturday: { capacity: 600, semiFixed: 10000, labour: 16 },
+      evening: { capacity: 250, semiFixed: 2600, labour: 14 }
+    },
+    l3: {
+      day: { capacity: 6000, semiFixed: 27000, labour: 14 },
+      night: { capacity: 4000, semiFixed: 25000, labour: 18 },
+      saturday: { capacity: 1000, semiFixed: 16000, labour: 20 },
+      evening: { capacity: 340, semiFixed: 3400, labour: 20 }
+    }
+  },
+  maxEveningShifts: 5,
+  levelSchedule: [1,1,1,1,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3],
+  seed: 1,
+  demandNoiseSD: 0.15,
+  xlDemandFraction: 0.5,
+  useClassicDemand: false,
+  manualDemandOverride: {},
+  PRESERVE_ACCESSORY_REWORK_QUIRK: true,
+  LEGACY_CONSTANT_LOSSES: false,
+  instructorPassword: "umpire"
+};
+
+const CLASSIC_DEMAND = {
+  std: [2400,5200,11800,1600,1100,2600,14700,5900,2600,1600,11400,6200,3700,2800,3640,14200,3370,3640,4250,9975,3456],
+  xl: [0,0,0,0,0,0,0,0,1300,900,5000,3500,1600,1200,1700,3700,1100,1500,4000,1200,345]
+};
+
+const LAST_YEAR_STD = [11155,4593,2866,3095,7487,7580,3221,1947,2104,7184,2968,1845,1994,5190,1845,2222,2400,8723,4489,2800,3026,5855,13118,5400,3370,3640,14710,6057,3778,2041,7671,6317,3941,4257,8238,14917,6142,3832,4140,13588,5595,3491,3770,9121,11745,4836,3017,3260,10033,4130,2577,278];
+const THIS_YEAR_STD = [12500,5200,3600,4800,6000,8500,4700,3200,3200,7600,3300,2400];
+
+/* ============================================================
+   SEEDED PRNG (Mulberry32)
+   ============================================================ */
+function createRNG(seed) {
+  let s = seed | 0;
+  return function() {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function normalSample(rng, mean, sd) {
+  // Box-Muller transform
+  const u1 = rng();
+  const u2 = rng();
+  const z = Math.sqrt(-2 * Math.log(u1 || 1e-10)) * Math.cos(2 * Math.PI * u2);
+  return mean + sd * z;
+}
+
+function getdist(basePercent, rng) {
+  const rn = Math.floor(rng() * 100) + 1;
+  let m;
+  if (rn <= 2) m = 0.25;
+  else if (rn <= 11) m = 0.50;
+  else if (rn <= 34) m = 0.75;
+  else if (rn <= 66) m = 1.00;
+  else if (rn <= 89) m = 1.25;
+  else if (rn <= 98) m = 1.50;
+  else m = 1.75;
+  return basePercent * m;
+}
+
+/* ============================================================
+   DEMAND GENERATION
+   ============================================================ */
+function generateDemand(config) {
+  if (config.useClassicDemand) {
+    const demandSTD = [...CLASSIC_DEMAND.std];
+    const demandXL = [...CLASSIC_DEMAND.xl];
+    // Apply manual overrides
+    for (let i = 0; i < 21; i++) {
+      const w = i + 13;
+      if (config.manualDemandOverride['std_' + w] !== undefined && config.manualDemandOverride['std_' + w] !== '') {
+        demandSTD[i] = parseInt(config.manualDemandOverride['std_' + w]);
+      }
+      if (config.manualDemandOverride['xl_' + w] !== undefined && config.manualDemandOverride['xl_' + w] !== '') {
+        demandXL[i] = parseInt(config.manualDemandOverride['xl_' + w]);
+      }
+    }
+    return { std: demandSTD, xl: demandXL };
+  }
+
+  const rng = createRNG(config.seed);
+
+  // Compute trend = mean(thisYear/lastYear) for weeks 1-12
+  let trendSum = 0;
+  for (let i = 0; i < 12; i++) {
+    trendSum += THIS_YEAR_STD[i] / LAST_YEAR_STD[i];
+  }
+  const trend = trendSum / 12;
+
+  const demandSTD = [];
+  const demandXL = [];
+
+  // Generate STD demand
+  for (let i = 0; i < 21; i++) {
+    const w = i + 13;
+    const baseline = LAST_YEAR_STD[w - 1]; // weeks are 1-indexed in data
+    const noise = 1 + normalSample(rng, 0, config.demandNoiseSD);
+    let d = Math.round(baseline * trend * noise);
+    d = Math.max(0, d);
+    demandSTD.push(d);
+  }
+
+  // Generate XL demand
+  for (let i = 0; i < 21; i++) {
+    const w = i + 13;
+    const level = config.levelSchedule[i];
+    if (level < 3) {
+      demandXL.push(0);
+    } else {
+      const noiseXL = 1 + normalSample(rng, 0, config.demandNoiseSD);
+      let d = Math.round(demandSTD[i] * config.xlDemandFraction * noiseXL);
+      d = Math.max(0, d);
+      demandXL.push(d);
+    }
+  }
+
+  // Apply manual overrides
+  for (let i = 0; i < 21; i++) {
+    const w = i + 13;
+    if (config.manualDemandOverride['std_' + w] !== undefined && config.manualDemandOverride['std_' + w] !== '') {
+      demandSTD[i] = parseInt(config.manualDemandOverride['std_' + w]);
+    }
+    if (config.manualDemandOverride['xl_' + w] !== undefined && config.manualDemandOverride['xl_' + w] !== '') {
+      demandXL[i] = parseInt(config.manualDemandOverride['xl_' + w]);
+    }
+  }
+
+  return { std: demandSTD, xl: demandXL };
+}
+
+/* ============================================================
+   SIMULATION ENGINE (Pure - no DOM access)
+   ============================================================ */
+
+// PRESERVE_ACCESSORY_REWORK_QUIRK: true = original behavior
+// LEGACY_CONSTANT_LOSSES: false = draw sequentially from seeded stream
+
+function simulateWeek(weekIndex, decisions, prevState, config, demand, lossRNG) {
+  const week = weekIndex + 13;
+  const level = config.levelSchedule[weekIndex];
+  const isL1 = level === 1;
+  const isL3 = level >= 3;
+  const shifts = isL3 ? config.shifts.l3 : config.shifts.std;
+
+  // Generate loss percentages for this week
+  let scrapPct = 0, reworkPct = 0, machineDownPct = 0;
+  if (!isL1) {
+    if (config.LEGACY_CONSTANT_LOSSES) {
+      // Bug replication: constant losses
+      scrapPct = config.scrapPct / 100;
+      reworkPct = config.reworkPct / 100;
+      machineDownPct = config.machineDownPct / 100;
+    } else {
+      scrapPct = getdist(config.scrapPct, lossRNG) / 100;
+      reworkPct = getdist(config.reworkPct, lossRNG) / 100;
+      machineDownPct = getdist(config.machineDownPct, lossRNG) / 100;
+    }
+  }
+
+  const result = { week, level, scrapPct, reworkPct, machineDownPct };
+
+  // ---- 6.1 Raw Material Stock Flow ----
+  const stock = {};
+  const components = ['body', 'aerial', 'accessory'];
+  const deliveries = {};
+
+  components.forEach(comp => {
+    const bf = prevState.rawStock[comp];
+    let delivered = 0;
+    if (comp === 'body' || comp === 'aerial') {
+      // 1 week lag: delivery = order from previous week
+      delivered = prevState.pendingOrders && prevState.pendingOrders[comp] ? prevState.pendingOrders[comp] : 0;
+    } else {
+      // 2 week lag: delivery = order from 2 weeks ago
+      delivered = prevState.pendingOrders2 && prevState.pendingOrders2[comp] ? prevState.pendingOrders2[comp] : 0;
+    }
+    deliveries[comp] = delivered;
+    stock[comp] = { bf, delivered };
+  });
+
+  // ---- 6.2 Production ----
+  const d = decisions;
+  const eveningShifts = d.eveningShifts || 0;
+
+  // Scheduled per model
+  const schedSTD = {
+    day: d.sched_day_std || 0,
+    night: d.sched_night_std || 0,
+    saturday: d.sched_saturday_std || 0,
+    evening: (d.sched_evening_std || 0) * eveningShifts
+  };
+  const schedXL = {
+    day: d.sched_day_xl || 0,
+    night: d.sched_night_xl || 0,
+    saturday: d.sched_saturday_xl || 0,
+    evening: (d.sched_evening_xl || 0) * eveningShifts
+  };
+
+  const scheduledTotalSTD = schedSTD.day + schedSTD.night + schedSTD.saturday + schedSTD.evening;
+  const scheduledTotalXL = isL3 ? (schedXL.day + schedXL.night + schedXL.saturday + schedXL.evening) : 0;
+
+  let actualSTD, actualXL;
+  if (isL1) {
+    actualSTD = scheduledTotalSTD;
+    actualXL = 0;
+  } else {
+    actualSTD = Math.trunc(scheduledTotalSTD * (1 - scrapPct) * (1 - reworkPct) * (1 - machineDownPct));
+    actualXL = isL3 ? Math.trunc(scheduledTotalXL * (1 - scrapPct) * (1 - reworkPct) * (1 - machineDownPct)) : 0;
+  }
+
+  result.scheduledTotalSTD = scheduledTotalSTD;
+  result.scheduledTotalXL = scheduledTotalXL;
+  result.actualSTD = actualSTD;
+  result.actualXL = actualXL;
+  result.schedSTD = schedSTD;
+  result.schedXL = schedXL;
+
+  // Materials used
+  const usedSTD = {};
+  const usedXL = {};
+  components.forEach(comp => {
+    if (isL1) {
+      usedSTD[comp] = actualSTD * config.bom.std[comp];
+      usedXL[comp] = 0;
+    } else {
+      usedSTD[comp] = Math.round(scheduledTotalSTD * config.bom.std[comp] * (1 - machineDownPct));
+      usedXL[comp] = isL3 ? Math.round(scheduledTotalXL * config.bom.xl[comp] * (1 - machineDownPct)) : 0;
+    }
+  });
+
+  result.usedSTD = usedSTD;
+  result.usedXL = usedXL;
+
+  // Carried forward raw stock
+  const cfStock = {};
+  components.forEach(comp => {
+    cfStock[comp] = stock[comp].bf + stock[comp].delivered - usedSTD[comp] - usedXL[comp];
+  });
+  result.rawStockBF = {};
+  result.rawStockDelivered = {};
+  result.rawStockCF = cfStock;
+  components.forEach(comp => {
+    result.rawStockBF[comp] = stock[comp].bf;
+    result.rawStockDelivered[comp] = stock[comp].delivered;
+  });
+
+  // Raw inventory holding cost
+  const rawHoldingCost = config.inventoryHoldingRate * (
+    config.materialCost.body * cfStock.body +
+    config.materialCost.aerial * cfStock.aerial +
+    config.materialCost.accessory * cfStock.accessory
+  );
+  result.rawHoldingCost = rawHoldingCost;
+
+  // ---- 6.3 Finished Goods ----
+  const finBF_STD = prevState.finishedStock.std;
+  const finBF_XL = prevState.finishedStock.xl;
+
+  const openingStockSTD = finBF_STD + actualSTD;
+  const openingStockXL = finBF_XL + actualXL;
+
+  const demandSTD = demand.std[weekIndex];
+  const demandXL = demand.xl[weekIndex];
+
+  const soldSTD = Math.min(openingStockSTD, demandSTD);
+  const soldXL = Math.min(openingStockXL, demandXL);
+
+  const closingSTD = openingStockSTD - soldSTD;
+  const closingXL = openingStockXL - soldXL;
+
+  result.finBF_STD = finBF_STD;
+  result.finBF_XL = finBF_XL;
+  result.openingStockSTD = openingStockSTD;
+  result.openingStockXL = openingStockXL;
+  result.demandSTD = demandSTD;
+  result.demandXL = demandXL;
+  result.soldSTD = soldSTD;
+  result.soldXL = soldXL;
+  result.closingSTD = closingSTD;
+  result.closingXL = closingXL;
+
+  // Finished inventory holding cost
+  let finHoldingSTD, finHoldingXL;
+  if (config.sellNotBuyFlag === 1) {
+    finHoldingSTD = closingSTD * config.salePrice.std * config.inventoryHoldingRate;
+    finHoldingXL = closingXL * config.salePrice.xl * config.inventoryHoldingRate;
+  } else {
+    const bomCostSTD = config.materialCost.body * config.bom.std.body + config.materialCost.aerial * config.bom.std.aerial + config.materialCost.accessory * config.bom.std.accessory;
+    const bomCostXL = config.materialCost.body * config.bom.xl.body + config.materialCost.aerial * config.bom.xl.aerial + config.materialCost.accessory * config.bom.xl.accessory;
+    finHoldingSTD = bomCostSTD * config.inventoryHoldingRate * closingSTD;
+    finHoldingXL = bomCostXL * config.inventoryHoldingRate * closingXL;
+  }
+  result.finHoldingSTD = finHoldingSTD;
+  result.finHoldingXL = finHoldingXL;
+
+  // ---- 6.4 Costs ----
+  // Labour cost per shift per model
+  const stdLabourRate = config.shifts.std.day.labour; // base STD labour for shifts
+  let labourCost = 0;
+
+  const shiftNames = ['day', 'night', 'saturday', 'evening'];
+  const labourDetail = {};
+
+  shiftNames.forEach(shift => {
+    const stdUnits = schedSTD[shift];
+    const xlUnits = schedXL[shift];
+    let stdLabour, xlLabour;
+
+    const stdRate = config.shifts.std[shift].labour;
+    const xlRate = config.shifts.l3[shift].labour;
+
+    if (isL1) {
+      stdLabour = stdUnits * stdRate;
+      xlLabour = 0;
+    } else {
+      stdLabour = Math.round(stdUnits * (1 - machineDownPct)) * stdRate;
+      xlLabour = isL3 ? Math.round(xlUnits * (1 - machineDownPct)) * xlRate : 0;
+    }
+    labourDetail[shift] = { std: stdLabour, xl: xlLabour };
+    labourCost += stdLabour + xlLabour;
+  });
+  result.labourCost = labourCost;
+  result.labourDetail = labourDetail;
+
+  // Material cost (rows 69-71 logic)
+  let materialCostTotal = 0;
+  const materialDetail = {};
+
+  components.forEach(comp => {
+    const unitCost = config.materialCost[comp];
+    const usedTotal = usedSTD[comp] + usedXL[comp];
+
+    let cost;
+    if (isL1) {
+      cost = usedTotal * unitCost;
+    } else {
+      // Known oddity: accessory rework reduction only at Level >= 3 in original
+      if (config.PRESERVE_ACCESSORY_REWORK_QUIRK && comp === 'accessory') {
+        if (level > 2) {
+          cost = Math.round(usedTotal * (1 - reworkPct)) * unitCost;
+        } else {
+          cost = usedTotal * unitCost;
+        }
+      } else {
+        cost = Math.round(usedTotal * (1 - reworkPct)) * unitCost;
+      }
+    }
+    materialDetail[comp] = cost;
+    materialCostTotal += cost;
+  });
+  result.materialCost = materialCostTotal;
+  result.materialDetail = materialDetail;
+
+  // Fixed cost
+  const fixedCost = config.fixedCostPerWeek;
+  result.fixedCost = fixedCost;
+
+  // Semi-fixed cost
+  let semiFixedCost = 0;
+  const semiFixedDetail = {};
+  ['day', 'night', 'saturday'].forEach(shift => {
+    const hasOutput = (schedSTD[shift] + schedXL[shift]) > 0;
+    const sf = hasOutput ? shifts[shift].semiFixed : 0;
+    semiFixedDetail[shift] = sf;
+    semiFixedCost += sf;
+  });
+  const eveningSF = shifts.evening.semiFixed * eveningShifts;
+  semiFixedDetail.evening = eveningSF;
+  semiFixedCost += eveningSF;
+  result.semiFixedCost = semiFixedCost;
+  result.semiFixedDetail = semiFixedDetail;
+
+  // Ordering cost
+  let orderingCost = 0;
+  components.forEach(comp => {
+    if ((d['order_' + comp] || 0) > 0) orderingCost += config.orderingCostPerOrder;
+  });
+  result.orderingCost = orderingCost;
+
+  // Production cost = indirect total (fixed + semi-fixed) + labour
+  const indirectTotal = fixedCost + semiFixedCost;
+  const productionCost = indirectTotal + labourCost;
+  result.indirectTotal = indirectTotal;
+  result.productionCost = productionCost;
+
+  // Direct total = labour + material
+  const directTotal = labourCost + materialCostTotal;
+  result.directTotal = directTotal;
+
+  // W.I.F. = productionCost + materialCost
+  const wif = productionCost + materialCostTotal;
+  result.wif = wif;
+
+  // Unit costs
+  const totalProduced = actualSTD + actualXL;
+  const productionRatio = totalProduced > 0 ? actualSTD / totalProduced : 0.5;
+  const unitCostSTD = totalProduced > 0 ? (wif * productionRatio) / (actualSTD || 1) : (prevState.unitCostSTD || 0);
+  const unitCostXL = (totalProduced > 0 && actualXL > 0) ? (wif * (1 - productionRatio)) / actualXL : (prevState.unitCostXL || 0);
+  result.unitCostSTD = unitCostSTD;
+  result.unitCostXL = unitCostXL;
+  result.productionRatio = productionRatio;
+
+  // Line upgrade cost
+  let upgradeCost = 0;
+  if (isL3 && !prevState.upgradeCharged) {
+    upgradeCost = config.lineUpgradeCost;
+  }
+  result.upgradeCost = upgradeCost;
+
+  // ---- 6.5 Trading & Cash Flow ----
+  // Materials paid on delivery
+  let materialsPaid = 0;
+  components.forEach(comp => {
+    materialsPaid += deliveries[comp] * config.materialCost[comp];
+  });
+  result.materialsPaid = materialsPaid;
+
+  // Income
+  const income = soldSTD * config.salePrice.std + soldXL * config.salePrice.xl;
+  result.income = income;
+
+  // Penalty
+  const penaltySTD = config.salePrice.std * Math.max(0, demandSTD - soldSTD) * config.penaltyRate;
+  const penaltyXL = config.salePrice.xl * Math.max(0, demandXL - soldXL) * config.penaltyRate;
+  const penalty = penaltySTD + penaltyXL;
+  result.penalty = penalty;
+  result.penaltySTD = penaltySTD;
+  result.penaltyXL = penaltyXL;
+
+  // Total inventory holding
+  const totalHolding = rawHoldingCost + finHoldingSTD + finHoldingXL;
+  result.totalHolding = totalHolding;
+
+  // Cash flow
+  const cashFlow = income - productionCost - penalty - totalHolding - orderingCost - materialsPaid;
+  result.cashFlow = cashFlow;
+
+  // Banking
+  const bankTransaction = d.bankTransaction || 0;
+  result.bankTransaction = bankTransaction;
+
+  let currentAccount, depositAccount;
+  const prevCurrentInterest = prevState.currentInterest || 0;
+  const prevDepositInterest = prevState.depositInterest || 0;
+
+  if (week === 13) {
+    currentAccount = config.openingCurrentAccount + cashFlow - bankTransaction;
+    depositAccount = config.openingDepositAccount - upgradeCost;
+  } else {
+    currentAccount = prevState.currentAccount + cashFlow + prevCurrentInterest - bankTransaction;
+    depositAccount = prevState.depositAccount + bankTransaction + prevDepositInterest - upgradeCost;
+  }
+
+  // Interest calculations
+  const currentInterest = currentAccount < 0 ? Math.round((currentAccount * config.lendingRate / 52) * 100) / 100 : 0;
+  const depositInterest = Math.round(((depositAccount < 0 ? config.lendingRate : config.depositRate) * depositAccount / 52) * 100) / 100;
+
+  result.currentAccount = currentAccount;
+  result.depositAccount = depositAccount;
+  result.currentInterest = currentInterest;
+  result.depositInterest = depositInterest;
+  result.totalBalance = currentAccount + depositAccount;
+
+  // Overdraft warning
+  result.overdraftWarning = (-(currentAccount + depositAccount)) > config.overdraftLimit;
+
+  // Orders placed this week (for delivery tracking)
+  result.ordersPlaced = {
+    body: d.order_body || 0,
+    aerial: d.order_aerial || 0,
+    accessory: d.order_accessory || 0
+  };
+
+  return result;
+}
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+let gameState = null;
+let currentChart = null;
+
+function createNewGameState(teamName, config) {
+  const demand = generateDemand(config);
+  return {
+    teamName,
+    config: JSON.parse(JSON.stringify(config)),
+    demand,
+    currentWeek: 13,
+    decisions: {},
+    results: [],
+    upgradeCharged: false
+  };
+}
+
+function getStateForWeek(weekIndex) {
+  if (weekIndex === 0) {
+    return {
+      rawStock: { ...gameState.config.openingStock },
+      finishedStock: { std: gameState.config.openingStock.finishedSTD, xl: 0 },
+      currentAccount: gameState.config.openingCurrentAccount,
+      depositAccount: gameState.config.openingDepositAccount,
+      currentInterest: 0,
+      depositInterest: 0,
+      unitCostSTD: 0,
+      unitCostXL: 0,
+      upgradeCharged: false,
+      pendingOrders: { body: 0, aerial: 0, accessory: 0 },
+      pendingOrders2: { body: 0, aerial: 0, accessory: 0 }
+    };
+  }
+
+  const prev = gameState.results[weekIndex - 1];
+  // pending orders: for body/aerial (1 week lag), this week's delivery = last week's orders
+  // For accessory (2 week lag), delivery = orders from 2 weeks ago
+  const pendingOrders = prev.ordersPlaced; // delivered next week
+  const prevPrev = weekIndex >= 2 ? gameState.results[weekIndex - 2] : null;
+  const pendingOrders2 = prevPrev ? prevPrev.ordersPlaced : { body: 0, aerial: 0, accessory: 0 };
+
+  return {
+    rawStock: { ...prev.rawStockCF },
+    finishedStock: { std: prev.closingSTD, xl: prev.closingXL },
+    currentAccount: prev.currentAccount,
+    depositAccount: prev.depositAccount,
+    currentInterest: prev.currentInterest,
+    depositInterest: prev.depositInterest,
+    unitCostSTD: prev.unitCostSTD,
+    unitCostXL: prev.unitCostXL,
+    upgradeCharged: prev.upgradeCost > 0 || (weekIndex > 0 && getStateForWeekCached(weekIndex - 1).upgradeCharged),
+    pendingOrders,
+    pendingOrders2
+  };
+}
+
+// Avoid deep recursion
+function getStateForWeekCached(weekIndex) {
+  if (weekIndex === 0) return getStateForWeek(0);
+  // Check if upgrade was already charged
+  let charged = false;
+  for (let i = 0; i < weekIndex; i++) {
+    if (gameState.results[i] && gameState.results[i].upgradeCost > 0) {
+      charged = true;
+      break;
+    }
+  }
+  const prev = gameState.results[weekIndex - 1];
+  const prevPrev = weekIndex >= 2 ? gameState.results[weekIndex - 2] : null;
+  return {
+    rawStock: { ...prev.rawStockCF },
+    finishedStock: { std: prev.closingSTD, xl: prev.closingXL },
+    currentAccount: prev.currentAccount,
+    depositAccount: prev.depositAccount,
+    currentInterest: prev.currentInterest,
+    depositInterest: prev.depositInterest,
+    unitCostSTD: prev.unitCostSTD,
+    unitCostXL: prev.unitCostXL,
+    upgradeCharged: charged,
+    pendingOrders: prev.ordersPlaced,
+    pendingOrders2: prevPrev ? prevPrev.ordersPlaced : { body: 0, aerial: 0, accessory: 0 }
+  };
+}
+
+function runSimulation() {
+  gameState.results = [];
+  const lossRNG = createRNG(gameState.config.seed + 1000); // separate stream for losses
+
+  for (let i = 0; i < 21; i++) {
+    const week = i + 13;
+    if (!gameState.decisions[week]) break;
+
+    let prevState;
+    if (i === 0) {
+      prevState = getStateForWeek(0);
+    } else {
+      prevState = getStateForWeekCached(i);
+    }
+
+    const result = simulateWeek(i, gameState.decisions[week], prevState, gameState.config, gameState.demand, lossRNG);
+    gameState.results.push(result);
+
+    if (result.upgradeCost > 0) {
+      gameState.upgradeCharged = true;
+    }
+  }
+}
+
+/* ============================================================
+   UI HELPERS
+   ============================================================ */
+function showAlert(title, message) {
+  document.getElementById('alertModalTitle').innerHTML = '<i class="fas fa-info-circle"></i> ' + title;
+  document.getElementById('alertModalMessage').textContent = message;
+  document.getElementById('alertModal').classList.add('active');
+}
+
+function showConfirm(title, message, onConfirm) {
+  document.getElementById('confirmModalTitle').innerHTML = '<i class="fas fa-question-circle"></i> ' + title;
+  document.getElementById('confirmModalMessage').textContent = message;
+  const okBtn = document.getElementById('confirmModalOK');
+  const newBtn = okBtn.cloneNode(true);
+  okBtn.parentNode.replaceChild(newBtn, okBtn);
+  newBtn.id = 'confirmModalOK';
+  newBtn.addEventListener('click', () => {
+    closeModal('confirmModal');
+    onConfirm();
+  });
+  document.getElementById('confirmModal').classList.add('active');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+function formatMoney(val) {
+  if (val === undefined || val === null) return '£0';
+  const neg = val < 0;
+  const abs = Math.abs(Math.round(val));
+  const formatted = abs.toLocaleString();
+  return (neg ? '-£' : '£') + formatted;
+}
+
+function formatNum(val) {
+  if (val === undefined || val === null) return '0';
+  return Math.round(val).toLocaleString();
+}
+
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const el = document.getElementById('screen' + name.charAt(0).toUpperCase() + name.slice(1));
+  if (el) el.classList.add('active');
+  document.querySelector(`[data-screen="${name}"]`).classList.add('active');
+  if (name === 'charts') renderCharts();
+  if (name === 'reports') renderReport();
+  if (name === 'history') renderHistory();
+}
+
+/* ============================================================
+   DASHBOARD RENDERING
+   ============================================================ */
+function renderDashboard() {
+  if (!gameState) return;
+
+  const wi = gameState.currentWeek - 13;
+  const level = gameState.config.levelSchedule[wi] || 3;
+  const isL3 = level >= 3;
+
+  // Header
+  document.getElementById('headerTeam').textContent = gameState.teamName;
+  document.getElementById('headerTeam').classList.remove('hidden');
+  document.getElementById('headerWeek').textContent = 'Week ' + gameState.currentWeek;
+  document.getElementById('headerWeek').classList.remove('hidden');
+  document.getElementById('headerLevel').textContent = 'Level ' + level;
+  document.getElementById('headerLevel').classList.remove('hidden');
+
+  // Level change warning
+  const warningEl = document.getElementById('headerWarning');
+  warningEl.classList.add('hidden');
+  if (wi < 20) {
+    const nextLevel = gameState.config.levelSchedule[wi + 1];
+    if (nextLevel && nextLevel !== level) {
+      warningEl.textContent = 'Level ' + nextLevel + ' next week!';
+      warningEl.classList.remove('hidden');
+    } else if (wi + 2 <= 20 && gameState.config.levelSchedule[wi + 2] !== level) {
+      warningEl.textContent = 'Level ' + gameState.config.levelSchedule[wi + 2] + ' in 2 weeks';
+      warningEl.classList.remove('hidden');
+    }
+  }
+
+  // Get current state
+  let state;
+  if (gameState.results.length === 0) {
+    state = getStateForWeek(0);
+  } else {
+    state = getStateForWeekCached(gameState.results.length);
+  }
+
+  // Stock
+  document.getElementById('stockBodies').textContent = formatNum(state.rawStock.body);
+  document.getElementById('stockAerials').textContent = formatNum(state.rawStock.aerial);
+  document.getElementById('stockAccessories').textContent = formatNum(state.rawStock.accessory);
+  document.getElementById('stockFinSTD').textContent = formatNum(state.finishedStock.std);
+  document.getElementById('stockFinXL').textContent = formatNum(state.finishedStock.xl);
+  document.getElementById('stockFinXLContainer').classList.toggle('hidden', !isL3);
+
+  // Bank
+  const currEl = document.getElementById('bankCurrent');
+  const depEl = document.getElementById('bankDeposit');
+  const totEl = document.getElementById('bankTotal');
+  currEl.textContent = formatMoney(state.currentAccount);
+  currEl.className = 'stat-value ' + (state.currentAccount < 0 ? 'negative' : 'positive');
+  depEl.textContent = formatMoney(state.depositAccount);
+  depEl.className = 'stat-value ' + (state.depositAccount < 0 ? 'negative' : 'positive');
+  const total = state.currentAccount + state.depositAccount;
+  totEl.textContent = formatMoney(total);
+  totEl.className = 'stat-value ' + (total < 0 ? 'negative' : 'positive');
+  document.getElementById('bankODLimit').textContent = formatMoney(gameState.config.overdraftLimit);
+
+  // Overdraft warning
+  const odWarn = document.getElementById('overdraftWarning');
+  if ((-total) > gameState.config.overdraftLimit) {
+    odWarn.classList.remove('hidden');
+  } else {
+    odWarn.classList.add('hidden');
+  }
+
+  // Capacity panel
+  const shifts = isL3 ? gameState.config.shifts.l3 : gameState.config.shifts.std;
+  let capHTML = '<div class="grid-2" style="font-size:12px;">';
+  capHTML += `<div class="stat-item"><div class="stat-label">Day</div><div class="stat-value">${formatNum(shifts.day.capacity)}/wk</div></div>`;
+  capHTML += `<div class="stat-item"><div class="stat-label">Night</div><div class="stat-value">${formatNum(shifts.night.capacity)}/wk</div></div>`;
+  capHTML += `<div class="stat-item"><div class="stat-label">Saturday</div><div class="stat-value">${formatNum(shifts.saturday.capacity)}/wk</div></div>`;
+  capHTML += `<div class="stat-item"><div class="stat-label">Evening</div><div class="stat-value">${formatNum(shifts.evening.capacity)}/shift (max ${gameState.config.maxEveningShifts})</div></div>`;
+  capHTML += '</div>';
+  document.getElementById('capacityPanel').innerHTML = capHTML;
+
+  // Decisions preview
+  const dec = gameState.decisions[gameState.currentWeek];
+  let decHTML;
+  if (dec) {
+    decHTML = '<div class="alert alert-success"><i class="fas fa-check"></i> Decisions entered for this week. Ready to commit.</div>';
+  } else {
+    decHTML = '<div class="alert alert-warning"><i class="fas fa-pen"></i> No decisions entered yet. Use the buttons below to set orders, production, and banking.</div>';
+  }
+  document.getElementById('decisionsPreview').innerHTML = decHTML;
+
+  // Game end check
+  if (gameState.currentWeek > 33) {
+    document.getElementById('decisionsPreview').innerHTML = '<div class="alert alert-success"><i class="fas fa-trophy"></i> <strong>Game Complete!</strong> All 21 weeks have been played. Check Reports and Charts for your final results.</div>';
+  }
+}
+
+/* ============================================================
+   ORDER MODAL
+   ============================================================ */
+function openOrderModal() {
+  if (gameState.currentWeek > 33) { showAlert('Game Over', 'The game has ended.'); return; }
+  document.getElementById('orderMaxVal').textContent = formatNum(gameState.config.orderingValueLimit);
+
+  const dec = gameState.decisions[gameState.currentWeek];
+  document.getElementById('orderBody').value = dec ? (dec.order_body || 0) : 0;
+  document.getElementById('orderAerial').value = dec ? (dec.order_aerial || 0) : 0;
+  document.getElementById('orderAccessory').value = dec ? (dec.order_accessory || 0) : 0;
+  updateOrderPreview();
+  document.getElementById('orderModal').classList.add('active');
+}
+
+function updateOrderPreview() {
+  const b = Math.max(0, parseInt(document.getElementById('orderBody').value) || 0);
+  const a = Math.max(0, parseInt(document.getElementById('orderAerial').value) || 0);
+  const c = Math.max(0, parseInt(document.getElementById('orderAccessory').value) || 0);
+  const total = b * gameState.config.materialCost.body + a * gameState.config.materialCost.aerial + c * gameState.config.materialCost.accessory;
+  const limit = gameState.config.orderingValueLimit;
+  const over = total > limit;
+  document.getElementById('orderPreview').innerHTML =
+    `<strong>Total order value: ${formatMoney(total)}</strong>${over ? ' <span style="color:var(--danger);">EXCEEDS LIMIT!</span>' : ''}`;
+}
+
+function confirmOrder() {
+  const b = Math.max(0, parseInt(document.getElementById('orderBody').value) || 0);
+  const a = Math.max(0, parseInt(document.getElementById('orderAerial').value) || 0);
+  const c = Math.max(0, parseInt(document.getElementById('orderAccessory').value) || 0);
+  const total = b * gameState.config.materialCost.body + a * gameState.config.materialCost.aerial + c * gameState.config.materialCost.accessory;
+
+  if (total > gameState.config.orderingValueLimit) {
+    showAlert('Order Rejected', 'Total order value exceeds the limit of ' + formatMoney(gameState.config.orderingValueLimit));
+    return;
+  }
+
+  if (!gameState.decisions[gameState.currentWeek]) {
+    gameState.decisions[gameState.currentWeek] = getEmptyDecision();
+  }
+  gameState.decisions[gameState.currentWeek].order_body = b;
+  gameState.decisions[gameState.currentWeek].order_aerial = a;
+  gameState.decisions[gameState.currentWeek].order_accessory = c;
+  closeModal('orderModal');
+  renderDashboard();
+}
+
+/* ============================================================
+   PRODUCTION MODAL
+   ============================================================ */
+function openProductionModal() {
+  if (gameState.currentWeek > 33) { showAlert('Game Over', 'The game has ended.'); return; }
+
+  const wi = gameState.currentWeek - 13;
+  const level = gameState.config.levelSchedule[wi];
+  const isL3 = level >= 3;
+  const shifts = isL3 ? gameState.config.shifts.l3 : gameState.config.shifts.std;
+
+  document.getElementById('prodXLHeader').classList.toggle('hidden', !isL3);
+  document.getElementById('maxEveLabel').textContent = gameState.config.maxEveningShifts;
+  document.getElementById('prodEveningShifts').max = gameState.config.maxEveningShifts;
+
+  const dec = gameState.decisions[gameState.currentWeek] || getEmptyDecision();
+
+  const capInfo = `Capacities — Day: ${shifts.day.capacity}, Night: ${shifts.night.capacity}, Saturday: ${shifts.saturday.capacity}, Evening: ${shifts.evening.capacity}/shift`;
+  document.getElementById('prodCapInfo').innerHTML = '<i class="fas fa-info-circle"></i> ' + capInfo;
+
+  let tbody = '';
+  const shiftData = [
+    { name: 'Day', key: 'day', cap: shifts.day.capacity },
+    { name: 'Night', key: 'night', cap: shifts.night.capacity },
+    { name: 'Saturday', key: 'saturday', cap: shifts.saturday.capacity },
+    { name: 'Evening (per shift)', key: 'evening', cap: shifts.evening.capacity }
+  ];
+
+  shiftData.forEach(s => {
+    const stdVal = dec['sched_' + s.key + '_std'] || 0;
+    const xlVal = dec['sched_' + s.key + '_xl'] || 0;
+    const total = stdVal + xlVal;
+    const over = total > s.cap;
+    tbody += `<tr>
+      <td>${s.name}</td>
+      <td style="font-weight:600;">${formatNum(s.cap)}</td>
+      <td><input type="number" min="0" value="${stdVal}" id="prod_${s.key}_std" style="width:80px;font-size:14px;" oninput="updateProdPreview()"></td>
+      <td class="${isL3 ? '' : 'hidden'}"><input type="number" min="0" value="${xlVal}" id="prod_${s.key}_xl" style="width:80px;font-size:14px;" oninput="updateProdPreview()" ${isL3 ? '' : 'disabled'}></td>
+      <td id="prodTotal_${s.key}" style="font-weight:600;${over ? 'color:var(--danger);' : ''}">${total}</td>
+      <td id="prodStatus_${s.key}">${over ? '<span style="color:var(--danger);">OVER</span>' : '<span style="color:var(--success);">OK</span>'}</td>
+    </tr>`;
+  });
+
+  document.getElementById('prodTableBody').innerHTML = tbody;
+  document.getElementById('prodEveningShifts').value = dec.eveningShifts || 0;
+  updateProdPreview();
+  document.getElementById('productionModal').classList.add('active');
+}
+
+function updateProdPreview() {
+  const wi = gameState.currentWeek - 13;
+  const level = gameState.config.levelSchedule[wi];
+  const isL3 = level >= 3;
+  const shifts = isL3 ? gameState.config.shifts.l3 : gameState.config.shifts.std;
+
+  const shiftKeys = ['day', 'night', 'saturday', 'evening'];
+  const caps = { day: shifts.day.capacity, night: shifts.night.capacity, saturday: shifts.saturday.capacity, evening: shifts.evening.capacity };
+  let allOK = true;
+
+  shiftKeys.forEach(key => {
+    const std = Math.max(0, parseInt(document.getElementById('prod_' + key + '_std').value) || 0);
+    const xl = isL3 ? Math.max(0, parseInt(document.getElementById('prod_' + key + '_xl').value) || 0) : 0;
+    const total = std + xl;
+    const over = total > caps[key];
+    if (over) allOK = false;
+    const totalEl = document.getElementById('prodTotal_' + key);
+    const statusEl = document.getElementById('prodStatus_' + key);
+    if (totalEl) {
+      totalEl.textContent = total;
+      totalEl.style.color = over ? 'var(--danger)' : '';
+    }
+    if (statusEl) {
+      statusEl.innerHTML = over ? '<span style="color:var(--danger);">OVER</span>' : '<span style="color:var(--success);">OK</span>';
+    }
+  });
+
+  // Materials required preview
+  const eveningShifts = Math.max(0, parseInt(document.getElementById('prodEveningShifts').value) || 0);
+  let totalSTD = 0, totalXL = 0;
+  shiftKeys.forEach(key => {
+    let std = Math.max(0, parseInt(document.getElementById('prod_' + key + '_std').value) || 0);
+    let xl = isL3 ? Math.max(0, parseInt(document.getElementById('prod_' + key + '_xl').value) || 0) : 0;
+    if (key === 'evening') {
+      std *= eveningShifts;
+      xl *= eveningShifts;
+    }
+    totalSTD += std;
+    totalXL += xl;
+  });
+
+  const bodiesNeeded = totalSTD * gameState.config.bom.std.body + totalXL * gameState.config.bom.xl.body;
+  const aerialsNeeded = totalSTD * gameState.config.bom.std.aerial + totalXL * gameState.config.bom.xl.aerial;
+  const accNeeded = totalSTD * gameState.config.bom.std.accessory + totalXL * gameState.config.bom.xl.accessory;
+
+  document.getElementById('prodPreview').innerHTML =
+    `<strong>Scheduled: ${formatNum(totalSTD)} STD${isL3 ? ', ' + formatNum(totalXL) + ' XL' : ''}</strong><br>` +
+    `Materials required: Bodies ${formatNum(bodiesNeeded)}, Aerials ${formatNum(aerialsNeeded)}, Accessories ${formatNum(accNeeded)}`;
+}
+
+function confirmProduction() {
+  const wi = gameState.currentWeek - 13;
+  const level = gameState.config.levelSchedule[wi];
+  const isL3 = level >= 3;
+  const shifts = isL3 ? gameState.config.shifts.l3 : gameState.config.shifts.std;
+  const shiftKeys = ['day', 'night', 'saturday', 'evening'];
+  const caps = { day: shifts.day.capacity, night: shifts.night.capacity, saturday: shifts.saturday.capacity, evening: shifts.evening.capacity };
+
+  // Validate
+  for (const key of shiftKeys) {
+    const std = Math.max(0, parseInt(document.getElementById('prod_' + key + '_std').value) || 0);
+    const xl = isL3 ? Math.max(0, parseInt(document.getElementById('prod_' + key + '_xl').value) || 0) : 0;
+    if (std + xl > caps[key]) {
+      showAlert('Capacity Exceeded', `${key.charAt(0).toUpperCase() + key.slice(1)} shift exceeds capacity of ${caps[key]}.`);
+      return;
+    }
+  }
+
+  const eveningShifts = Math.min(gameState.config.maxEveningShifts, Math.max(0, parseInt(document.getElementById('prodEveningShifts').value) || 0));
+
+  if (!gameState.decisions[gameState.currentWeek]) {
+    gameState.decisions[gameState.currentWeek] = getEmptyDecision();
+  }
+  const dec = gameState.decisions[gameState.currentWeek];
+
+  shiftKeys.forEach(key => {
+    dec['sched_' + key + '_std'] = Math.max(0, parseInt(document.getElementById('prod_' + key + '_std').value) || 0);
+    dec['sched_' + key + '_xl'] = isL3 ? Math.max(0, parseInt(document.getElementById('prod_' + key + '_xl').value) || 0) : 0;
+  });
+  dec.eveningShifts = eveningShifts;
+
+  closeModal('productionModal');
+  renderDashboard();
+}
+
+/* ============================================================
+   BANK MODAL
+   ============================================================ */
+function openBankModal() {
+  if (gameState.currentWeek > 33) { showAlert('Game Over', 'The game has ended.'); return; }
+  const dec = gameState.decisions[gameState.currentWeek];
+  document.getElementById('bankAmount').value = dec ? (dec.bankTransaction || 0) : 0;
+  document.getElementById('bankModal').classList.add('active');
+}
+
+function confirmBank() {
+  const amount = parseInt(document.getElementById('bankAmount').value) || 0;
+  if (!gameState.decisions[gameState.currentWeek]) {
+    gameState.decisions[gameState.currentWeek] = getEmptyDecision();
+  }
+  gameState.decisions[gameState.currentWeek].bankTransaction = amount;
+  closeModal('bankModal');
+  renderDashboard();
+}
+
+/* ============================================================
+   COMMIT WEEK
+   ============================================================ */
+function commitWeek() {
+  if (gameState.currentWeek > 33) {
+    showAlert('Game Over', 'The game has ended.');
+    return;
+  }
+
+  if (!gameState.decisions[gameState.currentWeek]) {
+    gameState.decisions[gameState.currentWeek] = getEmptyDecision();
+  }
+
+  showConfirm('Commit Week ' + gameState.currentWeek, 'Are you sure you want to commit this week? This cannot be undone.', () => {
+    runSimulation();
+    gameState.currentWeek++;
+    renderDashboard();
+    populateReportWeeks();
+    renderReport();
+  });
+}
+
+function getEmptyDecision() {
+  return {
+    order_body: 0, order_aerial: 0, order_accessory: 0,
+    sched_day_std: 0, sched_day_xl: 0,
+    sched_night_std: 0, sched_night_xl: 0,
+    sched_saturday_std: 0, sched_saturday_xl: 0,
+    sched_evening_std: 0, sched_evening_xl: 0,
+    eveningShifts: 0,
+    bankTransaction: 0
+  };
+}
+
+/* ============================================================
+   START / IMPORT / EXPORT
+   ============================================================ */
+function startNewGame() {
+  const name = document.getElementById('teamNameInput').value.trim();
+  if (!name) { showAlert('Team Name Required', 'Please enter a team name.'); return; }
+
+  gameState = createNewGameState(name, JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
+  showGameUI();
+}
+
+function showGameUI() {
+  document.getElementById('screenWelcome').classList.remove('active');
+  document.getElementById('screenDashboard').classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-screen="dashboard"]').classList.add('active');
+  renderDashboard();
+  populateReportWeeks();
+  renderHistory();
+}
+
+function exportGame() {
+  if (!gameState) return;
+  const data = JSON.stringify(gameState, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = gameState.teamName.replace(/\s+/g, '_') + '_save.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importGame(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      gameState = JSON.parse(e.target.result);
+      // Re-run simulation to validate
+      runSimulation();
+      showGameUI();
+    } catch (err) {
+      showAlert('Import Error', 'Could not parse save file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ============================================================
+   HISTORY TABLE
+   ============================================================ */
+function renderHistory() {
+  const container = document.getElementById('historyTableContainer');
+  let html = '<table class="history-table"><thead><tr><th>Week</th><th>AP</th><th class="num">Last Year</th><th class="num">This Year</th></tr></thead><tbody>';
+
+  for (let w = 1; w <= 52; w++) {
+    const ap = Math.ceil(w / 4);
+    const ly = LAST_YEAR_STD[w - 1];
+    const ty = w <= 12 ? THIS_YEAR_STD[w - 1] : '—';
+    const isAPBoundary = w % 4 === 1 && w > 1;
+    html += `<tr${isAPBoundary ? ' style="border-top:2px solid var(--accent);"' : ''}>`;
+    html += `<td>${w}</td><td>AP${ap}</td><td class="num">${formatNum(ly)}</td><td class="num">${typeof ty === 'number' ? formatNum(ty) : ty}</td></tr>`;
+  }
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+function populateReportWeeks() {
+  const select = document.getElementById('reportWeekSelect');
+  select.innerHTML = '';
+  if (!gameState) return;
+  for (let i = 0; i < gameState.results.length; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = 'Week ' + (i + 13);
+    select.appendChild(opt);
+  }
+  if (gameState.results.length > 0) {
+    select.value = gameState.results.length - 1;
+  }
+}
+
+function renderReport() {
+  const container = document.getElementById('reportContent');
+  if (!gameState || gameState.results.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);">No completed weeks yet.</p>';
+    return;
+  }
+
+  const idx = parseInt(document.getElementById('reportWeekSelect').value) || 0;
+  const r = gameState.results[idx];
+  if (!r) { container.innerHTML = '<p>No data.</p>'; return; }
+
+  const isL3 = r.level >= 3;
+
+  let html = '<h3 style="margin-bottom:12px;">Week ' + r.week + ' — Level ' + r.level + '</h3>';
+
+  // Page 1: Raw Material Stock
+  html += '<h4 style="margin:16px 0 8px;color:var(--accent);">Raw Material Stock Accounts</h4>';
+  html += '<div class="table-container"><table><thead><tr><th></th><th>Bodies</th><th>Aerials</th><th>Accessories</th></tr></thead><tbody>';
+  html += `<tr><td>Brought Forward</td><td>${formatNum(r.rawStockBF.body)}</td><td>${formatNum(r.rawStockBF.aerial)}</td><td>${formatNum(r.rawStockBF.accessory)}</td></tr>`;
+  html += `<tr><td>Deliveries</td><td>${formatNum(r.rawStockDelivered.body)}</td><td>${formatNum(r.rawStockDelivered.aerial)}</td><td>${formatNum(r.rawStockDelivered.accessory)}</td></tr>`;
+  html += `<tr><td>Used (STD)</td><td>${formatNum(r.usedSTD.body)}</td><td>${formatNum(r.usedSTD.aerial)}</td><td>${formatNum(r.usedSTD.accessory)}</td></tr>`;
+  if (isL3) html += `<tr><td>Used (XL)</td><td>${formatNum(r.usedXL.body)}</td><td>${formatNum(r.usedXL.aerial)}</td><td>${formatNum(r.usedXL.accessory)}</td></tr>`;
+  html += `<tr style="font-weight:700;"><td>Carried Forward</td><td>${formatNum(r.rawStockCF.body)}</td><td>${formatNum(r.rawStockCF.aerial)}</td><td>${formatNum(r.rawStockCF.accessory)}</td></tr>`;
+  html += `<tr><td>Raw Holding Cost</td><td colspan="3">${formatMoney(r.rawHoldingCost)}</td></tr>`;
+  html += '</tbody></table></div>';
+
+  // Finished Stock
+  html += '<h4 style="margin:16px 0 8px;color:var(--accent);">Finished Stock Record</h4>';
+  html += '<div class="table-container"><table><thead><tr><th></th><th>STD</th>' + (isL3 ? '<th>XL</th>' : '') + '</tr></thead><tbody>';
+  html += `<tr><td>Brought Forward</td><td>${formatNum(r.finBF_STD)}</td>${isL3 ? '<td>' + formatNum(r.finBF_XL) + '</td>' : ''}</tr>`;
+  html += `<tr><td>Produced</td><td>${formatNum(r.actualSTD)}</td>${isL3 ? '<td>' + formatNum(r.actualXL) + '</td>' : ''}</tr>`;
+  html += `<tr><td>Opening Stock</td><td>${formatNum(r.openingStockSTD)}</td>${isL3 ? '<td>' + formatNum(r.openingStockXL) + '</td>' : ''}</tr>`;
+  html += `<tr><td>Demand</td><td>${formatNum(r.demandSTD)}</td>${isL3 ? '<td>' + formatNum(r.demandXL) + '</td>' : ''}</tr>`;
+  html += `<tr><td>Sold</td><td>${formatNum(r.soldSTD)}</td>${isL3 ? '<td>' + formatNum(r.soldXL) + '</td>' : ''}</tr>`;
+  html += `<tr style="font-weight:700;"><td>Closing Stock</td><td>${formatNum(r.closingSTD)}</td>${isL3 ? '<td>' + formatNum(r.closingXL) + '</td>' : ''}</tr>`;
+  html += `<tr><td>Holding Cost</td><td>${formatMoney(r.finHoldingSTD)}</td>${isL3 ? '<td>' + formatMoney(r.finHoldingXL) + '</td>' : ''}</tr>`;
+  if (!r.level || r.level >= 2) {
+    html += `<tr><td>Scrap %</td><td colspan="${isL3 ? 2 : 1}">${(r.scrapPct * 100).toFixed(2)}%</td></tr>`;
+    html += `<tr><td>Rework %</td><td colspan="${isL3 ? 2 : 1}">${(r.reworkPct * 100).toFixed(2)}%</td></tr>`;
+    html += `<tr><td>Machine Down %</td><td colspan="${isL3 ? 2 : 1}">${(r.machineDownPct * 100).toFixed(2)}%</td></tr>`;
+  }
+  html += '</tbody></table></div>';
+
+  // Page 2: Production & Manufacturing
+  html += '<h4 style="margin:16px 0 8px;color:var(--accent);">Manufacturing Account</h4>';
+  html += '<div class="table-container"><table><tbody>';
+  html += `<tr><td>Scheduled Total STD</td><td>${formatNum(r.scheduledTotalSTD)}</td></tr>`;
+  if (isL3) html += `<tr><td>Scheduled Total XL</td><td>${formatNum(r.scheduledTotalXL)}</td></tr>`;
+  html += `<tr><td>Actual Production STD</td><td>${formatNum(r.actualSTD)}</td></tr>`;
+  if (isL3) html += `<tr><td>Actual Production XL</td><td>${formatNum(r.actualXL)}</td></tr>`;
+  html += `<tr><td>Labour Cost</td><td>${formatMoney(r.labourCost)}</td></tr>`;
+  html += `<tr><td>Material Cost</td><td>${formatMoney(r.materialCost)}</td></tr>`;
+  html += `<tr><td>Direct Total</td><td>${formatMoney(r.directTotal)}</td></tr>`;
+  html += `<tr><td>Fixed Cost</td><td>${formatMoney(r.fixedCost)}</td></tr>`;
+  html += `<tr><td>Semi-Fixed Cost</td><td>${formatMoney(r.semiFixedCost)}</td></tr>`;
+  html += `<tr><td>Indirect Total</td><td>${formatMoney(r.indirectTotal)}</td></tr>`;
+  html += `<tr style="font-weight:700;"><td>Production Cost</td><td>${formatMoney(r.productionCost)}</td></tr>`;
+  html += `<tr><td>W.I.F.</td><td>${formatMoney(r.wif)}</td></tr>`;
+  html += `<tr><td>Unit Cost STD</td><td>${formatMoney(r.unitCostSTD)}</td></tr>`;
+  if (isL3) html += `<tr><td>Unit Cost XL</td><td>${formatMoney(r.unitCostXL)}</td></tr>`;
+  html += '</tbody></table></div>';
+
+  // Trading Account
+  html += '<h4 style="margin:16px 0 8px;color:var(--accent);">Trading Account</h4>';
+  html += '<div class="table-container"><table><tbody>';
+  html += `<tr><td>Income (Sales)</td><td>${formatMoney(r.income)}</td></tr>`;
+  html += `<tr><td>Materials Paid (Delivery)</td><td>${formatMoney(r.materialsPaid)}</td></tr>`;
+  html += `<tr><td>Production Cost</td><td>${formatMoney(r.productionCost)}</td></tr>`;
+  html += `<tr><td>Penalty</td><td>${formatMoney(r.penalty)}</td></tr>`;
+  html += `<tr><td>Inventory Holding</td><td>${formatMoney(r.totalHolding)}</td></tr>`;
+  html += `<tr><td>Ordering Cost</td><td>${formatMoney(r.orderingCost)}</td></tr>`;
+  html += `<tr style="font-weight:700;"><td>Cash Flow</td><td>${formatMoney(r.cashFlow)}</td></tr>`;
+  html += `<tr><td>Current Account</td><td>${formatMoney(r.currentAccount)}</td></tr>`;
+  html += `<tr><td>Current Interest</td><td>${formatMoney(r.currentInterest)}</td></tr>`;
+  html += `<tr><td>Deposit Account</td><td>${formatMoney(r.depositAccount)}</td></tr>`;
+  html += `<tr><td>Deposit Interest</td><td>${formatMoney(r.depositInterest)}</td></tr>`;
+  html += `<tr><td>Bank Transaction</td><td>${formatMoney(r.bankTransaction)}</td></tr>`;
+  if (r.upgradeCost > 0) html += `<tr><td>Line Upgrade Cost</td><td>${formatMoney(r.upgradeCost)}</td></tr>`;
+  html += `<tr style="font-weight:700;"><td>Total Balance</td><td>${formatMoney(r.totalBalance)}</td></tr>`;
+  html += '</tbody></table></div>';
+
+  if (r.overdraftWarning) {
+    html += '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> OVERDRAFT WARNING: You have exceeded the maximum overdraft limit!</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function exportCSV() {
+  if (!gameState || gameState.results.length === 0) { showAlert('No Data', 'No weeks to export.'); return; }
+
+  const headers = ['Week','Level','Scheduled STD','Scheduled XL','Actual STD','Actual XL','Demand STD','Demand XL','Sold STD','Sold XL','Income','Cash Flow','Current Account','Deposit Account','Total Balance','Penalty','Unit Cost STD','Unit Cost XL','Scrap%','Rework%','MachDown%'];
+  let csv = headers.join(',') + '\n';
+
+  gameState.results.forEach(r => {
+    csv += [r.week, r.level, r.scheduledTotalSTD, r.scheduledTotalXL, r.actualSTD, r.actualXL,
+      r.demandSTD, r.demandXL, r.soldSTD, r.soldXL, Math.round(r.income), Math.round(r.cashFlow),
+      Math.round(r.currentAccount), Math.round(r.depositAccount), Math.round(r.totalBalance),
+      Math.round(r.penalty), r.unitCostSTD.toFixed(2), r.unitCostXL.toFixed(2),
+      (r.scrapPct * 100).toFixed(2), (r.reworkPct * 100).toFixed(2), (r.machineDownPct * 100).toFixed(2)
+    ].join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (gameState.teamName || 'game') + '_report.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+function renderCharts() {
+  if (!gameState || gameState.results.length === 0) return;
+
+  const activeTab = document.querySelector('#chartTabs .sub-tab.active');
+  const chartType = activeTab ? activeTab.dataset.chart : 'financial';
+  const labels = gameState.results.map(r => 'W' + r.week);
+
+  if (currentChart) { currentChart.destroy(); currentChart = null; }
+
+  const ctx = document.getElementById('chartCanvas').getContext('2d');
+  let datasets = [];
+
+  const colors = ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#ec4899'];
+
+  if (chartType === 'financial') {
+    datasets = [
+      { label: 'Cash Flow', data: gameState.results.map(r => Math.round(r.cashFlow)), borderColor: colors[0], fill: false },
+      { label: 'Current A/C', data: gameState.results.map(r => Math.round(r.currentAccount)), borderColor: colors[1], fill: false },
+      { label: 'Deposit A/C', data: gameState.results.map(r => Math.round(r.depositAccount)), borderColor: colors[2], fill: false },
+      { label: 'Total Balance', data: gameState.results.map(r => Math.round(r.totalBalance)), borderColor: colors[3], fill: false },
+      { label: 'Penalty', data: gameState.results.map(r => Math.round(r.penalty)), borderColor: colors[4], fill: false }
+    ];
+  } else if (chartType === 'production') {
+    datasets = [
+      { label: 'Production STD', data: gameState.results.map(r => r.actualSTD), borderColor: colors[0], fill: false },
+      { label: 'Production XL', data: gameState.results.map(r => r.actualXL), borderColor: colors[1], fill: false },
+      { label: 'Demand STD', data: gameState.results.map(r => r.demandSTD), borderColor: colors[2], borderDash: [5, 5], fill: false },
+      { label: 'Demand XL', data: gameState.results.map(r => r.demandXL), borderColor: colors[3], borderDash: [5, 5], fill: false },
+      { label: 'Unit Cost STD', data: gameState.results.map(r => r.unitCostSTD.toFixed(2)), borderColor: colors[4], fill: false, yAxisID: 'y1' }
+    ];
+  } else if (chartType === 'stock') {
+    datasets = [
+      { label: 'Bodies', data: gameState.results.map(r => r.rawStockCF.body), borderColor: colors[0], fill: false },
+      { label: 'Aerials', data: gameState.results.map(r => r.rawStockCF.aerial), borderColor: colors[1], fill: false },
+      { label: 'Accessories', data: gameState.results.map(r => r.rawStockCF.accessory), borderColor: colors[2], fill: false },
+      { label: 'Finished STD', data: gameState.results.map(r => r.closingSTD), borderColor: colors[3], fill: false },
+      { label: 'Finished XL', data: gameState.results.map(r => r.closingXL), borderColor: colors[4], fill: false }
+    ];
+  } else if (chartType === 'losses') {
+    datasets = [
+      { label: 'Scrap %', data: gameState.results.map(r => (r.scrapPct * 100).toFixed(2)), borderColor: colors[0], fill: false },
+      { label: 'Rework %', data: gameState.results.map(r => (r.reworkPct * 100).toFixed(2)), borderColor: colors[1], fill: false },
+      { label: 'Machine Down %', data: gameState.results.map(r => (r.machineDownPct * 100).toFixed(2)), borderColor: colors[2], fill: false }
+    ];
+  }
+
+  const config = {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 } } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(128,128,128,0.1)' } },
+        y: { grid: { color: 'rgba(128,128,128,0.1)' } }
+      }
+    }
+  };
+
+  if (chartType === 'production') {
+    config.options.scales.y1 = { position: 'right', grid: { drawOnChartArea: false } };
+  }
+
+  currentChart = new Chart(ctx, config);
+}
+
+/* ============================================================
+   INSTRUCTOR PANEL
+   ============================================================ */
+function unlockInstructor() {
+  const pass = document.getElementById('instructorPass').value;
+  const expected = gameState ? gameState.config.instructorPassword : DEFAULT_CONFIG.instructorPassword;
+  if (pass === expected) {
+    document.getElementById('instructorLocked').classList.add('hidden');
+    document.getElementById('instructorPanel').classList.remove('hidden');
+    renderInstructorPanel();
+  } else {
+    showAlert('Access Denied', 'Incorrect password.');
+  }
+}
+
+function renderInstructorPanel() {
+  const activeTab = document.querySelector('#instrTabs .sub-tab.active');
+  const tab = activeTab ? activeTab.dataset.itab : 'general';
+  const container = document.getElementById('instrContent');
+  const cfg = gameState ? gameState.config : DEFAULT_CONFIG;
+
+  let html = '';
+
+  if (tab === 'general') {
+    html = `<div class="instructor-grid">
+      <div class="form-group"><label>Seed</label><input type="number" id="cfg_seed" value="${cfg.seed}"></div>
+      <div class="form-group"><label>Fixed Cost/Week (£)</label><input type="number" id="cfg_fixedCostPerWeek" value="${cfg.fixedCostPerWeek}"></div>
+      <div class="form-group"><label>Ordering Cost/Order (£)</label><input type="number" id="cfg_orderingCostPerOrder" value="${cfg.orderingCostPerOrder}"></div>
+      <div class="form-group"><label>Ordering Value Limit (£)</label><input type="number" id="cfg_orderingValueLimit" value="${cfg.orderingValueLimit}"></div>
+      <div class="form-group"><label>Overdraft Limit (£)</label><input type="number" id="cfg_overdraftLimit" value="${cfg.overdraftLimit}"></div>
+      <div class="form-group"><label>Line Upgrade Cost (£)</label><input type="number" id="cfg_lineUpgradeCost" value="${cfg.lineUpgradeCost}"></div>
+      <div class="form-group"><label>Opening Current A/C (£)</label><input type="number" id="cfg_openingCurrentAccount" value="${cfg.openingCurrentAccount}"></div>
+      <div class="form-group"><label>Opening Deposit A/C (£)</label><input type="number" id="cfg_openingDepositAccount" value="${cfg.openingDepositAccount}"></div>
+      <div class="form-group"><label>Opening Bodies</label><input type="number" id="cfg_openingStock_body" value="${cfg.openingStock.body}"></div>
+      <div class="form-group"><label>Opening Aerials</label><input type="number" id="cfg_openingStock_aerial" value="${cfg.openingStock.aerial}"></div>
+      <div class="form-group"><label>Opening Accessories</label><input type="number" id="cfg_openingStock_accessory" value="${cfg.openingStock.accessory}"></div>
+      <div class="form-group"><label>Opening Finished STD</label><input type="number" id="cfg_openingStock_finishedSTD" value="${cfg.openingStock.finishedSTD}"></div>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label>Level Schedule (21 values, comma-separated)</label>
+      <input type="text" id="cfg_levelSchedule" value="${cfg.levelSchedule.join(',')}">
+    </div>`;
+  } else if (tab === 'costs') {
+    html = `<div class="instructor-grid">
+      <div class="form-group"><label>Lending Rate</label><input type="number" step="0.01" id="cfg_lendingRate" value="${cfg.lendingRate}"></div>
+      <div class="form-group"><label>Deposit Rate</label><input type="number" step="0.01" id="cfg_depositRate" value="${cfg.depositRate}"></div>
+      <div class="form-group"><label>Penalty Rate</label><input type="number" step="0.01" id="cfg_penaltyRate" value="${cfg.penaltyRate}"></div>
+      <div class="form-group"><label>Holding Rate (weekly)</label><input type="number" step="0.001" id="cfg_inventoryHoldingRate" value="${cfg.inventoryHoldingRate}"></div>
+      <div class="form-group"><label>Body Cost (£)</label><input type="number" id="cfg_materialCost_body" value="${cfg.materialCost.body}"></div>
+      <div class="form-group"><label>Aerial Cost (£)</label><input type="number" id="cfg_materialCost_aerial" value="${cfg.materialCost.aerial}"></div>
+      <div class="form-group"><label>Accessory Cost (£)</label><input type="number" id="cfg_materialCost_accessory" value="${cfg.materialCost.accessory}"></div>
+      <div class="form-group"><label>STD Sale Price (£)</label><input type="number" id="cfg_salePrice_std" value="${cfg.salePrice.std}"></div>
+      <div class="form-group"><label>XL Sale Price (£)</label><input type="number" id="cfg_salePrice_xl" value="${cfg.salePrice.xl}"></div>
+      <div class="form-group"><label>Sell-Not-Buy Flag (0/1)</label><input type="number" min="0" max="1" id="cfg_sellNotBuyFlag" value="${cfg.sellNotBuyFlag}"></div>
+    </div>`;
+  } else if (tab === 'production') {
+    html = `<h4 style="margin-bottom:8px;">Loss Percentages (base)</h4>
+    <div class="instructor-grid">
+      <div class="form-group"><label>Scrap %</label><input type="number" step="0.1" id="cfg_scrapPct" value="${cfg.scrapPct}"></div>
+      <div class="form-group"><label>Rework %</label><input type="number" step="0.1" id="cfg_reworkPct" value="${cfg.reworkPct}"></div>
+      <div class="form-group"><label>Machine Down %</label><input type="number" step="0.1" id="cfg_machineDownPct" value="${cfg.machineDownPct}"></div>
+      <div class="form-group"><label>Max Evening Shifts</label><input type="number" id="cfg_maxEveningShifts" value="${cfg.maxEveningShifts}"></div>
+    </div>
+    <h4 style="margin:12px 0 8px;">Shift Capacities (STD level)</h4>
+    <div class="instructor-grid">
+      <div class="form-group"><label>Day Cap</label><input type="number" id="cfg_shifts_std_day_capacity" value="${cfg.shifts.std.day.capacity}"></div>
+      <div class="form-group"><label>Night Cap</label><input type="number" id="cfg_shifts_std_night_capacity" value="${cfg.shifts.std.night.capacity}"></div>
+      <div class="form-group"><label>Sat Cap</label><input type="number" id="cfg_shifts_std_saturday_capacity" value="${cfg.shifts.std.saturday.capacity}"></div>
+      <div class="form-group"><label>Eve Cap</label><input type="number" id="cfg_shifts_std_evening_capacity" value="${cfg.shifts.std.evening.capacity}"></div>
+    </div>
+    <h4 style="margin:12px 0 8px;">Shift Capacities (L3)</h4>
+    <div class="instructor-grid">
+      <div class="form-group"><label>Day Cap</label><input type="number" id="cfg_shifts_l3_day_capacity" value="${cfg.shifts.l3.day.capacity}"></div>
+      <div class="form-group"><label>Night Cap</label><input type="number" id="cfg_shifts_l3_night_capacity" value="${cfg.shifts.l3.night.capacity}"></div>
+      <div class="form-group"><label>Sat Cap</label><input type="number" id="cfg_shifts_l3_saturday_capacity" value="${cfg.shifts.l3.saturday.capacity}"></div>
+      <div class="form-group"><label>Eve Cap</label><input type="number" id="cfg_shifts_l3_evening_capacity" value="${cfg.shifts.l3.evening.capacity}"></div>
+    </div>`;
+  } else if (tab === 'demand') {
+    html = `<div class="instructor-grid">
+      <div class="form-group"><label>Demand Noise SD</label><input type="number" step="0.01" id="cfg_demandNoiseSD" value="${cfg.demandNoiseSD}"></div>
+      <div class="form-group"><label>XL Demand Fraction</label><input type="number" step="0.1" id="cfg_xlDemandFraction" value="${cfg.xlDemandFraction}"></div>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label class="toggle-switch"><input type="checkbox" id="cfg_useClassicDemand" ${cfg.useClassicDemand ? 'checked' : ''}> Use Classic (hard-coded) Demand</label>
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin:8px 0;">Manual demand overrides (leave blank to use generator):</p>
+    <div class="table-container"><table style="font-size:11px;"><thead><tr><th>Week</th><th>STD Override</th><th>XL Override</th></tr></thead><tbody>`;
+    for (let w = 13; w <= 33; w++) {
+      html += `<tr><td>${w}</td><td><input type="number" style="width:70px;font-size:12px;padding:4px;" id="cfg_demand_std_${w}" value="${cfg.manualDemandOverride['std_' + w] || ''}"></td>`;
+      html += `<td><input type="number" style="width:70px;font-size:12px;padding:4px;" id="cfg_demand_xl_${w}" value="${cfg.manualDemandOverride['xl_' + w] || ''}"></td></tr>`;
+    }
+    html += '</tbody></table></div>';
+  } else if (tab === 'flags') {
+    html = `<div class="form-group">
+      <label class="toggle-switch"><input type="checkbox" id="cfg_PRESERVE_ACCESSORY_REWORK_QUIRK" ${cfg.PRESERVE_ACCESSORY_REWORK_QUIRK ? 'checked' : ''}> Preserve Accessory Rework Quirk (original behaviour)</label>
+      <div class="inline-help">Original applies rework % reduction to accessories only at Level ≥ 3, not Level 2.</div>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label class="toggle-switch"><input type="checkbox" id="cfg_LEGACY_CONSTANT_LOSSES" ${cfg.LEGACY_CONSTANT_LOSSES ? 'checked' : ''}> Legacy Constant Losses (same every week)</label>
+      <div class="inline-help">Original VBA bug: all weeks got the same loss %. Disable for realistic variation.</div>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label>Instructor Password</label>
+      <input type="text" id="cfg_instructorPassword" value="${cfg.instructorPassword}" style="max-width:200px;">
+    </div>`;
+  } else if (tab === 'actions') {
+    html = `<div class="btn-group" style="flex-direction:column;align-items:flex-start;">
+      <button class="btn btn-primary" onclick="applyInstructorConfig()"><i class="fas fa-save"></i> Apply Configuration Changes</button>
+      <button class="btn btn-warning" onclick="resetGame()"><i class="fas fa-redo"></i> Reset Game (Week 13, keep config)</button>
+      <button class="btn btn-outline" onclick="exportConfig()"><i class="fas fa-download"></i> Export Config as JSON</button>
+      <button class="btn btn-outline" onclick="document.getElementById('importConfigInput').click()"><i class="fas fa-upload"></i> Import Config from JSON</button>
+      <input type="file" id="importConfigInput" accept=".json" style="display:none" onchange="importConfig(event)">
+    </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function applyInstructorConfig() {
+  if (!gameState) return;
+  const cfg = gameState.config;
+
+  // General
+  const seedEl = document.getElementById('cfg_seed');
+  if (seedEl) cfg.seed = parseInt(seedEl.value) || 1;
+  const fcEl = document.getElementById('cfg_fixedCostPerWeek');
+  if (fcEl) cfg.fixedCostPerWeek = parseInt(fcEl.value) || 0;
+  const ocEl = document.getElementById('cfg_orderingCostPerOrder');
+  if (ocEl) cfg.orderingCostPerOrder = parseInt(ocEl.value) || 0;
+  const ovEl = document.getElementById('cfg_orderingValueLimit');
+  if (ovEl) cfg.orderingValueLimit = parseInt(ovEl.value) || 0;
+  const odEl = document.getElementById('cfg_overdraftLimit');
+  if (odEl) cfg.overdraftLimit = parseInt(odEl.value) || 0;
+  const luEl = document.getElementById('cfg_lineUpgradeCost');
+  if (luEl) cfg.lineUpgradeCost = parseInt(luEl.value) || 0;
+  const ocaEl = document.getElementById('cfg_openingCurrentAccount');
+  if (ocaEl) cfg.openingCurrentAccount = parseInt(ocaEl.value) || 0;
+  const odaEl = document.getElementById('cfg_openingDepositAccount');
+  if (odaEl) cfg.openingDepositAccount = parseInt(odaEl.value) || 0;
+  const osbEl = document.getElementById('cfg_openingStock_body');
+  if (osbEl) cfg.openingStock.body = parseInt(osbEl.value) || 0;
+  const osaEl = document.getElementById('cfg_openingStock_aerial');
+  if (osaEl) cfg.openingStock.aerial = parseInt(osaEl.value) || 0;
+  const osacEl = document.getElementById('cfg_openingStock_accessory');
+  if (osacEl) cfg.openingStock.accessory = parseInt(osacEl.value) || 0;
+  const osfsEl = document.getElementById('cfg_openingStock_finishedSTD');
+  if (osfsEl) cfg.openingStock.finishedSTD = parseInt(osfsEl.value) || 0;
+  const lsEl = document.getElementById('cfg_levelSchedule');
+  if (lsEl) {
+    const parts = lsEl.value.split(',').map(s => parseInt(s.trim()));
+    if (parts.length === 21) cfg.levelSchedule = parts;
+  }
+
+  // Costs
+  const lrEl = document.getElementById('cfg_lendingRate');
+  if (lrEl) cfg.lendingRate = parseFloat(lrEl.value) || 0;
+  const drEl = document.getElementById('cfg_depositRate');
+  if (drEl) cfg.depositRate = parseFloat(drEl.value) || 0;
+  const prEl = document.getElementById('cfg_penaltyRate');
+  if (prEl) cfg.penaltyRate = parseFloat(prEl.value) || 0;
+  const ihrEl = document.getElementById('cfg_inventoryHoldingRate');
+  if (ihrEl) cfg.inventoryHoldingRate = parseFloat(ihrEl.value) || 0;
+  const mcbEl = document.getElementById('cfg_materialCost_body');
+  if (mcbEl) cfg.materialCost.body = parseInt(mcbEl.value) || 0;
+  const mcaEl = document.getElementById('cfg_materialCost_aerial');
+  if (mcaEl) cfg.materialCost.aerial = parseInt(mcaEl.value) || 0;
+  const mccEl = document.getElementById('cfg_materialCost_accessory');
+  if (mccEl) cfg.materialCost.accessory = parseInt(mccEl.value) || 0;
+  const spsEl = document.getElementById('cfg_salePrice_std');
+  if (spsEl) cfg.salePrice.std = parseInt(spsEl.value) || 0;
+  const spxEl = document.getElementById('cfg_salePrice_xl');
+  if (spxEl) cfg.salePrice.xl = parseInt(spxEl.value) || 0;
+  const snbEl = document.getElementById('cfg_sellNotBuyFlag');
+  if (snbEl) cfg.sellNotBuyFlag = parseInt(snbEl.value) || 0;
+
+  // Production
+  const spPEl = document.getElementById('cfg_scrapPct');
+  if (spPEl) cfg.scrapPct = parseFloat(spPEl.value) || 0;
+  const rwEl = document.getElementById('cfg_reworkPct');
+  if (rwEl) cfg.reworkPct = parseFloat(rwEl.value) || 0;
+  const mdEl = document.getElementById('cfg_machineDownPct');
+  if (mdEl) cfg.machineDownPct = parseFloat(mdEl.value) || 0;
+  const mesEl = document.getElementById('cfg_maxEveningShifts');
+  if (mesEl) cfg.maxEveningShifts = parseInt(mesEl.value) || 0;
+
+  // Shift capacities
+  ['std', 'l3'].forEach(tier => {
+    ['day', 'night', 'saturday', 'evening'].forEach(shift => {
+      const el = document.getElementById(`cfg_shifts_${tier}_${shift}_capacity`);
+      if (el) cfg.shifts[tier][shift].capacity = parseInt(el.value) || 0;
+    });
+  });
+
+  // Demand
+  const dnsEl = document.getElementById('cfg_demandNoiseSD');
+  if (dnsEl) cfg.demandNoiseSD = parseFloat(dnsEl.value) || 0;
+  const xdfEl = document.getElementById('cfg_xlDemandFraction');
+  if (xdfEl) cfg.xlDemandFraction = parseFloat(xdfEl.value) || 0;
+  const ucdEl = document.getElementById('cfg_useClassicDemand');
+  if (ucdEl) cfg.useClassicDemand = ucdEl.checked;
+
+  // Manual overrides
+  for (let w = 13; w <= 33; w++) {
+    const sEl = document.getElementById('cfg_demand_std_' + w);
+    const xEl = document.getElementById('cfg_demand_xl_' + w);
+    if (sEl) cfg.manualDemandOverride['std_' + w] = sEl.value ? parseInt(sEl.value) : '';
+    if (xEl) cfg.manualDemandOverride['xl_' + w] = xEl.value ? parseInt(xEl.value) : '';
+  }
+
+  // Flags
+  const paqEl = document.getElementById('cfg_PRESERVE_ACCESSORY_REWORK_QUIRK');
+  if (paqEl) cfg.PRESERVE_ACCESSORY_REWORK_QUIRK = paqEl.checked;
+  const lclEl = document.getElementById('cfg_LEGACY_CONSTANT_LOSSES');
+  if (lclEl) cfg.LEGACY_CONSTANT_LOSSES = lclEl.checked;
+  const ipEl = document.getElementById('cfg_instructorPassword');
+  if (ipEl) cfg.instructorPassword = ipEl.value;
+
+  // Regenerate demand
+  gameState.demand = generateDemand(cfg);
+  // Re-run simulation
+  runSimulation();
+  renderDashboard();
+  showAlert('Config Applied', 'Configuration updated. Demand regenerated and simulation re-run.');
+}
+
+function resetGame() {
+  if (!gameState) return;
+  showConfirm('Reset Game', 'This will reset all decisions and results back to Week 13. Config is preserved. Continue?', () => {
+    gameState.currentWeek = 13;
+    gameState.decisions = {};
+    gameState.results = [];
+    gameState.upgradeCharged = false;
+    gameState.demand = generateDemand(gameState.config);
+    renderDashboard();
+    populateReportWeeks();
+  });
+}
+
+function exportConfig() {
+  const cfg = gameState ? gameState.config : DEFAULT_CONFIG;
+  const data = JSON.stringify(cfg, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sim_config.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importConfig(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const cfg = JSON.parse(e.target.result);
+      if (gameState) {
+        gameState.config = cfg;
+        gameState.demand = generateDemand(cfg);
+        runSimulation();
+        renderDashboard();
+        renderInstructorPanel();
+        showAlert('Config Imported', 'Configuration imported successfully.');
+      }
+    } catch (err) {
+      showAlert('Import Error', 'Could not parse config file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ============================================================
+   EVENT LISTENERS & INITIALIZATION
+   ============================================================ */
+// Dark mode detection
+if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+  document.documentElement.classList.add('dark');
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+  if (event.matches) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+});
+
+// Navigation
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (!gameState && tab.dataset.screen !== 'dashboard') return;
+    switchScreen(tab.dataset.screen);
+  });
+});
+
+// Chart sub-tabs
+document.getElementById('chartTabs').addEventListener('click', (e) => {
+  if (e.target.classList.contains('sub-tab')) {
+    document.querySelectorAll('#chartTabs .sub-tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    renderCharts();
+  }
+});
+
+// Instructor sub-tabs
+document.getElementById('instrTabs').addEventListener('click', (e) => {
+  if (e.target.classList.contains('sub-tab')) {
+    document.querySelectorAll('#instrTabs .sub-tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    renderInstructorPanel();
+  }
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('active');
+  });
+});
+</script>
+</body>
+</html>
