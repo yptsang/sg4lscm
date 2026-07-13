@@ -683,7 +683,7 @@
             <div class="header-sub">
                 <span class="chip" data-tooltip="Day counter advances each time you press OK.">
                     <span class="dot"></span>
-                    Day: <span id="day">1</span>
+                    Day: <span id="day">0</span>
                 </span>
                 <span class="chip" data-tooltip="Run progress toward the configured report threshold. The simulation continues after the report triggers.">
                     <span class="dot"></span>
@@ -695,7 +695,7 @@
                 </span>
             </div>
         </div>
-        <button id="settings-btn" aria-label="Open settings" data-tooltip="Open settings (policies, demand, run length)">
+        <button id="settings-btn" aria-label="Open settings" data-tooltip="Open settings (password required).">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M10 6h11" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"></path>
                 <circle cx="6" cy="6" r="2" fill="white"></circle>
@@ -726,7 +726,7 @@
             </div>
             <div id="warehouse">
                 <h3>Warehouse</h3>
-                <div style="font-size: 1.6rem; font-weight: 600;" data-tooltip="Central stock feeding all retailers.">Stock: <span id="warehouse_stock">1000</span><span id="warehouse_status" class="status-pill good">Sufficient</span></div>
+                <div style="font-size: 1.6rem; font-weight: 600;" data-tooltip="Central stock feeding all retailers.">Stock: <span id="warehouse_stock">1000</span><!--<span id="warehouse_status" class="status-pill good">Sufficient</span>--></div>
                 <img src="https://cdn-icons-png.flaticon.com/512/3774/3774895.png" alt="Warehouse Icon" style="width: 50px; height: 50px; margin-top: 10px;">
                 <div class="order-row">
                     <div class="order-item">
@@ -854,7 +854,7 @@
     <div id="buttons">
         <button id="ok" data-tooltip="Advance the simulation by one day.">OK</button>
         <button id="pause" data-tooltip="Pause or resume autoplay running." style="display:none;">Pause</button>
-        <button id="reset" data-tooltip="Reset stocks, costs, and charts back to day 1.">RESET</button>
+        <button id="reset" data-tooltip="Reset stocks, costs, and charts back to day 0.">RESET</button>
     </div>
 
     <div id="modal">
@@ -863,7 +863,7 @@
                 <h2>Settings</h2>
                 <span id="close-modal" aria-label="Close settings" role="button">&times;</span>
             </div>
-            <p class="settings-note">Changes apply after you click Apply (the game resets to day 1).</p>
+            <p class="settings-note">Changes apply after you click Apply (the game resets to day 0).</p>
 
             <div class="settings-grid">
                 <div class="settings-section">
@@ -872,7 +872,7 @@
                         <label class="field" for="days-length">
                             Days length (report at)
                             <small>Default is 100 days. If autoplay is enabled, pressing OK can auto-run until this length.</small>
-                            <input id="days-length" type="number" inputmode="numeric" min="1" step="1" value="99">
+                            <input id="days-length" type="number" inputmode="numeric" min="1" step="1" value="100">
                         </label>
                         <div id="days-length-error" class="field-error" role="alert" aria-live="polite"></div>
                         <label class="checkbox-row" data-tooltip="Turn off to disable motion effects (recommended if you feel distracted).">
@@ -1083,7 +1083,7 @@ In addition to the transportation cost specified above, there is a storage cost 
                 </div>
                 <div id="report-actions">
                     <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-                        <button class="btn-secondary" id="export-csv" data-tooltip="Download the metrics as a CSV file.">Export CSV</button>
+                        <button class="btn-secondary" id="export-csv" data-tooltip="Download the full day-by-day trajectory as a CSV file.">Export CSV</button>
                         <button class="btn-secondary" id="export-text" data-tooltip="Download the metrics as a plain text file.">Export Text</button>
                     </div>
                     <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
@@ -1098,12 +1098,14 @@ In addition to the transportation cost specified above, there is a storage cost 
     <div id="tooltip" role="tooltip"></div>
 
     <script>
-        let day = 1;
+        const SETTINGS_PASSWORD = 'polyuise';
+        let day = 0;
         let ticks = 0;
         const DEFAULT_DAYS_LENGTH = 100;
         let daysLength = DEFAULT_DAYS_LENGTH;
         let thresholdSnapshot = null;
         let animationsEnabled = true;
+        let trajectoryHistory = [];
 
         let warehouse_stock = 1000;
         let retailer_stocks = [200, 200, 200];
@@ -1478,6 +1480,22 @@ In addition to the transportation cost specified above, there is a storage cost 
             document.getElementById('descriptions').innerText = desc;
         }
 
+        function snapshotTrajectory() {
+            trajectoryHistory.push({
+                day,
+                demand_mk: demands[0],
+                demand_wc: demands[1],
+                demand_tst: demands[2],
+                stock_mk: retailer_stocks[0],
+                stock_wc: retailer_stocks[1],
+                stock_tst: retailer_stocks[2],
+                warehouse_stock,
+                lost_mk: lost_sales_today[0],
+                lost_wc: lost_sales_today[1],
+                lost_tst: lost_sales_today[2]
+            });
+        }
+
         function onOK() {
             orig_sold = cum_sold;
             orig_sales = cum_sales;
@@ -1598,6 +1616,7 @@ In addition to the transportation cost specified above, there is a storage cost 
 
             // Update graph
             updateGraph();
+            snapshotTrajectory();
 
             updateUI();
 
@@ -1617,7 +1636,7 @@ In addition to the transportation cost specified above, there is a storage cost 
 
         function onReset() {
             stopAutoRun();
-            day = 1;
+            day = 0;
             ticks = 0;
             thresholdSnapshot = null;
             warehouse_stock = 1000;
@@ -1653,6 +1672,8 @@ In addition to the transportation cost specified above, there is a storage cost 
             chartData.datasets[3].data.push(cum_net / 1000);
             chart.update();
             document.getElementById('descriptions').innerText = '';
+            trajectoryHistory = [];
+            snapshotTrajectory();
             updateUI();
         }
 
@@ -1707,11 +1728,36 @@ In addition to the transportation cost specified above, there is a storage cost 
 
         function exportReportCsv() {
             const payload = buildReportPayload();
-            const lines = [
-                'days,units_sold,total_profit,avg_profit_per_unit',
-                `${payload.days},${payload.unitsSold},${payload.totalProfit},${payload.avgProfit}`
+            const header = [
+                'day',
+                'demand_mk',
+                'demand_wc',
+                'demand_tst',
+                'stock_mk',
+                'stock_wc',
+                'stock_tst',
+                'warehouse_stock',
+                'lost_mk',
+                'lost_wc',
+                'lost_tst',
+                'lost_total'
             ];
-            downloadFile(`two-echelon-results-day-${payload.days}.csv`, lines.join('\n'), 'text/csv;charset=utf-8');
+            const rows = trajectoryHistory.map((row) => [
+                row.day,
+                row.demand_mk,
+                row.demand_wc,
+                row.demand_tst,
+                row.stock_mk,
+                row.stock_wc,
+                row.stock_tst,
+                row.warehouse_stock,
+                row.lost_mk,
+                row.lost_wc,
+                row.lost_tst,
+                row.lost_mk + row.lost_wc + row.lost_tst
+            ]);
+            const csv = [header.join(','), ...rows.map((row) => row.join(','))].join('\n');
+            downloadFile(`two-echelon-trajectory-day-${payload.days}.csv`, csv, 'text/csv;charset=utf-8');
         }
 
         function exportReportText() {
@@ -1923,7 +1969,15 @@ In addition to the transportation cost specified above, there is a storage cost 
             return { ok: true };
         }
 
-        settingsBtn.onclick = () => { modal.style.display = 'block'; };
+        settingsBtn.onclick = () => {
+            const entered = window.prompt('Enter password to open settings:');
+            if (entered === null) return;
+            if (entered !== SETTINGS_PASSWORD) {
+                window.alert('Incorrect password.');
+                return;
+            }
+            modal.style.display = 'block';
+        };
         closeModal.onclick = () => { modal.style.display = 'none'; };
         window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
 
