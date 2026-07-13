@@ -726,7 +726,7 @@
             </div>
             <div id="warehouse">
                 <h3>Warehouse</h3>
-                <div style="font-size: 1.6rem; font-weight: 600;" data-tooltip="Central stock feeding all retailers.">Stock: <span id="warehouse_stock">1000</span><!--<span id="warehouse_status" class="status-pill good">Sufficient</span>--></div>
+                <div style="font-size: 1.6rem; font-weight: 600;" data-tooltip="Central stock feeding all retailers.">Stock: <span id="warehouse_stock">1000</span><span id="warehouse_status" class="status-pill good">Sufficient</span></div>
                 <img src="https://cdn-icons-png.flaticon.com/512/3774/3774895.png" alt="Warehouse Icon" style="width: 50px; height: 50px; margin-top: 10px;">
                 <div class="order-row">
                     <div class="order-item">
@@ -870,7 +870,7 @@
                     <div class="section-title">Run</div>
                     <div class="section-body">
                         <label class="field" for="days-length">
-                            Days length (report at)
+                            Game length (report at)
                             <small>Default is 100 days. If autoplay is enabled, pressing OK can auto-run until this length.</small>
                             <input id="days-length" type="number" inputmode="numeric" min="1" step="1" value="100">
                         </label>
@@ -1088,7 +1088,7 @@ In addition to the transportation cost specified above, there is a storage cost 
                     </div>
                     <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
                         <button class="btn-primary" id="continue-sim" data-tooltip="Keep simulating beyond the run threshold.">Continue</button>
-                        <button class="btn-danger" id="reset-sim" data-tooltip="Reset and start a new run from day 1.">Reset</button>
+                        <button class="btn-danger" id="reset-sim" data-tooltip="Reset and start a new run from day 0.">Reset</button>
                     </div>
                 </div>
             </div>
@@ -1104,6 +1104,7 @@ In addition to the transportation cost specified above, there is a storage cost 
         const DEFAULT_DAYS_LENGTH = 100;
         let daysLength = DEFAULT_DAYS_LENGTH;
         let thresholdSnapshot = null;
+        let thresholdReportShown = false;
         let animationsEnabled = true;
         let trajectoryHistory = [];
 
@@ -1283,7 +1284,7 @@ In addition to the transportation cost specified above, there is a storage cost 
         function setAutoRunningUi() {
             const pauseBtn = document.getElementById('pause');
             if (!pauseBtn) return;
-            const shouldShow = autoplayEnabled && (ticks < daysLength);
+            const shouldShow = autoplayEnabled && (ticks < daysLength || isAutoRunning);
             pauseBtn.style.display = shouldShow ? '' : 'none';
             pauseBtn.textContent = 'Pause';
             pauseBtn.disabled = !isAutoRunning;
@@ -1306,7 +1307,7 @@ In addition to the transportation cost specified above, there is a storage cost 
             setAutoRunningUi();
 
             while (isAutoRunning) {
-                if (thresholdSnapshot) {
+                if (thresholdReportShown) {
                     stopAutoRun();
                     break;
                 }
@@ -1401,6 +1402,7 @@ In addition to the transportation cost specified above, there is a storage cost 
         }
 
         function setStatusPill(el, status) {
+            if (!el) return;
             el.classList.remove('good', 'warn', 'bad');
             el.classList.add(status);
             if (status === 'good') el.textContent = 'Sufficient';
@@ -1620,8 +1622,9 @@ In addition to the transportation cost specified above, there is a storage cost 
 
             updateUI();
 
-            if (!thresholdSnapshot && ticks === daysLength) {
+            if (!thresholdReportShown && ticks === daysLength) {
                 thresholdSnapshot = { ticks, cum_sold, cum_net };
+                thresholdReportShown = true;
                 showReport();
             }
 
@@ -1639,6 +1642,7 @@ In addition to the transportation cost specified above, there is a storage cost 
             day = 0;
             ticks = 0;
             thresholdSnapshot = null;
+            thresholdReportShown = false;
             warehouse_stock = 1000;
             retailer_stocks = [200, 200, 200];
             demands = [0, 0, 0];
@@ -1685,6 +1689,10 @@ In addition to the transportation cost specified above, there is a storage cost 
         function closeReport() {
             const reportModal = document.getElementById('report-modal');
             reportModal.style.display = 'none';
+            thresholdReportShown = false;
+            if (autoplayEnabled) {
+                runAutoUntil(null);
+            }
         }
 
         function buildReportPayload() {
@@ -1700,7 +1708,7 @@ In addition to the transportation cost specified above, there is a storage cost 
         function showReport() {
             const payload = buildReportPayload();
             document.getElementById('report-title').textContent = `Run Results (First ${payload.days} Days)`;
-            document.getElementById('report-subtitle').textContent = 'The simulation continues after this report. Export the metrics or start a new run.';
+            document.getElementById('report-subtitle').textContent = 'Autoplay pauses at the target day. Click Continue to keep simulating, or export the current results.';
 
             document.getElementById('report-units-sold').textContent = fmtNumber(payload.unitsSold);
             document.getElementById('report-total-profit').textContent = fmtCurrency(payload.totalProfit, 0);
@@ -1876,6 +1884,7 @@ In addition to the transportation cost specified above, there is a storage cost 
             assert('status bad at 0', getStatusForStock(0, 60) === 'bad');
             assert('daily holding is integer', Number.isInteger(calcDailyHolding(1000, [200, 200, 200])));
             assert('currency formatting produces $', fmtCurrency(123).includes('$'));
+            assert('setStatusPill tolerates null', (() => { try { setStatusPill(null, 'good'); return true; } catch (e) { return false; } })());
 
             const state = {
                 warehouse_stock: 1000,
@@ -1906,6 +1915,39 @@ In addition to the transportation cost specified above, there is a storage cost 
             assert('E2E 5 days sold = 150', state.cum_sold === 150);
             assert('E2E 5 days sales = 5850', state.cum_sales === 5850);
             assert('E2E net is finite', Number.isFinite(state.cum_net));
+
+            window.alert = () => {};
+
+            const originalDaysLength = daysLength;
+            const originalDemandType = demandType;
+            const originalUniformMin = uniformMin;
+            const originalUniformMax = uniformMax;
+            const originalAutoplayEnabled = autoplayEnabled;
+
+            autoplayEnabled = false;
+            demandType = 'uniform';
+            uniformMin = 10;
+            uniformMax = 10;
+            daysLength = 3;
+            onReset();
+            onOK();
+            assert('KPI demand updates after one step', document.getElementById('kpi_r1_demand').textContent === '10');
+            assert('KPI total demand updates after one step', document.getElementById('kpi_all_demand').textContent === '30');
+
+            daysLength = 1;
+            onReset();
+            onOK();
+            assert('Report opens at threshold', document.getElementById('report-modal').style.display === 'block');
+            assert('Report title contains configured length', document.getElementById('report-title').textContent.includes('First 1 Days'));
+            assert('Report shows units sold', document.getElementById('report-units-sold').textContent !== '0');
+            closeReport();
+
+            daysLength = originalDaysLength;
+            demandType = originalDemandType;
+            uniformMin = originalUniformMin;
+            uniformMax = originalUniformMax;
+            autoplayEnabled = originalAutoplayEnabled;
+            onReset();
 
             return results;
         }
@@ -2042,16 +2084,14 @@ In addition to the transportation cost specified above, there is a storage cost 
         });
 
         document.getElementById('ok').addEventListener('click', () => {
-            if (autoplayEnabled && ticks < daysLength) {
-                runAutoUntil(daysLength);
+            if (autoplayEnabled) {
+                runAutoUntil(ticks < daysLength ? daysLength : null);
                 return;
             }
             onOK();
         });
         document.getElementById('pause').addEventListener('click', () => {
             if (!autoplayEnabled) return;
-            if (thresholdSnapshot) return;
-            if (ticks >= daysLength) return;
             if (!isAutoRunning) return;
             stopAutoRun();
         });
