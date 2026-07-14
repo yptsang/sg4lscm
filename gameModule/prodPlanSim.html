@@ -564,7 +564,11 @@ td { font-family: var(--font-mono); font-size: 12px; }
   <div class="screen" id="screenDashboard">
     <div id="overdraftWarning" class="alert alert-danger hidden">
       <i class="fas fa-exclamation-triangle"></i>
-      <span><strong>OVERDRAFT WARNING:</strong> You have exceeded the maximum overdraft limit. See the umpire!</span>
+      <span id="overdraftWarningText"><strong>OVERDRAFT WARNING:</strong> You have exceeded the maximum overdraft limit. See the umpire!</span>
+    </div>
+    <div id="rawMaterialWarning" class="alert alert-warning hidden">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span id="rawMaterialWarningText"></span>
     </div>
 
     <div class="grid-2">
@@ -584,6 +588,7 @@ td { font-family: var(--font-mono); font-size: 12px; }
             <div class="stat-value" id="stockAccessories">0</div>
           </div>
         </div>
+        <div id="pendingDeliveries" class="hidden"></div>
       </div>
 
       <div class="card">
@@ -638,7 +643,6 @@ td { font-family: var(--font-mono); font-size: 12px; }
         <button class="btn btn-primary" onclick="openProductionModal()"><i class="fas fa-industry"></i> Schedule Production</button>
         <button class="btn btn-primary" onclick="openBankModal()"><i class="fas fa-piggy-bank"></i> Bank Transfer</button>
         <button class="btn btn-success" onclick="commitWeek()"><i class="fas fa-check-circle"></i> Commit Week</button>
-        <button class="btn btn-outline" onclick="exportGame()"><i class="fas fa-download"></i> Export Game</button>
       </div>
     </div>
   </div>
@@ -692,13 +696,16 @@ td { font-family: var(--font-mono); font-size: 12px; }
         <button class="btn btn-primary" onclick="unlockInstructor()"><i class="fas fa-unlock"></i> Unlock</button>
       </div>
       <div id="instructorPanel" class="hidden">
-        <div class="sub-tabs" id="instrTabs">
-          <button class="sub-tab active" data-itab="general">General</button>
-          <button class="sub-tab" data-itab="costs">Costs & Finance</button>
-          <button class="sub-tab" data-itab="production">Production</button>
-          <button class="sub-tab" data-itab="demand">Demand</button>
-          <button class="sub-tab" data-itab="flags">Flags & Quirks</button>
-          <button class="sub-tab" data-itab="actions">Actions</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="sub-tabs" id="instrTabs" style="margin-bottom:0;">
+            <button class="sub-tab active" data-itab="general">General</button>
+            <button class="sub-tab" data-itab="costs">Costs & Finance</button>
+            <button class="sub-tab" data-itab="production">Production</button>
+            <button class="sub-tab" data-itab="demand">Demand</button>
+            <button class="sub-tab" data-itab="flags">Flags & Quirks</button>
+            <button class="sub-tab" data-itab="actions">Actions</button>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="lockInstructor()" style="white-space:nowrap;margin-left:12px;"><i class="fas fa-sign-out-alt"></i> Log Out</button>
         </div>
         <div id="instrContent"></div>
       </div>
@@ -711,9 +718,9 @@ td { font-family: var(--font-mono); font-size: 12px; }
 <div class="modal-overlay" id="orderModal">
   <div class="modal">
     <div class="modal-title"><i class="fas fa-truck"></i> Order Materials</div>
-    <div class="alert alert-info">
+    <div class="alert alert-info" id="orderLeadTimeInfo">
       <i class="fas fa-info-circle"></i>
-      <span>Bodies &amp; Aerials arrive next week. Accessories arrive in 2 weeks. Max order value: £<span id="orderMaxVal"></span></span>
+      <span id="orderLeadTimeText">Bodies &amp; Aerials arrive next week. Accessories arrive in 2 weeks. Max order value: £<span id="orderMaxVal"></span></span>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -822,6 +829,7 @@ const DEFAULT_CONFIG = {
   fixedCostPerWeek: 37000,
   orderingCostPerOrder: 50,
   materialCost: { body: 8, aerial: 6, accessory: 1 },
+  leadTime: { body: 1, aerial: 1, accessory: 2 },
   lineUpgradeCost: 75000,
   lendingRate: 0.10,
   depositRate: 0.085,
@@ -1011,16 +1019,16 @@ function simulateWeek(weekIndex, decisions, prevState, config, demand, lossRNG) 
   const stock = {};
   const components = ['body', 'aerial', 'accessory'];
   const deliveries = {};
+  const leadTimes = config.leadTime || { body: 1, aerial: 1, accessory: 2 };
 
   components.forEach(comp => {
     const bf = prevState.rawStock[comp];
     let delivered = 0;
-    if (comp === 'body' || comp === 'aerial') {
-      // 1 week lag: delivery = order from previous week
-      delivered = prevState.pendingOrders && prevState.pendingOrders[comp] ? prevState.pendingOrders[comp] : 0;
-    } else {
-      // 2 week lag: delivery = order from 2 weeks ago
-      delivered = prevState.pendingOrders2 && prevState.pendingOrders2[comp] ? prevState.pendingOrders2[comp] : 0;
+    const lt = leadTimes[comp] || 1;
+    // Delivery: orders placed lt weeks ago arrive now
+    const historyIndex = lt - 1; // orderHistory[0] = 1 week ago, [1] = 2 weeks ago, etc.
+    if (prevState.orderHistory && prevState.orderHistory.length > historyIndex) {
+      delivered = prevState.orderHistory[historyIndex][comp] || 0;
     }
     deliveries[comp] = delivered;
     stock[comp] = { bf, delivered };
@@ -1079,11 +1087,48 @@ function simulateWeek(weekIndex, decisions, prevState, config, demand, lossRNG) 
   result.usedSTD = usedSTD;
   result.usedXL = usedXL;
 
-  // Carried forward raw stock
+  // Carried forward raw stock (cannot go negative)
   const cfStock = {};
+  const rawStockWarnings = [];
   components.forEach(comp => {
-    cfStock[comp] = stock[comp].bf + stock[comp].delivered - usedSTD[comp] - usedXL[comp];
+    const available = stock[comp].bf + stock[comp].delivered;
+    const totalUsed = usedSTD[comp] + usedXL[comp];
+    if (totalUsed > available) {
+      rawStockWarnings.push(comp);
+      // Clamp usage to available - proportionally reduce STD and XL
+      const ratio = available / (totalUsed || 1);
+      usedSTD[comp] = Math.floor(usedSTD[comp] * ratio);
+      usedXL[comp] = Math.floor(usedXL[comp] * ratio);
+      cfStock[comp] = 0;
+    } else {
+      cfStock[comp] = available - totalUsed;
+    }
   });
+  // If materials were clamped, reduce actual production proportionally
+  if (rawStockWarnings.length > 0) {
+    // Find the most limiting ratio across all components
+    let minRatio = 1;
+    components.forEach(comp => {
+      const available = stock[comp].bf + stock[comp].delivered;
+      let originalTotal;
+      if (isL1) {
+        originalTotal = actualSTD * config.bom.std[comp] + 0;
+      } else {
+        originalTotal = Math.round(scheduledTotalSTD * config.bom.std[comp] * (1 - machineDownPct)) +
+          (isL3 ? Math.round(scheduledTotalXL * config.bom.xl[comp] * (1 - machineDownPct)) : 0);
+      }
+      if (originalTotal > 0) {
+        const ratio = Math.min(1, available / originalTotal);
+        if (ratio < minRatio) minRatio = ratio;
+      }
+    });
+    actualSTD = Math.floor(actualSTD * minRatio);
+    actualXL = Math.floor(actualXL * minRatio);
+    result.actualSTD = actualSTD;
+    result.actualXL = actualXL;
+  }
+
+  result.rawStockWarnings = rawStockWarnings;
   result.rawStockBF = {};
   result.rawStockDelivered = {};
   result.rawStockCF = cfStock;
@@ -1342,7 +1387,16 @@ function createNewGameState(teamName, config) {
 }
 
 function getStateForWeek(weekIndex) {
+  // Determine the max lead time to know how much history to keep
+  const leadTimes = gameState.config.leadTime || { body: 1, aerial: 1, accessory: 2 };
+  const maxLT = Math.max(leadTimes.body, leadTimes.aerial, leadTimes.accessory, 1);
+
   if (weekIndex === 0) {
+    // Build orderHistory: array of empty orders for maxLT weeks
+    const orderHistory = [];
+    for (let i = 0; i < maxLT; i++) {
+      orderHistory.push({ body: 0, aerial: 0, accessory: 0 });
+    }
     return {
       rawStock: { ...gameState.config.openingStock },
       finishedStock: { std: gameState.config.openingStock.finishedSTD, xl: 0 },
@@ -1353,17 +1407,22 @@ function getStateForWeek(weekIndex) {
       unitCostSTD: 0,
       unitCostXL: 0,
       upgradeCharged: false,
-      pendingOrders: { body: 0, aerial: 0, accessory: 0 },
-      pendingOrders2: { body: 0, aerial: 0, accessory: 0 }
+      orderHistory
     };
   }
 
   const prev = gameState.results[weekIndex - 1];
-  // pending orders: for body/aerial (1 week lag), this week's delivery = last week's orders
-  // For accessory (2 week lag), delivery = orders from 2 weeks ago
-  const pendingOrders = prev.ordersPlaced; // delivered next week
-  const prevPrev = weekIndex >= 2 ? gameState.results[weekIndex - 2] : null;
-  const pendingOrders2 = prevPrev ? prevPrev.ordersPlaced : { body: 0, aerial: 0, accessory: 0 };
+
+  // Build orderHistory: [0] = orders from 1 week ago, [1] = 2 weeks ago, etc.
+  const orderHistory = [];
+  for (let i = 0; i < maxLT; i++) {
+    const resultIdx = weekIndex - 1 - i;
+    if (resultIdx >= 0 && gameState.results[resultIdx]) {
+      orderHistory.push(gameState.results[resultIdx].ordersPlaced);
+    } else {
+      orderHistory.push({ body: 0, aerial: 0, accessory: 0 });
+    }
+  }
 
   return {
     rawStock: { ...prev.rawStockCF },
@@ -1375,8 +1434,7 @@ function getStateForWeek(weekIndex) {
     unitCostSTD: prev.unitCostSTD,
     unitCostXL: prev.unitCostXL,
     upgradeCharged: prev.upgradeCost > 0 || (weekIndex > 0 && getStateForWeekCached(weekIndex - 1).upgradeCharged),
-    pendingOrders,
-    pendingOrders2
+    orderHistory
   };
 }
 
@@ -1392,7 +1450,20 @@ function getStateForWeekCached(weekIndex) {
     }
   }
   const prev = gameState.results[weekIndex - 1];
-  const prevPrev = weekIndex >= 2 ? gameState.results[weekIndex - 2] : null;
+  const leadTimes = gameState.config.leadTime || { body: 1, aerial: 1, accessory: 2 };
+  const maxLT = Math.max(leadTimes.body, leadTimes.aerial, leadTimes.accessory, 1);
+
+  // Build orderHistory: [0] = orders from 1 week ago, [1] = 2 weeks ago, etc.
+  const orderHistory = [];
+  for (let i = 0; i < maxLT; i++) {
+    const resultIdx = weekIndex - 1 - i;
+    if (resultIdx >= 0 && gameState.results[resultIdx]) {
+      orderHistory.push(gameState.results[resultIdx].ordersPlaced);
+    } else {
+      orderHistory.push({ body: 0, aerial: 0, accessory: 0 });
+    }
+  }
+
   return {
     rawStock: { ...prev.rawStockCF },
     finishedStock: { std: prev.closingSTD, xl: prev.closingXL },
@@ -1403,8 +1474,7 @@ function getStateForWeekCached(weekIndex) {
     unitCostSTD: prev.unitCostSTD,
     unitCostXL: prev.unitCostXL,
     upgradeCharged: charged,
-    pendingOrders: prev.ordersPlaced,
-    pendingOrders2: prevPrev ? prevPrev.ordersPlaced : { body: 0, aerial: 0, accessory: 0 }
+    orderHistory
   };
 }
 
@@ -1531,6 +1601,27 @@ function renderDashboard() {
   document.getElementById('stockFinXL').textContent = formatNum(state.finishedStock.xl);
   document.getElementById('stockFinXLContainer').classList.toggle('hidden', !isL3);
 
+  // Show pending deliveries for this week
+  const lt = gameState.config.leadTime || { body: 1, aerial: 1, accessory: 2 };
+  let delivThisWeek = { body: 0, aerial: 0, accessory: 0 };
+  if (state.orderHistory) {
+    ['body', 'aerial', 'accessory'].forEach(comp => {
+      const ltIdx = (lt[comp] || 1) - 1;
+      if (state.orderHistory.length > ltIdx) {
+        delivThisWeek[comp] = state.orderHistory[ltIdx][comp] || 0;
+      }
+    });
+  }
+  const pendingEl = document.getElementById('pendingDeliveries');
+  if (pendingEl) {
+    if (delivThisWeek.body > 0 || delivThisWeek.aerial > 0 || delivThisWeek.accessory > 0) {
+      pendingEl.innerHTML = `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;"><i class="fas fa-truck"></i> Arriving this week: Bodies ${formatNum(delivThisWeek.body)}, Aerials ${formatNum(delivThisWeek.aerial)}, Accessories ${formatNum(delivThisWeek.accessory)}</div>`;
+      pendingEl.classList.remove('hidden');
+    } else {
+      pendingEl.classList.add('hidden');
+    }
+  }
+
   // Bank
   const currEl = document.getElementById('bankCurrent');
   const depEl = document.getElementById('bankDeposit');
@@ -1544,12 +1635,31 @@ function renderDashboard() {
   totEl.className = 'stat-value ' + (total < 0 ? 'negative' : 'positive');
   document.getElementById('bankODLimit').textContent = formatMoney(gameState.config.overdraftLimit);
 
-  // Overdraft warning
+  // Overdraft warning - improved with detailed information
   const odWarn = document.getElementById('overdraftWarning');
+  const odTextEl = document.getElementById('overdraftWarningText');
   if ((-total) > gameState.config.overdraftLimit) {
+    const overBy = (-total) - gameState.config.overdraftLimit;
+    odTextEl.innerHTML = `<strong>OVERDRAFT LIMIT EXCEEDED!</strong> Your combined balance is <strong>${formatMoney(total)}</strong>, which exceeds the overdraft limit of <strong>${formatMoney(gameState.config.overdraftLimit)}</strong> by <strong>${formatMoney(overBy)}</strong>. You must see the umpire immediately. Interest charges and penalties will continue to accumulate.`;
     odWarn.classList.remove('hidden');
   } else {
     odWarn.classList.add('hidden');
+  }
+
+  // Raw material warning - check if last week's result had material shortages
+  const rmWarn = document.getElementById('rawMaterialWarning');
+  const rmTextEl = document.getElementById('rawMaterialWarningText');
+  if (gameState.results.length > 0) {
+    const lastResult = gameState.results[gameState.results.length - 1];
+    if (lastResult.rawStockWarnings && lastResult.rawStockWarnings.length > 0) {
+      const matNames = lastResult.rawStockWarnings.map(c => c.charAt(0).toUpperCase() + c.slice(1) + (c === 'accessory' ? '' : 's')).join(', ');
+      rmTextEl.innerHTML = `<strong>RAW MATERIAL SHORTAGE (Week ${lastResult.week}):</strong> Insufficient stock of <strong>${matNames}</strong>. Production was reduced to match available materials. Consider ordering more materials or reducing production schedules.`;
+      rmWarn.classList.remove('hidden');
+    } else {
+      rmWarn.classList.add('hidden');
+    }
+  } else {
+    rmWarn.classList.add('hidden');
   }
 
   // Capacity panel
@@ -1583,7 +1693,11 @@ function renderDashboard() {
    ============================================================ */
 function openOrderModal() {
   if (gameState.currentWeek > 33) { showAlert('Game Over', 'The game has ended.'); return; }
-  document.getElementById('orderMaxVal').textContent = formatNum(gameState.config.orderingValueLimit);
+
+  // Update lead time info from config
+  const lt = gameState.config.leadTime || { body: 1, aerial: 1, accessory: 2 };
+  const ltText = `Bodies arrive in ${lt.body} week${lt.body > 1 ? 's' : ''}. Aerials arrive in ${lt.aerial} week${lt.aerial > 1 ? 's' : ''}. Accessories arrive in ${lt.accessory} week${lt.accessory > 1 ? 's' : ''}. Max order value: £${formatNum(gameState.config.orderingValueLimit)}`;
+  document.getElementById('orderLeadTimeText').innerHTML = ltText;
 
   const dec = gameState.decisions[gameState.currentWeek];
   document.getElementById('orderBody').value = dec ? (dec.order_body || 0) : 0;
@@ -1719,9 +1833,48 @@ function updateProdPreview() {
   const aerialsNeeded = totalSTD * gameState.config.bom.std.aerial + totalXL * gameState.config.bom.xl.aerial;
   const accNeeded = totalSTD * gameState.config.bom.std.accessory + totalXL * gameState.config.bom.xl.accessory;
 
+  // Check material availability
+  let state;
+  if (gameState.results.length === 0) {
+    state = getStateForWeek(0);
+  } else {
+    state = getStateForWeekCached(gameState.results.length);
+  }
+  const availBodies = state.rawStock.body;
+  const availAerials = state.rawStock.aerial;
+  const availAcc = state.rawStock.accessory;
+
+  // Check pending deliveries that will arrive this week
+  const lt = gameState.config.leadTime || { body: 1, aerial: 1, accessory: 2 };
+  let delivBody = 0, delivAerial = 0, delivAcc = 0;
+  if (state.orderHistory) {
+    const ltb = lt.body - 1;
+    const lta = lt.aerial - 1;
+    const ltc = lt.accessory - 1;
+    if (state.orderHistory.length > ltb) delivBody = state.orderHistory[ltb].body || 0;
+    if (state.orderHistory.length > lta) delivAerial = state.orderHistory[lta].aerial || 0;
+    if (state.orderHistory.length > ltc) delivAcc = state.orderHistory[ltc].accessory || 0;
+  }
+
+  const totalAvailBodies = availBodies + delivBody;
+  const totalAvailAerials = availAerials + delivAerial;
+  const totalAvailAcc = availAcc + delivAcc;
+
+  let matWarning = '';
+  const shortages = [];
+  if (bodiesNeeded > totalAvailBodies) shortages.push(`Bodies (need ${formatNum(bodiesNeeded)}, have ${formatNum(totalAvailBodies)})`);
+  if (aerialsNeeded > totalAvailAerials) shortages.push(`Aerials (need ${formatNum(aerialsNeeded)}, have ${formatNum(totalAvailAerials)})`);
+  if (accNeeded > totalAvailAcc) shortages.push(`Accessories (need ${formatNum(accNeeded)}, have ${formatNum(totalAvailAcc)})`);
+
+  if (shortages.length > 0) {
+    matWarning = `<div class="alert alert-warning" style="margin-top:8px;"><i class="fas fa-exclamation-triangle"></i> <strong>Material shortage!</strong> ${shortages.join('; ')}. Production will be reduced.</div>`;
+  }
+
   document.getElementById('prodPreview').innerHTML =
     `<strong>Scheduled: ${formatNum(totalSTD)} STD${isL3 ? ', ' + formatNum(totalXL) + ' XL' : ''}</strong><br>` +
-    `Materials required: Bodies ${formatNum(bodiesNeeded)}, Aerials ${formatNum(aerialsNeeded)}, Accessories ${formatNum(accNeeded)}`;
+    `Materials required: Bodies ${formatNum(bodiesNeeded)}, Aerials ${formatNum(aerialsNeeded)}, Accessories ${formatNum(accNeeded)}<br>` +
+    `<span style="font-size:11px;color:var(--text-muted);">Available (incl. deliveries): Bodies ${formatNum(totalAvailBodies)}, Aerials ${formatNum(totalAvailAerials)}, Accessories ${formatNum(totalAvailAcc)}</span>` +
+    matWarning;
 }
 
 function confirmProduction() {
@@ -1845,6 +1998,7 @@ function exportGame() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
 
 function importGame(event) {
   const file = event.target.files[0];
@@ -1984,7 +2138,13 @@ function renderReport() {
   html += '</tbody></table></div>';
 
   if (r.overdraftWarning) {
-    html += '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> OVERDRAFT WARNING: You have exceeded the maximum overdraft limit!</div>';
+    const overBy = (-r.totalBalance) - gameState.config.overdraftLimit;
+    html += `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <strong>OVERDRAFT LIMIT EXCEEDED!</strong> Total balance: ${formatMoney(r.totalBalance)}. Overdraft limit: ${formatMoney(gameState.config.overdraftLimit)}. Exceeded by: ${formatMoney(overBy)}. See the umpire immediately.</div>`;
+  }
+
+  if (r.rawStockWarnings && r.rawStockWarnings.length > 0) {
+    const matNames = r.rawStockWarnings.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ');
+    html += `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> <strong>MATERIAL SHORTAGE:</strong> Insufficient stock of ${matNames}. Production was reduced to match available materials.</div>`;
   }
 
   container.innerHTML = html;
@@ -2090,6 +2250,12 @@ function renderCharts() {
 /* ============================================================
    INSTRUCTOR PANEL
    ============================================================ */
+function lockInstructor() {
+  document.getElementById('instructorPanel').classList.add('hidden');
+  document.getElementById('instructorLocked').classList.remove('hidden');
+  document.getElementById('instructorPass').value = '';
+}
+
 function unlockInstructor() {
   const pass = document.getElementById('instructorPass').value;
   const expected = gameState ? gameState.config.instructorPassword : DEFAULT_CONFIG.instructorPassword;
@@ -2143,7 +2309,15 @@ function renderInstructorPanel() {
       <div class="form-group"><label>Sell-Not-Buy Flag (0/1)</label><input type="number" min="0" max="1" id="cfg_sellNotBuyFlag" value="${cfg.sellNotBuyFlag}"></div>
     </div>`;
   } else if (tab === 'production') {
-    html = `<h4 style="margin-bottom:8px;">Loss Percentages (base)</h4>
+    const lt = cfg.leadTime || { body: 1, aerial: 1, accessory: 2 };
+    html = `<h4 style="margin-bottom:8px;">Material Lead Times (weeks after ordering)</h4>
+    <div class="instructor-grid">
+      <div class="form-group"><label>Bodies Lead Time (weeks)</label><input type="number" min="1" max="10" id="cfg_leadTime_body" value="${lt.body}"></div>
+      <div class="form-group"><label>Aerials Lead Time (weeks)</label><input type="number" min="1" max="10" id="cfg_leadTime_aerial" value="${lt.aerial}"></div>
+      <div class="form-group"><label>Accessories Lead Time (weeks)</label><input type="number" min="1" max="10" id="cfg_leadTime_accessory" value="${lt.accessory}"></div>
+    </div>
+    <div class="inline-help" style="margin-bottom:12px;">Lead time of 1 = materials arrive next week. Lead time of 2 = materials arrive in 2 weeks, etc.</div>
+    <h4 style="margin-bottom:8px;">Loss Percentages (base)</h4>
     <div class="instructor-grid">
       <div class="form-group"><label>Scrap %</label><input type="number" step="0.1" id="cfg_scrapPct" value="${cfg.scrapPct}"></div>
       <div class="form-group"><label>Rework %</label><input type="number" step="0.1" id="cfg_reworkPct" value="${cfg.reworkPct}"></div>
@@ -2194,13 +2368,22 @@ function renderInstructorPanel() {
     </div>`;
   } else if (tab === 'actions') {
     html = `<div class="btn-group" style="flex-direction:column;align-items:flex-start;">
-      <button class="btn btn-primary" onclick="applyInstructorConfig()"><i class="fas fa-save"></i> Apply Configuration Changes</button>
+      <button class="btn btn-success" onclick="exportGame()"><i class="fas fa-download"></i> Export Game (Save File)</button>
       <button class="btn btn-warning" onclick="resetGame()"><i class="fas fa-redo"></i> Reset Game (Week 13, keep config)</button>
-      <button class="btn btn-outline" onclick="exportConfig()"><i class="fas fa-download"></i> Export Config as JSON</button>
+      <button class="btn btn-outline" onclick="exportConfig()"><i class="fas fa-file-export"></i> Export Config as JSON</button>
       <button class="btn btn-outline" onclick="document.getElementById('importConfigInput').click()"><i class="fas fa-upload"></i> Import Config from JSON</button>
       <input type="file" id="importConfigInput" accept=".json" style="display:none" onchange="importConfig(event)">
+    </div>
+    <div class="alert alert-info" style="margin-top:16px;">
+      <i class="fas fa-info-circle"></i>
+      <span>Students must request instructor approval to export the game save file. Use the "Export Game" button above to download the save.</span>
     </div>`;
   }
+
+  // Add "Apply Configuration Changes" button to all tabs
+  html += `<div class="btn-group" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+    <button class="btn btn-primary" onclick="applyInstructorConfig()"><i class="fas fa-save"></i> Apply Configuration Changes</button>
+  </div>`;
 
   container.innerHTML = html;
 }
@@ -2262,6 +2445,15 @@ function applyInstructorConfig() {
   const snbEl = document.getElementById('cfg_sellNotBuyFlag');
   if (snbEl) cfg.sellNotBuyFlag = parseInt(snbEl.value) || 0;
 
+  // Lead Times
+  if (!cfg.leadTime) cfg.leadTime = { body: 1, aerial: 1, accessory: 2 };
+  const ltbEl = document.getElementById('cfg_leadTime_body');
+  if (ltbEl) cfg.leadTime.body = Math.max(1, parseInt(ltbEl.value) || 1);
+  const ltaEl = document.getElementById('cfg_leadTime_aerial');
+  if (ltaEl) cfg.leadTime.aerial = Math.max(1, parseInt(ltaEl.value) || 1);
+  const ltcEl = document.getElementById('cfg_leadTime_accessory');
+  if (ltcEl) cfg.leadTime.accessory = Math.max(1, parseInt(ltcEl.value) || 2);
+
   // Production
   const spPEl = document.getElementById('cfg_scrapPct');
   if (spPEl) cfg.scrapPct = parseFloat(spPEl.value) || 0;
@@ -2308,20 +2500,22 @@ function applyInstructorConfig() {
   gameState.demand = generateDemand(cfg);
   // Re-run simulation
   runSimulation();
+  // Update all views to reflect config changes
   renderDashboard();
-  showAlert('Config Applied', 'Configuration updated. Demand regenerated and simulation re-run.');
+  populateReportWeeks();
+  renderReport();
+  showAlert('Config Applied', 'Configuration updated. Demand regenerated and simulation re-run. All dashboard and report data now reflects the new settings.');
 }
 
 function resetGame() {
   if (!gameState) return;
-  showConfirm('Reset Game', 'This will reset all decisions and results back to Week 13. Config is preserved. Continue?', () => {
-    gameState.currentWeek = 13;
-    gameState.decisions = {};
-    gameState.results = [];
-    gameState.upgradeCharged = false;
-    gameState.demand = generateDemand(gameState.config);
+  showConfirm('Reset Game', 'This will reset the entire game to Week 13 with all default configurations. All decisions, results, and custom settings will be lost. Continue?', () => {
+    const teamName = gameState.teamName;
+    gameState = createNewGameState(teamName, JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
     renderDashboard();
     populateReportWeeks();
+    renderInstructorPanel();
+    showAlert('Game Reset', 'The game has been fully reset to Week 13 with default configurations.');
   });
 }
 
@@ -2379,6 +2573,10 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', eve
 document.querySelectorAll('.nav-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     if (!gameState && tab.dataset.screen !== 'dashboard') return;
+    // Lock instructor panel when navigating away from it
+    if (tab.dataset.screen !== 'instructor') {
+      lockInstructor();
+    }
     switchScreen(tab.dataset.screen);
   });
 });
