@@ -174,6 +174,8 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
 }
 
 .card-title i { color: var(--accent); font-size: 16px; }
@@ -608,23 +610,31 @@ td { font-family: var(--font-mono); font-size: 12px; }
 
     <div class="grid-2">
       <div class="card">
-        <div class="card-title"><i class="fas fa-university"></i> Bank Accounts</div>
+        <div class="card-title"><i class="fas fa-university"></i> Bank Accounts
+          <button class="btn btn-outline btn-sm" style="margin-left:auto;padding:4px 8px;font-size:11px;" onclick="showBankHelp()">
+            <i class="fas fa-question-circle"></i> How it works
+          </button>
+        </div>
         <div class="grid-2">
           <div class="stat-item">
-            <div class="stat-label">Current A/C</div>
+            <div class="stat-label">Current A/C <span style="font-weight:400;text-transform:none;">(Operating)</span></div>
             <div class="stat-value" id="bankCurrent">£0</div>
+            <div class="inline-help">+ve: 0% interest. −ve: pays 10%/yr interest</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">Deposit A/C</div>
+            <div class="stat-label">Deposit A/C <span style="font-weight:400;text-transform:none;">(Savings/Loan)</span></div>
             <div class="stat-value" id="bankDeposit">£0</div>
+            <div class="inline-help">+ve: earns 8.5%/yr. −ve: pays 10%/yr</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">Total Balance</div>
             <div class="stat-value" id="bankTotal">£0</div>
+            <div class="inline-help">Current + Deposit. Used for overdraft check</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">Overdraft Limit</div>
+            <div class="stat-label">Max Overdraft</div>
             <div class="stat-value" id="bankODLimit">£0</div>
+            <div class="inline-help">Max negative total balance allowed</div>
           </div>
         </div>
       </div>
@@ -780,13 +790,16 @@ td { font-family: var(--font-mono); font-size: 12px; }
 <div class="modal-overlay" id="bankModal">
   <div class="modal">
     <div class="modal-title"><i class="fas fa-piggy-bank"></i> Bank Transfer</div>
-    <div style="margin-bottom:12px;font-size:13px;color:var(--text-secondary);">
-      Positive = deposit to savings. Negative = withdraw from savings to current.
+    <div class="alert alert-info" style="font-size:12px;">
+      <i class="fas fa-info-circle"></i>
+      <strong>Move money between your two accounts</strong><br>
+      <strong>Positive amount:</strong> Current A/C → Deposit A/C (put money into savings to earn 8.5%)<br>
+      <strong>Negative amount:</strong> Deposit A/C → Current A/C (withdraw savings to cover operations)
     </div>
     <div class="form-group">
       <label>Transfer Amount (£)</label>
       <input type="number" id="bankAmount" value="0">
-      <div class="inline-help">Current → Deposit (positive), Deposit → Current (negative)</div>
+      <div class="inline-help">Positive = save to Deposit. Negative = withdraw to Current.</div>
     </div>
     <div class="btn-group">
       <button class="btn btn-primary" onclick="confirmBank()"><i class="fas fa-check"></i> Confirm</button>
@@ -833,10 +846,10 @@ const DEFAULT_CONFIG = {
   lineUpgradeCost: 75000,
   lendingRate: 0.10,
   depositRate: 0.085,
-  overdraftLimit: 500000,
+  overdraftLimit: 600000,
   penaltyRate: 0.12,
   inventoryHoldingRate: 0.005,
-  orderingValueLimit: 300000,
+  orderingValueLimit: 500000,
   sellNotBuyFlag: 1,
   bom: {
     std: { body: 1, aerial: 1, accessory: 1 },
@@ -869,7 +882,7 @@ const DEFAULT_CONFIG = {
   manualDemandOverride: {},
   PRESERVE_ACCESSORY_REWORK_QUIRK: true,
   LEGACY_CONSTANT_LOSSES: false,
-  instructorPassword: "umpire"
+  instructorPassword: "polyuise"
 };
 
 const CLASSIC_DEMAND = {
@@ -1215,29 +1228,16 @@ function simulateWeek(weekIndex, decisions, prevState, config, demand, lossRNG) 
   result.labourCost = labourCost;
   result.labourDetail = labourDetail;
 
-  // Material cost (rows 69-71 logic)
+  // Material cost: always matches used quantities × unit cost
+  // FIXED: Removed erroneous reworkPct reduction that caused mismatch between
+  // reported materials used and material cost in Levels 2 & 3.
   let materialCostTotal = 0;
   const materialDetail = {};
 
   components.forEach(comp => {
     const unitCost = config.materialCost[comp];
     const usedTotal = usedSTD[comp] + usedXL[comp];
-
-    let cost;
-    if (isL1) {
-      cost = usedTotal * unitCost;
-    } else {
-      // Known oddity: accessory rework reduction only at Level >= 3 in original
-      if (config.PRESERVE_ACCESSORY_REWORK_QUIRK && comp === 'accessory') {
-        if (level > 2) {
-          cost = Math.round(usedTotal * (1 - reworkPct)) * unitCost;
-        } else {
-          cost = usedTotal * unitCost;
-        }
-      } else {
-        cost = Math.round(usedTotal * (1 - reworkPct)) * unitCost;
-      }
-    }
+    const cost = usedTotal * unitCost;
     materialDetail[comp] = cost;
     materialCostTotal += cost;
   });
@@ -1336,9 +1336,11 @@ function simulateWeek(weekIndex, decisions, prevState, config, demand, lossRNG) 
   const prevCurrentInterest = prevState.currentInterest || 0;
   const prevDepositInterest = prevState.depositInterest || 0;
 
+  // FIXED Week 13 bug: bankTransaction is now correctly added to depositAccount
+  // Interest timing: currentInterest/depositInterest from PREVIOUS week are applied THIS week
   if (week === 13) {
     currentAccount = config.openingCurrentAccount + cashFlow - bankTransaction;
-    depositAccount = config.openingDepositAccount - upgradeCost;
+    depositAccount = config.openingDepositAccount + bankTransaction - upgradeCost;
   } else {
     currentAccount = prevState.currentAccount + cashFlow + prevCurrentInterest - bankTransaction;
     depositAccount = prevState.depositAccount + bankTransaction + prevDepositInterest - upgradeCost;
@@ -1529,6 +1531,40 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
 
+function showBankHelp() {
+  document.getElementById('alertModalTitle').innerHTML = '<i class="fas fa-info-circle"></i> Bank Accounts Explained';
+  document.getElementById('alertModalMessage').innerHTML =
+    '<div style="font-size:13px;line-height:1.6;">' +
+    '<div style="font-weight:600;color:var(--accent);margin-bottom:6px;">Current A/C (Operating Account)</div>' +
+    '<div style="margin-bottom:12px;padding-left:12px;">' +
+    '• Your main cash account for weekly revenues &amp; expenses<br>' +
+    '• Positive balance: <strong>0% interest</strong> (normal checking)<br>' +
+    '• Negative balance: <strong>10% / year interest expense</strong> (charged weekly)' +
+    '</div>' +
+    '<div style="font-weight:600;color:var(--accent);margin-bottom:6px;">Deposit A/C (Savings &amp; Loan Facility)</div>' +
+    '<div style="margin-bottom:12px;padding-left:12px;">' +
+    '• Transfer surplus cash here to earn <strong>8.5% / year interest</strong><br>' +
+    '• Can also go negative as a <strong>secured loan at 10% / year</strong><br>' +
+    '• Use <strong>"Bank Transfer"</strong> to move money:<br>' +
+    '&nbsp;&nbsp;Positive amount = Current&nbsp;&nbsp;→&nbsp;&nbsp;Deposit (save money)<br>' +
+    '&nbsp;&nbsp;Negative amount = Deposit&nbsp;&nbsp;→&nbsp;&nbsp;Current (withdraw)' +
+    '</div>' +
+    '<div style="font-weight:600;color:var(--accent);margin-bottom:6px;">Total Balance &amp; Max Overdraft</div>' +
+    '<div style="margin-bottom:12px;padding-left:12px;">' +
+    '• <strong>Total Balance = Current + Deposit</strong><br>' +
+    '• This combined amount is checked against the Max Overdraft limit<br>' +
+    '• If Total Balance &lt; −£500,000 → you have exceeded your credit limit → see the umpire' +
+    '</div>' +
+    '<div style="font-weight:600;color:var(--accent);margin-bottom:6px;">Interest Timing</div>' +
+    '<div style="padding-left:12px;">' +
+    '• Interest is calculated at the <strong>end of each week</strong><br>' +
+    '• Charged / paid on the <strong>following week</strong> (in arrears)<br>' +
+    '• This is why you see interest appear ~1 week after a balance change' +
+    '</div>' +
+    '</div>';
+  document.getElementById('alertModal').classList.add('active');
+}
+
 function formatMoney(val) {
   if (val === undefined || val === null) return '£0';
   const neg = val < 0;
@@ -1640,7 +1676,7 @@ function renderDashboard() {
   const odTextEl = document.getElementById('overdraftWarningText');
   if ((-total) > gameState.config.overdraftLimit) {
     const overBy = (-total) - gameState.config.overdraftLimit;
-    odTextEl.innerHTML = `<strong>OVERDRAFT LIMIT EXCEEDED!</strong> Your combined balance is <strong>${formatMoney(total)}</strong>, which exceeds the overdraft limit of <strong>${formatMoney(gameState.config.overdraftLimit)}</strong> by <strong>${formatMoney(overBy)}</strong>. You must see the umpire immediately. Interest charges and penalties will continue to accumulate.`;
+    odTextEl.innerHTML = `<strong>MAX OVERDRAFT EXCEEDED!</strong> Your combined balance (Current + Deposit) is <strong>${formatMoney(total)}</strong>, which exceeds the maximum allowed overdraft of <strong>${formatMoney(gameState.config.overdraftLimit)}</strong> by <strong>${formatMoney(overBy)}</strong>. Interest charges will continue to accumulate on both negative accounts.`;
     odWarn.classList.remove('hidden');
   } else {
     odWarn.classList.add('hidden');
@@ -2107,7 +2143,11 @@ function renderReport() {
   html += `<tr><td>Actual Production STD</td><td>${formatNum(r.actualSTD)}</td></tr>`;
   if (isL3) html += `<tr><td>Actual Production XL</td><td>${formatNum(r.actualXL)}</td></tr>`;
   html += `<tr><td>Labour Cost</td><td>${formatMoney(r.labourCost)}</td></tr>`;
-  html += `<tr><td>Material Cost</td><td>${formatMoney(r.materialCost)}</td></tr>`;
+  html += `<tr><td style="padding-left:20px;">Material Cost — Bodies</td><td>${formatMoney(r.materialDetail.body)}</td></tr>`;
+  html += `<tr><td style="padding-left:20px;">Material Cost — Aerials</td><td>${formatMoney(r.materialDetail.aerial)}</td></tr>`;
+  html += `<tr><td style="padding-left:20px;">Material Cost — Accessories</td><td>${formatMoney(r.materialDetail.accessory)}</td></tr>`;
+  html += `<tr style="font-weight:600;"><td>Material Cost (Total)</td><td>${formatMoney(r.materialCost)}</td></tr>`;
+  html += `<tr style="font-size:11px;color:var(--text-muted);"><td style="padding-left:20px;">Verification: used × unit cost</td><td>B:${formatNum(r.usedSTD.body + r.usedXL.body)}×£8 + A:${formatNum(r.usedSTD.aerial + r.usedXL.aerial)}×£6 + Ac:${formatNum(r.usedSTD.accessory + r.usedXL.accessory)}×£1</td></tr>`;
   html += `<tr><td>Direct Total</td><td>${formatMoney(r.directTotal)}</td></tr>`;
   html += `<tr><td>Fixed Cost</td><td>${formatMoney(r.fixedCost)}</td></tr>`;
   html += `<tr><td>Semi-Fixed Cost</td><td>${formatMoney(r.semiFixedCost)}</td></tr>`;
@@ -2139,7 +2179,7 @@ function renderReport() {
 
   if (r.overdraftWarning) {
     const overBy = (-r.totalBalance) - gameState.config.overdraftLimit;
-    html += `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <strong>OVERDRAFT LIMIT EXCEEDED!</strong> Total balance: ${formatMoney(r.totalBalance)}. Overdraft limit: ${formatMoney(gameState.config.overdraftLimit)}. Exceeded by: ${formatMoney(overBy)}. See the umpire immediately.</div>`;
+    html += `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <strong>MAX OVERDRAFT EXCEEDED!</strong> Combined balance (Current + Deposit): ${formatMoney(r.totalBalance)}. Max overdraft: ${formatMoney(gameState.config.overdraftLimit)}. Exceeded by: ${formatMoney(overBy)}. See the umpire immediately.</div>`;
   }
 
   if (r.rawStockWarnings && r.rawStockWarnings.length > 0) {
@@ -2282,7 +2322,7 @@ function renderInstructorPanel() {
       <div class="form-group"><label>Fixed Cost/Week (£)</label><input type="number" id="cfg_fixedCostPerWeek" value="${cfg.fixedCostPerWeek}"></div>
       <div class="form-group"><label>Ordering Cost/Order (£)</label><input type="number" id="cfg_orderingCostPerOrder" value="${cfg.orderingCostPerOrder}"></div>
       <div class="form-group"><label>Ordering Value Limit (£)</label><input type="number" id="cfg_orderingValueLimit" value="${cfg.orderingValueLimit}"></div>
-      <div class="form-group"><label>Overdraft Limit (£)</label><input type="number" id="cfg_overdraftLimit" value="${cfg.overdraftLimit}"></div>
+      <div class="form-group"><label>Max Overdraft (£)</label><input type="number" id="cfg_overdraftLimit" value="${cfg.overdraftLimit}"></div>
       <div class="form-group"><label>Line Upgrade Cost (£)</label><input type="number" id="cfg_lineUpgradeCost" value="${cfg.lineUpgradeCost}"></div>
       <div class="form-group"><label>Opening Current A/C (£)</label><input type="number" id="cfg_openingCurrentAccount" value="${cfg.openingCurrentAccount}"></div>
       <div class="form-group"><label>Opening Deposit A/C (£)</label><input type="number" id="cfg_openingDepositAccount" value="${cfg.openingDepositAccount}"></div>
