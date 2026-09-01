@@ -140,7 +140,13 @@ function DemandForecastGame() {
   );
 
   useEffect(() => {
-    setCurrentWeek(0); setForecasts({}); setUserSet({}); setRecorded({});
+    setCurrentWeek(0); setRecorded({});
+    const nf = {}; const ns = {};
+    for (let w = 1; w <= FROZEN; w++) {
+      nf[w] = historical52Avg(0);
+      ns[w] = true;
+    }
+    setForecasts(nf); setUserSet(ns);
   }, [scenario, difficulty, params, gameId]);
 
   const actualAt = (week) => {
@@ -158,19 +164,35 @@ function DemandForecastGame() {
     return c ? sum / c : 50;
   };
 
-  const getForecast = (w, atWeek = currentWeek) => userSet[w] ? forecasts[w] : movingAvg(atWeek);
+  const historical52Avg = (atWeek) => {
+    let sum = 0, c = 0;
+    for (let k = atWeek - HIST + 1; k <= atWeek; k++) {
+      const a = k < 0 ? historical[k + HIST] : (k <= atWeek ? actualSeries[k] : null);
+      if (a != null) { sum += a; c++; }
+    }
+    return c ? Math.round(sum / c) : 50;
+  };
+
+  const getForecast = (w, atWeek = currentWeek) => userSet[w] ? forecasts[w] : historical52Avg(atWeek);
   const isEditable = (w) => w >= currentWeek + FROZEN + 1 && w <= HORIZON;
   const isFrozen = (w) => w >= currentWeek + 1 && w <= currentWeek + FROZEN;
 
   const advance = (steps = 1) => {
     let t = currentWeek;
     const newRec = { ...recorded };
+    const nf = { ...forecasts };
+    const ns = { ...userSet };
     for (let s = 0; s < steps && t < HORIZON; s++) {
       const w = t + 1;
-      newRec[w] = userSet[w] ? forecasts[w] : movingAvg(t);
+      newRec[w] = ns[w] ? nf[w] : historical52Avg(t);
       t = w;
+      const frozenEntry = t + FROZEN;
+      if (frozenEntry <= HORIZON && !ns[frozenEntry]) {
+        nf[frozenEntry] = historical52Avg(t);
+        ns[frozenEntry] = true;
+      }
     }
-    setRecorded(newRec); setCurrentWeek(t);
+    setRecorded(newRec); setForecasts(nf); setUserSet(ns); setCurrentWeek(t);
   };
 
   const metrics = useMemo(() => {
@@ -375,7 +397,7 @@ function DemandForecastGame() {
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl p-4 shadow">
             <h2 className="font-semibold mb-2 text-stone-700">📋 Forecast Entry (weeks {currentWeek + 1}–{HORIZON})</h2>
-            <p className="text-xs text-stone-400 mb-2">Blue = frozen (locked). White = open. Placeholder shows the moving-average default.</p>
+            <p className="text-xs text-stone-400 mb-2">Blue = frozen (locked). White = open. Placeholder shows the average of the last 52 known weeks.</p>
             <div className="overflow-y-auto max-h-96 border border-stone-100 rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-stone-100 sticky top-0">
@@ -385,7 +407,7 @@ function DemandForecastGame() {
                 </thead>
                 <tbody>
                   {futureWeeks.map((w) => {
-                    const editable = isEditable(w); const frozen = isFrozen(w); const ma = Math.round(movingAvg(currentWeek));
+                    const editable = isEditable(w); const frozen = isFrozen(w); const ma = historical52Avg(currentWeek);
                     return (
                       <tr key={w} className={frozen ? 'bg-blue-50' : ''}>
                         <td className="p-2 font-medium">{w}</td>
