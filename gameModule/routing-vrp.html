@@ -1,591 +1,825 @@
-<!-- File: game1.html -->
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title> VRP (Game 1: Single Vehicle Route)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root{
-      --bg:#f6f8fb;
-      --panel:#ffffff;
-      --text:#0f172a;
-      --muted:#64748b;
-      --accent:#3b82f6;
-      --accent-2:#22c55e;
-      --danger:#ef4444;
-      --warning:#f59e0b;
-      --border:#e5e7eb;
-      --shadow: 0 6px 20px rgba(2,6,23,0.08);
-      --radius:14px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
-      line-height:1.35;
-    }
-    header{
-      background:linear-gradient(135deg, #2563eb, #7c3aed);
-      color:#fff;
-      padding:18px 16px;
-      position:sticky; top:0; z-index:10;
-      box-shadow: var(--shadow);
-    }
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between; gap:12px; max-width:1200px; margin:0 auto;
-    }
-    .brand{
-      display:flex; align-items:center; gap:12px; white-space:nowrap;
-    }
-    .brand .logo{
-      width:36px; height:36px; border-radius:10px;
-      background:rgba(255,255,255,0.15);
-      display:grid; place-items:center; font-weight:800;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.12);
-    }
-    .brand .title{font-weight:800; font-size:18px; letter-spacing:.2px}
-    nav a{
-      color:#fff; text-decoration:none; padding:8px 12px; border-radius:10px;
-      transition:.2s background;
-      opacity:.95;
-    }
-    nav a:hover{ background:rgba(255,255,255,0.15) }
-    nav .active{ background:rgba(255,255,255,0.2); font-weight:700 }
-
-    main{ max-width:1200px; margin:24px auto; padding:0 16px; }
-    .grid{
-      display:grid; gap:16px;
-      grid-template-columns: 1.1fr 1.4fr;
-    }
-    @media (max-width: 980px){
-      .grid{ grid-template-columns: 1fr; }
-    }
-    .card{
-      background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
-      box-shadow: var(--shadow);
-    }
-    .card .head{
-      padding:14px 16px; border-bottom:1px solid var(--border);
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-    }
-    .card .head h2{ font-size:16px; margin:0; font-weight:800 }
-    .card .body{ padding:14px 16px }
-    .subtext{ color:var(--muted); font-size:14px }
-
-    .toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center }
-    .btn{
-      appearance:none; border:1px solid var(--border); background:#fff; color:var(--text);
-      padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:700;
-      transition:.15s transform,.15s box-shadow,.15s background;
-    }
-    .btn:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(2,6,23,0.08) }
-    .btn:active{ transform:translateY(0) }
-    .btn.primary{ background:var(--accent); border-color:transparent; color:#fff }
-    .btn.success{ background:var(--accent-2); border-color:transparent; color:#fff }
-    .btn.danger{ background:var(--danger); border-color:transparent; color:#fff }
-    .btn.ghost{ background:transparent }
-    .badge{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px; border-radius:999px; background:#eef2ff; color:#3730a3; font-weight:700; font-size:12px;
-    }
-    .legend{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--muted) }
-    .legend .dot{ width:10px; height:10px; border-radius:50% }
-    .legend .line{ width:18px; height:3px; border-radius:2px; background:var(--accent) }
-
-    table{ width:100%; border-collapse:separate; border-spacing:0 }
-    thead th{
-      position:sticky; top:0; z-index:1; background:#f8fafc; border-bottom:1px solid var(--border);
-      font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); padding:10px;
-    }
-    tbody td{ padding:10px; border-bottom:1px dashed var(--border); vertical-align:middle }
-    tbody tr:last-child td{ border-bottom:none }
-    tbody tr.dragging{ opacity:.35 }
-    tbody tr.assigned{ color:#94a3b8 }
-    .table-wrap{ max-height:380px; overflow:auto; border:1px solid var(--border); border-radius:12px }
-    .hint{ padding:10px 12px; background:#f1f5f9; border:1px solid var(--border); border-radius:10px; color:#334155; font-size:14px }
-
-    .map-wrap{
-      height:520px; border-radius:12px; overflow:hidden; border:1px solid var(--border);
-      background: radial-gradient(1200px 400px at 20% -30%, #ffffff 0%, #f0f9ff 45%, #eff6ff 100%);
-    }
-    canvas{ display:block; width:100%; height:100% }
-
-    .route-zone{
-      border:2px dashed #cbd5e1; border-radius:12px; min-height:160px; padding:8px; transition:.15s;
-      background:#f8fafc;
-    }
-    .route-zone.over{ border-color:var(--accent) ; background:#eef2ff }
-    .route-row{ background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px 10px;
-      display:flex; align-items:center; justify-content:space-between; gap:10px; margin:6px 0; cursor:grab }
-    .route-row .id{
-      background:#e0f2fe; color:#075985; font-weight:800; padding:2px 8px; border-radius:8px; min-width:36px; text-align:center
-    }
-    .route-row button{ border:none; background:#fee2e2; color:#991b1b; border-radius:8px; padding:6px 8px; cursor:pointer; font-weight:700 }
-    .route-row button:hover{ background:#fecaca }
-
-    .metrics{ display:flex; gap:12px; flex-wrap:wrap; margin-top:10px }
-    .metric{
-      background:#fff; border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:800
-    }
-    .msg{
-      padding:10px 12px; border-radius:10px; font-weight:700; margin-top:8px;
-    }
-    .msg.ok{ background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0 }
-    .msg.warn{ background:#fff7ed; color:#9a3412; border:1px solid #fed7aa }
-    .msg.err{ background:#fef2f2; color:#991b1b; border:1px solid #fecaca }
-    .footer-note{ color:var(--muted); font-size:13px; margin-top:8px }
-    .kicker{ font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:#e2e8f0; opacity:.9 }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FleetFlow: The Last-Mile Routing Challenge</title>
+<style>
+:root{
+  --bg:#eef2f7;--panel:#fff;--ink:#172033;--muted:#5f6b7a;--line:#d7deea;
+  --navy:#142d4c;--blue:#246bfd;--teal:#008f83;--green:#16794c;--amber:#a75c00;
+  --red:#b42318;--focus:#ffbf47;--shadow:0 5px 20px #1c2d4415;
+  --r1:#246bfd;--r2:#d1495b;--r3:#008f83;--r4:#7a4eb3;--r5:#b56a00;
+}
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
+button,input,select,textarea{font:inherit}
+button,.button{min-height:44px;border:1px solid #aeb9ca;border-radius:8px;background:#fff;color:var(--ink);padding:8px 12px;font-weight:650;cursor:pointer}
+button:hover{background:#f2f6fc}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+button.danger{color:var(--red);border-color:#d9a09a}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+header{background:var(--navy);color:#fff;padding:12px 18px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.brand h1{font-size:20px;margin:0}.brand small{color:#cdd8e7}
+.header-stats{display:flex;gap:9px;flex-wrap:wrap}
+.pill{background:#ffffff17;border:1px solid #ffffff35;border-radius:99px;padding:6px 10px}
+.toolbar{background:#fff;border-bottom:1px solid var(--line);padding:9px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar label{font-weight:700}.toolbar select{min-height:44px;border:1px solid #aeb9ca;border-radius:8px;padding:6px}
+main{padding:12px;max-width:1800px;margin:auto}
+.brief{background:#e8f1ff;border-left:5px solid var(--blue);padding:10px 14px;margin-bottom:10px;border-radius:7px}
+.layout{display:grid;grid-template-columns:minmax(230px,280px) minmax(390px,1fr) minmax(280px,360px);gap:12px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.panel h2,.panel h3{margin:0}.panel-head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.panel-body{padding:12px}
+.scroll{max-height:68vh;overflow:auto}
+.order{border:1px solid var(--line);border-radius:9px;padding:9px;margin-bottom:8px;background:#fff}
+.order.selected{border:2px solid var(--blue)}.order.assigned{background:#f3faf7}.order.late{border-color:var(--red)}
+.order-top{display:flex;justify-content:space-between;gap:8px}.meta{color:var(--muted);font-size:12px}
+.badge{display:inline-block;border-radius:99px;padding:2px 7px;font-size:12px;font-weight:750;background:#e8edf5}
+.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
+#mapWrap{position:relative;min-height:520px;background:#eaf0f3}
+#map{width:100%;height:clamp(430px,62vh,700px);display:block;touch-action:manipulation}
+.map-controls{position:absolute;top:10px;left:10px;display:flex;gap:6px;z-index:2}
+.legend{position:absolute;bottom:8px;left:8px;background:#fffffff2;border:1px solid var(--line);padding:7px;border-radius:8px;font-size:12px}
+.route-card{border:1px solid var(--line);border-left:6px solid var(--route);border-radius:10px;margin-bottom:10px;background:#fff}
+.route-card.active{box-shadow:0 0 0 3px #246bfd35}
+.route-title{padding:9px;display:flex;justify-content:space-between;gap:8px;align-items:start}
+.route-stops{padding:0 9px 9px}
+.stop{display:grid;grid-template-columns:27px 1fr repeat(3,34px);gap:4px;align-items:center;background:#f5f7fa;border:1px solid var(--line);border-radius:7px;padding:4px;margin:5px 0}
+.stop button{min-height:34px;padding:2px}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;font-size:12px;padding:8px;background:#f6f8fb}
+.meter{height:8px;background:#e2e7ef;border-radius:8px;overflow:hidden}.meter i{display:block;height:100%;background:var(--teal)}
+.dashboard{display:grid;grid-template-columns:repeat(7,minmax(115px,1fr));gap:8px;margin:12px 0}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px}.kpi b{display:block;font-size:18px}
+.messages{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px}
+.messages ul{margin:6px 0;padding-left:22px}
+details{border-top:1px solid var(--line);padding:9px}summary{font-weight:750;cursor:pointer;min-height:35px}
+table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid var(--line);padding:5px;text-align:left}th{background:#edf2f8}
+.tabs{display:none}
+.modal-back{position:fixed;inset:0;background:#101828b8;z-index:20;display:grid;place-items:center;padding:15px}
+.modal{background:#fff;border-radius:13px;max-width:920px;width:100%;max-height:92vh;overflow:auto;padding:20px;box-shadow:0 18px 50px #0005}
+.modal h2{margin-top:0}.modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+.hidden{display:none!important}.toast{position:fixed;right:18px;bottom:18px;background:#15263e;color:#fff;padding:12px 16px;border-radius:9px;z-index:30;max-width:360px}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.formgrid label{display:grid;gap:4px;font-weight:650}.formgrid input,.formgrid select,.formgrid textarea{min-height:42px;border:1px solid #aeb9ca;border-radius:7px;padding:7px}
+textarea{width:100%;min-height:100px}.result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.result-box{padding:10px;background:#f3f6fa;border-radius:8px}
+.route-line{fill:none;stroke-width:3.5}.map-node{cursor:pointer}.zone{fill:#e05b4930;stroke:#a92b20;stroke-dasharray:7 5}
+.road{stroke:#cbd4df;stroke-width:1}.city-block{fill:#f7f9fb;stroke:#dde4ec}
+@media(max-width:1050px){.layout{grid-template-columns:240px 1fr}.fleet-panel{grid-column:1/-1}.dashboard{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:700px){
+ header{padding:10px}.toolbar{overflow:auto;flex-wrap:nowrap}.layout{display:block}.panel{margin-bottom:10px}
+ .tabs{display:flex;position:sticky;top:0;z-index:5;background:var(--bg);gap:5px;padding:5px}
+ .tab-hidden{display:none}.dashboard{grid-template-columns:repeat(2,1fr)}#mapWrap{min-height:400px}#map{height:430px}
+ .formgrid,.result-grid{grid-template-columns:1fr}.scroll{max-height:none}.brand h1{font-size:17px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media print{button,.toolbar,.tabs{display:none!important}.layout{display:block}.panel{box-shadow:none}.modal-back{position:static;background:none}.modal{max-height:none}}
+</style>
 </head>
 <body>
-  <header>
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo">VRP</div>
-        <div>
-          <div class="title">Vehicle Routing — Single Vehicle</div>
-        </div>
+<header>
+  <div class="brand"><h1>FleetFlow: The Last-Mile Routing Challenge</h1><small>Operations planning control center</small></div>
+  <div class="header-stats">
+    <span class="pill" id="headModule">Module</span>
+    <span class="pill" id="headCost">Cost: —</span>
+    <span class="pill" id="headFeas">Plan incomplete</span>
+    <span class="pill" id="timerPill">Time 00:00</span>
+  </div>
+</header>
+
+<nav class="toolbar" aria-label="Scenario controls">
+  <label for="moduleSelect">Module</label><select id="moduleSelect"></select>
+  <label for="scenarioSelect">Scenario</label><select id="scenarioSelect"></select>
+  <button id="newBtn">New Scenario</button>
+  <button id="restartBtn">Restart</button>
+  <button id="undoBtn">Undo</button><button id="redoBtn">Redo</button>
+  <button id="clearBtn">Clear Plan</button>
+  <button id="hintBtn">Hint</button>
+  <button id="rulesBtn">Scenario Rules</button>
+  <button id="instructorBtn">Instructor Options</button>
+  <button class="primary" id="submitBtn">Test / Submit Plan</button>
+</nav>
+
+<main>
+  <div id="brief" class="brief"></div>
+  <div class="tabs" aria-label="Workspace views">
+    <button data-tab="orders">Orders</button><button data-tab="map">Map</button>
+    <button data-tab="fleet">Fleet</button><button data-tab="schedule">Messages</button>
+  </div>
+
+  <section class="dashboard" aria-label="Plan dashboard">
+    <div class="kpi"><span>Assigned</span><b id="kAssigned">0/0</b></div>
+    <div class="kpi"><span>Vehicles used</span><b id="kUsed">0</b></div>
+    <div class="kpi"><span>Distance</span><b id="kDistance">0 km</b></div>
+    <div class="kpi"><span>Cost</span><b id="kCost">$0</b></div>
+    <div class="kpi"><span>Utilization</span><b id="kUtil">0%</b></div>
+    <div class="kpi"><span>Waiting</span><b id="kWait">0 min</b></div>
+    <div class="kpi"><span>Feasibility</span><b id="kFeas">Incomplete</b></div>
+  </section>
+
+  <div class="layout">
+    <section class="panel orders-panel" data-view="orders">
+      <div class="panel-head"><h2>Customer Orders</h2><span id="orderCount"></span></div>
+      <div class="panel-body">
+        <label for="orderFilter">Filter</label>
+        <select id="orderFilter"><option value="all">All orders</option><option value="unassigned">Unassigned</option><option value="assigned">Assigned</option></select>
       </div>
-      
-    </div>
-  </header>
+      <div id="orders" class="panel-body scroll"></div>
+    </section>
 
-  <main>
-    <div class="grid">
-      <!-- Left Column: Orders + Plan -->
-      <section class="card">
-        <div class="head">
-          <h2>Delivery Orders</h2>
-          <div class="toolbar">
-            <button class="btn" id="btnNew">Generate New Orders</button>
-            <span class="badge" title="Coordinates domain">Map scale: 0–100</span>
-          </div>
-        </div>
-        <div class="body">
-          <p class="subtext">Drag an order from this table into the Routing Plan, or tap “Add” on mobile. Each order appears once in the plan.</p>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Location (x, y)</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="ordersBody"></tbody>
-            </table>
-          </div>
+    <section class="panel map-panel" data-view="map">
+      <div class="panel-head"><h2>Planning Map</h2><span id="selectedVehicleLabel"></span></div>
+      <div id="mapWrap">
+        <div class="map-controls"><button id="fitBtn" aria-label="Auto-fit map">Fit</button><button id="animateBtn">Animate</button></div>
+        <svg id="map" role="img" aria-label="Interactive route planning map" viewBox="0 0 800 600"></svg>
+        <div class="legend">◆ Depot · ● Unassigned · ✓ Assigned<br>Lines use color, dash pattern, arrows and stop numbers.</div>
+      </div>
+    </section>
 
-          <h3 style="margin:18px 0 8px 0;">Routing Plan</h3>
-          <div id="routeZone" class="route-zone" aria-label="Drop orders here to build your route">
-            <!-- Dropped route rows go here -->
-          </div>
+    <section class="panel fleet-panel" data-view="fleet">
+      <div class="panel-head"><h2>Fleet Routes</h2><span>Click a vehicle to select</span></div>
+      <div id="fleet" class="panel-body scroll"></div>
+    </section>
+  </div>
 
-          <div class="toolbar" style="margin-top:12px;">
-            <button class="btn primary" id="btnConfirm">Confirm & Show Route</button>
-            <button class="btn" id="btnReset">Reset Plan</button>
-          </div>
+  <section class="messages" data-view="schedule">
+    <h2>Validation & schedules</h2>
+    <div id="messages"></div>
+    <div id="schedules"></div>
+  </section>
+</main>
 
-          <div class="metrics">
-            <div class="metric">Total Distance: <span id="totalDistance">0.00</span> km</div>
-            <div class="metric">Orders in Route: <span id="routeCount">0</span></div>
-          </div>
-          <div id="feedback" class="msg ok" style="display:none"></div>
+<div id="modalBack" class="modal-back hidden" role="presentation">
+  <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2><div id="modalContent"></div><div class="modal-actions" id="modalActions"></div>
+  </section>
+</div>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-          <div class="footer-note">
-            Objective: Minimize the total distance starting and ending at the depot. This single-vehicle case shows how quickly sequencing becomes tricky even without capacity or time constraints.
-          </div>
-        </div>
-      </section>
+<script>
+"use strict";
 
-      <!-- Right Column: Map -->
-      <section class="card">
-        <div class="head">
-          <h2>Map</h2>
-          <div class="legend">
-            <span class="dot" style="background:#111827"></span> Depot
-            <span class="dot" style="background:#0ea5e9"></span> Order
-            <span class="line"></span> Route
-          </div>
-        </div>
-        <div class="body">
-          <div class="map-wrap">
-            <canvas id="mapCanvas"></canvas>
-          </div>
-          <p class="hint" style="margin-top:12px;">
-            Tip: Try nearest neighbor (greedy) vs. your intuition. Does a locally short hop always lead to a globally short tour?
-          </p>
-        </div>
-      </section>
-    </div>
-  </main>
+/* ================================================================
+   1. MODEL CONFIGURATION
+   Instructors can edit these defaults and copy scenario objects below.
+   Times use minutes after midnight. Capacity is the starting delivery
+   load. A time-window deadline applies to SERVICE START.
+================================================================ */
+const CONFIG={
+  distanceScale:0.15,
+  driverCostPerHour:18,
+  waitingCostPerHour:5,
+  overtimePenaltyPerHour:60,
+  latePenalty:150,
+  unservedPenalty:300,
+  hardConstraints:true,
+  hints:true,
+  showBenchmark:true,
+  timerEnabled:false,
+  timerMinutes:20,
+  scoring:{feasibility:60,efficiency:20,utilization:10,service:10},
+  routeColors:["#246bfd","#d1495b","#008f83","#7a4eb3","#b56a00"],
+  routeDashes:["","10 5","3 4","14 4 3 4","7 3"],
+  storageKey:"fleetflow-v1"
+};
 
-  <script>
-    // ----------------------------
-    // Game 1: Data + State
-    // ----------------------------
-    const ORDERS_COUNT = 15;
-    const COORD_RANGE = { min: 5, max: 95 };
-    const DEPOT = { x: 50, y: 50 };
-    let orders = [];
-    let route = []; // array of order IDs
-    const assigned = new Set(); // IDs already in route
+const T=(h,m=0)=>h*60+m;
+const C=(id,x,y,d=1,tw=[T(8),T(17)],service=10,name=id,priority=false)=>({id,name,x,y,demand:d,tw,service,mandatory:true,priority});
+const V=(id,name,capacity=99,fixed=30,perKm=1,speed=35,extra={})=>({
+  id,name,type:"Delivery van",capacity,fixed,perKm,speed,shiftStart:T(8),shiftEnd:T(17),
+  range:Infinity,emission:0.18,available:true,...extra
+});
 
-    // DOM Elements
-    const ordersBody = document.getElementById('ordersBody');
-    const routeZone = document.getElementById('routeZone');
-    const totalDistanceEl = document.getElementById('totalDistance');
-    const routeCountEl = document.getElementById('routeCount');
-    const feedbackEl = document.getElementById('feedback');
+/* ================================================================
+   2. READABLE SCENARIO LIBRARY
+   To add a scenario: copy one object, change its ID, module, customers,
+   vehicles and notes, then add it to SCENARIOS.
+================================================================ */
+const SCENARIOS=[
+{
+ id:"tutorial",module:1,title:"Tutorial: First Dispatch",seed:101,depot:{x:400,y:300,name:"Central Depot"},
+ customers:[C("C1",250,210),C("C2",520,175),C("C3",620,330),C("C4",430,460)],
+ vehicles:[V("V1","Training Van")],timeWindows:false,capacity:false,
+ briefing:"Select the Training Van, then click customers on the map or use Add buttons. Reorder stops and submit a complete depot-return route.",
+ notes:["A route is a sequence, not merely a set of customers.","Every used vehicle automatically returns to the depot."],
+ benchmark:{targetDistance:150},tutorial:true
+},
+{
+ id:"m1-a",module:1,title:"River District Circuit",seed:1101,depot:{x:390,y:310,name:"Depot"},
+ customers:[C("C1",150,160),C("C2",275,115),C("C3",590,120),C("C4",680,270),C("C5",610,470),C("C6",340,500),C("C7",180,400)],
+ vehicles:[V("V1","Route Van",99,25,0.9,38)],timeWindows:false,capacity:false,
+ briefing:"Visit all seven customers once with one vehicle and return to the depot. Seek a short closed tour.",
+ notes:["Nearest-next choices can create an expensive final return leg."],benchmark:{targetDistance:200}
+},
+{
+ id:"m1-b",module:1,title:"Cross-Town Sequence",seed:1102,depot:{x:410,y:310,name:"Depot"},
+ customers:[C("C1",120,280),C("C2",220,105),C("C3",430,130),C("C4",650,100),C("C5",690,360),C("C6",500,500),C("C7",270,475),C("C8",330,285)],
+ vehicles:[V("V1","City Van",99,25,0.9,38)],timeWindows:false,capacity:false,
+ briefing:"Build a complete eight-customer tour. Compare local nearest-neighbor choices with the complete route.",
+ notes:["Crossing lines are not invalid, but often indicate improvement opportunities."],benchmark:{targetDistance:220}
+},
+{
+ id:"m2-a",module:2,title:"Capacity Clusters",seed:2201,depot:{x:400,y:300,name:"Depot"},
+ customers:[C("C1",130,150,4),C("C2",220,205,3),C("C3",170,360,5),C("C4",300,470,2),C("C5",540,120,4),C("C6",650,190,3),C("C7",680,390,5),C("C8",530,475,3),C("C9",395,110,2)],
+ vehicles:[V("V1","Van 1",16,42,1.05),V("V2","Van 2",16,42,1.05),V("V3","Reserve Van",12,48,1.1)],
+ timeWindows:false,capacity:true,
+ briefing:"Assign every indivisible order. Each used van starts loaded at the depot and must remain within capacity.",
+ notes:["Using another vehicle reduces route load but adds a fixed cost."],benchmark:{targetCost:300}
+},
+{
+ id:"m2-b",module:2,title:"Harbor Deliveries",seed:2202,depot:{x:390,y:320,name:"Depot"},
+ customers:[C("C1",100,100,2),C("C2",190,175,4),C("C3",120,420,3),C("C4",285,500,5),C("C5",420,105,4),C("C6",560,150,2),C("C7",690,250,5),C("C8",650,455,4),C("C9",490,480,3),C("C10",330,235,2)],
+ vehicles:[V("V1","Van 1",15,38,1),V("V2","Van 2",15,38,1),V("V3","Van 3",10,46,0.95)],
+ timeWindows:false,capacity:true,
+ briefing:"Balance geographic grouping against vehicle capacity and fixed fleet costs.",
+ notes:["High utilization is useful only when the resulting travel remains sensible."],benchmark:{targetCost:330}
+},
+{
+ id:"m3-a",module:3,title:"Morning Appointments",seed:3301,depot:{x:400,y:300,name:"Depot"},
+ customers:[
+  C("C1",210,150,3,[T(8,20),T(9,15)],15),C("C2",350,110,2,[T(8,45),T(10,15)],10),
+  C("C3",600,140,4,[T(9),T(11)],15),C("C4",680,300,3,[T(9,45),T(12)],10),
+  C("C5",590,470,4,[T(10,30),T(13)],20),C("C6",390,500,2,[T(9,30),T(12,30)],10),
+  C("C7",180,430,3,[T(8,30),T(10,30)],15),C("C8",280,285,2,[T(8),T(11,30)],10)
+ ],
+ vehicles:[V("V1","Van 1",13,45,1,36,{shiftEnd:T(14)}),V("V2","Van 2",13,45,1,36,{shiftEnd:T(14)})],
+ timeWindows:true,capacity:true,
+ briefing:"Service must start within each appointment window. Early vehicles wait; service time delays all later visits.",
+ notes:["Arrival, waiting, service start and departure are distinct events."],benchmark:{targetCost:320}
+},
+{
+ id:"m3-b",module:3,title:"Clinic Supply Windows",seed:3302,depot:{x:410,y:310,name:"Medical Depot"},
+ customers:[
+  C("C1",120,160,2,[T(8,15),T(9,30)],20),C("C2",250,105,3,[T(9),T(10,45)],15),
+  C("C3",510,105,4,[T(8,30),T(10)],20),C("C4",680,170,2,[T(10),T(12)],10),
+  C("C5",690,410,3,[T(11),T(13,30)],20),C("C6",510,500,4,[T(9,45),T(12,30)],15),
+  C("C7",290,485,2,[T(10,30),T(14)],10),C("C8",130,380,3,[T(8,45),T(11)],15),
+  C("C9",360,250,2,[T(8),T(12)],10)
+ ],
+ vehicles:[V("V1","Cold Van",14,55,1.2,34,{shiftEnd:T(15)}),V("V2","Supply Van",14,45,1,36,{shiftEnd:T(15)})],
+ timeWindows:true,capacity:true,
+ briefing:"Plan clinic visits around appointment windows and non-trivial service durations.",
+ notes:["The shortest-distance sequence may be time-infeasible."],benchmark:{targetCost:350}
+},
+{
+ id:"m4-a",module:4,title:"Metro Fleet Resilience",seed:4401,depot:{x:400,y:300,name:"Metro Depot"},
+ customers:[
+  C("C1",110,130,3,[T(8,15),T(10)],15),C("C2",245,100,4,[T(8,30),T(11)],15),
+  C("C3",390,105,2,[T(9),T(12)],10),C("C4",585,115,5,[T(9),T(11,30)],20),
+  C("C5",700,235,3,[T(10),T(13)],10),C("C6",665,430,4,[T(10,30),T(14)],15),
+  C("C7",520,505,5,[T(9,45),T(13,30)],20),C("C8",330,500,3,[T(10),T(14)],15),
+  C("C9",150,440,4,[T(8,45),T(11,30)],15),C("C10",210,285,2,[T(8),T(12)],10),
+  C("C11",520,275,3,[T(9),T(13)],10),C("C12",375,390,2,[T(9),T(14)],10)
+ ],
+ vehicles:[
+  V("V1","Electric Van",14,58,0.55,34,{type:"Electric van",range:115,emission:0.04,shiftEnd:T(15)}),
+  V("V2","Cargo Van",18,72,1.05,38,{type:"Large van",emission:0.2,shiftEnd:T(15)}),
+  V("V3","City Van",13,45,1.2,36,{type:"Compact van",emission:0.15,shiftEnd:T(15)}),
+  V("V4","Reserve Van",12,85,1.15,36,{type:"Reserve vehicle",emission:0.18,shiftEnd:T(15)})
+ ],
+ timeWindows:true,capacity:true,
+ briefing:"Choose vehicle types, meet appointments and retain flexibility. After your first feasible submission, central-zone traffic rises by 40%; revise the preserved plan.",
+ notes:["A low-cost plan can be fragile when conditions change.","EV range and driver shifts are hard limits."],
+ disruption:{message:"Central-zone congestion has increased travel times by 40%. Segments entering the red zone now take longer.",zone:{x:300,y:205,w:230,h:190},multiplier:1.4},
+ benchmark:{targetCost:480}
+}
+];
 
-    const btnNew = document.getElementById('btnNew');
-    const btnReset = document.getElementById('btnReset');
-    const btnConfirm = document.getElementById('btnConfirm');
+const MODULES={
+ 1:"Module 1 — Location & Distance",
+ 2:"Module 2 — Capacitated VRP",
+ 3:"Module 3 — VRP with Time Windows",
+ 4:"Module 4 — Fleet Management Challenge"
+};
 
-    const canvas = document.getElementById('mapCanvas');
-    const ctx = canvas.getContext('2d');
+/* ================================================================
+   3. CENTRAL GAME STATE
+================================================================ */
+const state={
+ scenario:null,routes:{},selectedVehicle:null,selectedCustomer:null,
+ undo:[],redo:[],hintsUsed:0,attempts:0,startTime:Date.now(),
+ disruptionActive:false,preDisruption:null,lastResult:null,completed:{},
+ settings:structuredClone(CONFIG),animation:false
+};
 
-    // ----------------------------
-    // Utilities
-    // ----------------------------
-    function rnd(min, max){ return Math.random() * (max - min) + min; }
-    function round(n, d=2){ return Number.parseFloat(n).toFixed(d); }
-    function distance(a, b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+/* ================================================================
+   4. SEEDED RANDOM SCENARIO GENERATOR
+   Windows are deliberately broad, and total demand is kept below fleet
+   capacity, providing a constructed feasible planning instance.
+================================================================ */
+function rng(seed){let x=seed>>>0;return()=>((x=Math.imul(1664525,x)+1013904223>>>0)/4294967296)}
+function generatedScenario(module=+document.querySelector("#moduleSelect").value||1,seed=Date.now()%1000000){
+ const r=rng(seed),n=module===1?7:module===4?12:10;
+ const customers=[];
+ for(let i=0;i<n;i++){
+   const angle=2*Math.PI*i/n+(r()-.5)*.25,rad=155+r()*130;
+   const demand=module===1?1:2+Math.floor(r()*4);
+   const open=T(8)+Math.floor(r()*90),close=module>=3?open+180+Math.floor(r()*60):T(17);
+   customers.push(C("C"+(i+1),400+Math.cos(angle)*rad,300+Math.sin(angle)*rad,demand,[open,close],10+5*Math.floor(r()*3)));
+ }
+ const total=customers.reduce((a,c)=>a+c.demand,0);
+ const count=module===1?1:Math.max(2,Math.ceil(total/16));
+ const vehicles=Array.from({length:count+((module===4)?1:0)},(_,i)=>V("V"+(i+1),"Generated Van "+(i+1),module===1?99:16,40+i*5,1+.05*i,36,{shiftEnd:T(16),range:module===4&&i===0?120:Infinity}));
+ return {id:`gen-${module}-${seed}`,module,title:`Seeded Scenario ${seed}`,seed,depot:{x:400,y:300,name:"Depot"},customers,vehicles,
+   timeWindows:module>=3,capacity:module>=2,briefing:"A deterministic generated scenario. The same seed reproduces the same locations and order data.",
+   notes:["Generated demand is within total fleet capacity and time windows are intentionally broad."],benchmark:{}};
+}
 
-    function generateOrders(n=ORDERS_COUNT){
-      const arr = [];
-      for(let i=1;i<=n;i++){
-        arr.push({
-          id: i,
-          x: Math.round(rnd(COORD_RANGE.min, COORD_RANGE.max)),
-          y: Math.round(rnd(COORD_RANGE.min, COORD_RANGE.max)),
-        });
-      }
-      return arr;
-    }
+/* ================================================================
+   5. DISTANCE, TIME, ROUTE EVALUATION AND COST
+================================================================ */
+const fmt=n=>Number.isFinite(n)?n.toFixed(1):"—";
+const money=n=>"$"+n.toFixed(0);
+const clock=m=>{if(!Number.isFinite(m))return"—";m=Math.round(m);return `${String(Math.floor(m/60)%24).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`};
+const node=id=>id==="DEPOT"?state.scenario.depot:state.scenario.customers.find(c=>c.id===id);
+function distance(a,b){
+ a=typeof a==="string"?node(a):a;b=typeof b==="string"?node(b):b;
+ return Math.hypot(a.x-b.x,a.y-b.y)*state.settings.distanceScale;
+}
+function inZone(p,z){return z&&p.x>=z.x&&p.x<=z.x+z.w&&p.y>=z.y&&p.y<=z.y+z.h}
+function trafficMultiplier(a,b){
+ const d=state.scenario.disruption;
+ return state.disruptionActive&&d&&d.zone&&(inZone(a,d.zone)||inZone(b,d.zone))?d.multiplier:1;
+}
+function evaluateRoute(vehicle,route){
+ let time=vehicle.shiftStart,demand=0,dist=0,wait=0,travel=0,prev=state.scenario.depot;
+ const schedule=[{seq:0,id:"DEPOT",arrival:time,start:time,departure:time,wait:0,service:0,demand:0,delivered:0}];
+ const violations=[];let delivered=0;
+ route.forEach((id,i)=>{
+   const c=node(id);if(!c){violations.push(`Unknown customer ${id}.`);return}
+   const d=distance(prev,c),tr=d/vehicle.speed*60*trafficMultiplier(prev,c);
+   dist+=d;travel+=tr;time+=tr;const arrival=time;
+   const waiting=state.scenario.timeWindows?Math.max(0,c.tw[0]-arrival):0;
+   wait+=waiting;const start=arrival+waiting;
+   if(state.scenario.timeWindows&&start>c.tw[1]+1e-7)
+     violations.push(`${vehicle.name} reaches ${c.id} at ${clock(arrival)}; service starts ${clock(start)}, after its ${clock(c.tw[1])} deadline.`);
+   time=start+c.service;demand+=c.demand;delivered+=c.demand;
+   schedule.push({seq:i+1,id:c.id,arrival,start,departure:time,wait:waiting,service:c.service,demand:c.demand,delivered});
+   prev=c;
+ });
+ if(route.length){
+   const d=distance(prev,state.scenario.depot),tr=d/vehicle.speed*60*trafficMultiplier(prev,state.scenario.depot);
+   dist+=d;travel+=tr;time+=tr;
+   schedule.push({seq:route.length+1,id:"DEPOT",arrival:time,start:time,departure:time,wait:0,service:0,demand:0,delivered});
+ }
+ if(state.scenario.capacity&&demand>vehicle.capacity)violations.push(`${vehicle.name} exceeds capacity by ${demand-vehicle.capacity} units.`);
+ if(route.length&&!vehicle.available)violations.push(`${vehicle.name} is unavailable but has an assigned route.`);
+ if(dist>vehicle.range)violations.push(`${vehicle.name}'s planned distance exceeds its available range by ${fmt(dist-vehicle.range)} km.`);
+ if(time>vehicle.shiftEnd)violations.push(`${vehicle.name} returns ${Math.ceil(time-vehicle.shiftEnd)} minutes after the driver's shift ends.`);
+ const fixed=route.length?vehicle.fixed:0,variable=dist*vehicle.perKm;
+ const driver=route.length?(time-vehicle.shiftStart)/60*state.settings.driverCostPerHour:0;
+ const waitCost=wait/60*state.settings.waitingCostPerHour;
+ const cost=fixed+variable+driver+waitCost;
+ return {vehicle,route,demand,dist,wait,travel,returnTime:time,duration:route.length?time-vehicle.shiftStart:0,
+   fixed,variable,driver,waitCost,cost,schedule,violations,feasible:!violations.length};
+}
+function evaluatePlan(routes=state.routes){
+ const evaluations=state.scenario.vehicles.map(v=>evaluateRoute(v,routes[v.id]||[]));
+ const counts={};Object.values(routes).flat().forEach(id=>counts[id]=(counts[id]||0)+1);
+ const violations=[];
+ state.scenario.customers.filter(c=>c.mandatory).forEach(c=>{
+   if(!counts[c.id])violations.push(`Customer ${c.id} has not been assigned.`);
+   if(counts[c.id]>1)violations.push(`Customer ${c.id} is assigned ${counts[c.id]} times.`);
+ });
+ evaluations.forEach(e=>violations.push(...e.violations));
+ const assigned=Object.keys(counts).filter(id=>counts[id]>0).length;
+ const used=evaluations.filter(e=>e.route.length);
+ const distance=evaluations.reduce((a,e)=>a+e.dist,0);
+ const cost=evaluations.reduce((a,e)=>a+e.cost,0);
+ const demand=used.reduce((a,e)=>a+e.demand,0),capacity=used.reduce((a,e)=>a+e.vehicle.capacity,0);
+ const wait=evaluations.reduce((a,e)=>a+e.wait,0),travel=evaluations.reduce((a,e)=>a+e.travel,0);
+ const emissions=evaluations.reduce((a,e)=>a+e.dist*e.vehicle.emission,0);
+ return {evaluations,violations,assigned,used:used.length,distance,cost,demand,capacity,util:capacity?demand/capacity:0,wait,travel,emissions,feasible:violations.length===0};
+}
 
-    function depot(){ return DEPOT; }
-    function byId(id){ return orders.find(o => o.id === id); }
+/* ================================================================
+   6. EDITING, UNDO AND REDO
+================================================================ */
+function snapshot(){return {routes:structuredClone(state.routes),disruptionActive:state.disruptionActive}}
+function restore(s){state.routes=structuredClone(s.routes);state.disruptionActive=s.disruptionActive;render();save()}
+function mutate(fn){state.undo.push(snapshot());if(state.undo.length>50)state.undo.shift();state.redo=[];fn();render();save()}
+function addCustomer(id,vehicleId=state.selectedVehicle){
+ if(!vehicleId)return toast("Select a vehicle first.");
+ if(Object.values(state.routes).some(r=>r.includes(id)))return toast(`${id} is already assigned.`);
+ mutate(()=>state.routes[vehicleId].push(id));
+}
+function removeStop(v,i){mutate(()=>state.routes[v].splice(i,1))}
+function moveStop(v,i,delta){const j=i+delta;if(j<0||j>=state.routes[v].length)return;mutate(()=>{const a=state.routes[v];[a[i],a[j]]=[a[j],a[i]]})}
+function moveVehicle(v,i){
+ const ids=state.scenario.vehicles.filter(x=>x.available).map(x=>x.id),to=ids[(ids.indexOf(v)+1)%ids.length];
+ if(to===v)return;mutate(()=>state.routes[to].push(state.routes[v].splice(i,1)[0]));
+}
+function undo(){if(!state.undo.length)return;state.redo.push(snapshot());restore(state.undo.pop())}
+function redo(){if(!state.redo.length)return;state.undo.push(snapshot());restore(state.redo.pop())}
 
-    // ----------------------------
-    // Map Drawing
-    // ----------------------------
-    function resizeCanvas(){
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      const {clientWidth, clientHeight} = canvas;
-      canvas.width = clientWidth * dpr;
-      canvas.height = clientHeight * dpr;
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-    }
+/* ================================================================
+   7. VALID HEURISTIC BENCHMARKS
+   Module 1 uses nearest neighbor + 2-opt. Other modules use cheapest
+   feasible insertion ordered by deadline/demand. It is not optimal.
+================================================================ */
+function routeLength(route){let p="DEPOT",d=0;for(const x of route){d+=distance(p,x);p=x}return d+distance(p,"DEPOT")}
+function twoOpt(route){
+ let best=route.slice(),changed=true;
+ while(changed){changed=false;for(let i=0;i<best.length-1;i++)for(let k=i+1;k<best.length;k++){
+   const n=best.slice(0,i).concat(best.slice(i,k+1).reverse(),best.slice(k+1));
+   if(routeLength(n)<routeLength(best)-1e-6){best=n;changed=true}
+ }}return best;
+}
+function benchmark(){
+ const routes=Object.fromEntries(state.scenario.vehicles.map(v=>[v.id,[]]));
+ if(state.scenario.module===1){
+   const left=state.scenario.customers.map(c=>c.id);let p="DEPOT";
+   while(left.length){left.sort((a,b)=>distance(p,a)-distance(p,b));p=left.shift();routes[state.scenario.vehicles[0].id].push(p)}
+   routes[state.scenario.vehicles[0].id]=twoOpt(routes[state.scenario.vehicles[0].id]);return {routes,plan:evaluatePlan(routes)};
+ }
+ const orders=state.scenario.customers.slice().sort((a,b)=>(a.tw?.[1]||9999)-(b.tw?.[1]||9999)||b.demand-a.demand);
+ for(const c of orders){
+   let best=null;
+   for(const v of state.scenario.vehicles.filter(x=>x.available))for(let pos=0;pos<=routes[v.id].length;pos++){
+     const candidate=routes[v.id].slice();candidate.splice(pos,0,c.id);
+     const e=evaluateRoute(v,candidate);
+     if(!e.violations.length){
+       const old=evaluateRoute(v,routes[v.id]);
+       const inc=e.cost-old.cost;
+       if(!best||inc<best.inc)best={v:v.id,pos,inc};
+     }
+   }
+   if(best)routes[best.v].splice(best.pos,0,c.id);
+ }
+ return {routes,plan:evaluatePlan(routes)};
+}
 
-    function worldBounds(){
-      // For generality compute bounds, though data is 0..100 with padding
-      const xs = orders.map(o=>o.x).concat([DEPOT.x]);
-      const ys = orders.map(o=>o.y).concat([DEPOT.y]);
-      return {
-        minX: Math.min(...xs, 0), maxX: Math.max(...xs, 100),
-        minY: Math.min(...ys, 0), maxY: Math.max(...ys, 100)
-      };
-    }
+/* ================================================================
+   8. SCORING
+================================================================ */
+function scorePlan(plan,bench){
+ if(!plan.feasible){
+   const served=plan.assigned/state.scenario.customers.length;
+   return {score:Math.round(Math.min(49,served*35-Math.min(20,plan.violations.length*3))),rating:"Developing Planner"};
+ }
+ const sw=state.settings.scoring;
+ const efficiency=bench?.plan.feasible?Math.max(0,Math.min(1,bench.plan.cost/Math.max(plan.cost,1))):.75;
+ const util=Math.min(1,plan.util/.85);
+ const service=Math.max(0,1-plan.wait/Math.max(1,plan.travel+plan.wait));
+ let score=sw.feasibility+sw.efficiency*efficiency+sw.utilization*util+sw.service*service;
+ score=Math.round(Math.max(0,Math.min(100,score)));
+ return {score,rating:score>=90?"Routing Strategist":score>=75?"Fleet Planner":score>=60?"Dispatch Coordinator":"Developing Planner"};
+}
 
-    function worldToCanvas(x,y){
-      const pad = 24;
-      const w = canvas.clientWidth, h = canvas.clientHeight;
-      const b = worldBounds();
-      const rx = (w - pad*2) / (b.maxX - b.minX || 1);
-      const ry = (h - pad*2) / (b.maxY - b.minY || 1);
-      return {
-        x: pad + (x - b.minX) * rx,
-        y: h - pad - (y - b.minY) * ry // invert y for canvas
-      };
-    }
+/* ================================================================
+   9. RENDERING
+================================================================ */
+function render(){
+ const s=state.scenario,p=evaluatePlan();
+ document.querySelector("#headModule").textContent=MODULES[s.module];
+ document.querySelector("#headCost").textContent=`Cost: ${money(p.cost)}`;
+ document.querySelector("#headFeas").textContent=p.feasible?"✓ Feasible":p.assigned<s.customers.length?"Incomplete":"✕ Violations";
+ document.querySelector("#brief").innerHTML=`<b>${s.title}.</b> ${s.briefing}${state.disruptionActive?` <b class="bad">Disruption active:</b> ${s.disruption.message}`:""}`;
+ document.querySelector("#kAssigned").textContent=`${p.assigned}/${s.customers.length}`;
+ document.querySelector("#kUsed").textContent=p.used;document.querySelector("#kDistance").textContent=`${fmt(p.distance)} km`;
+ document.querySelector("#kCost").textContent=money(p.cost);document.querySelector("#kUtil").textContent=`${Math.round(p.util*100)}%`;
+ document.querySelector("#kWait").textContent=`${Math.round(p.wait)} min`;document.querySelector("#kFeas").textContent=p.feasible?"Feasible":p.assigned<s.customers.length?"Incomplete":"Violations";
+ document.querySelector("#kFeas").className=p.feasible?"good":"bad";
+ document.querySelector("#selectedVehicleLabel").textContent=`Selected: ${s.vehicles.find(v=>v.id===state.selectedVehicle)?.name||"none"}`;
+ renderOrders();renderMap();renderFleet(p);renderMessages(p);
+ document.querySelector("#undoBtn").disabled=!state.undo.length;document.querySelector("#redoBtn").disabled=!state.redo.length;
+}
 
-    function drawGrid(){
-      const w = canvas.clientWidth, h = canvas.clientHeight;
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      // background gradient already on container
-      ctx.save();
-      ctx.globalAlpha = 0.6;
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
-      const step = 20; // world units
-      for(let g=0; g<=100; g+=step){
-        const p1 = worldToCanvas(g,0); const p2 = worldToCanvas(g,100);
-        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-        const q1 = worldToCanvas(0,g); const q2 = worldToCanvas(100,g);
-        ctx.beginPath(); ctx.moveTo(q1.x, q1.y); ctx.lineTo(q2.x, q2.y); ctx.stroke();
-      }
-      ctx.restore();
+function assignment(id){for(const [v,r] of Object.entries(state.routes)){const i=r.indexOf(id);if(i>=0)return {v,i}}return null}
+function renderOrders(){
+ const filter=document.querySelector("#orderFilter").value,box=document.querySelector("#orders");box.innerHTML="";
+ const list=state.scenario.customers.filter(c=>filter==="all"||(filter==="assigned")===!!assignment(c.id));
+ document.querySelector("#orderCount").textContent=`${list.length} shown`;
+ list.forEach(c=>{
+   const a=assignment(c.id),el=document.createElement("article");el.className=`order ${a?"assigned":""} ${state.selectedCustomer===c.id?"selected":""}`;
+   el.innerHTML=`<div class="order-top"><b>${c.id} · ${c.name}</b><span class="badge">${a?"✓ "+a.v:"Unassigned"}</span></div>
+   <div class="meta">${state.scenario.capacity?`Demand ${c.demand}`:"Location order"} ${state.scenario.timeWindows?` · Window ${clock(c.tw[0])}–${clock(c.tw[1])} · Service ${c.service} min`:""}</div>
+   <button ${a?"disabled":""} aria-label="Add ${c.id} to selected vehicle">Add to selected vehicle</button>`;
+   el.querySelector("button").onclick=()=>addCustomer(c.id);
+   el.onclick=e=>{if(e.target.tagName!=="BUTTON"){state.selectedCustomer=c.id;render()}};
+   box.append(el);
+ });
+}
 
-      // Axes labels
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '12px system-ui';
-      for(let g=0; g<=100; g+=20){
-        const p = worldToCanvas(g,0);
-        ctx.fillText(g.toString(), p.x-6, worldToCanvas(0,0).y+14);
-        const q = worldToCanvas(0,g);
-        ctx.fillText(g.toString(), worldToCanvas(0,0).x-26, q.y+4);
-      }
-    }
+function renderMap(routes=state.routes,target="#map"){
+ const svg=document.querySelector(target);svg.innerHTML=`
+ <defs>${state.scenario.vehicles.map((v,i)=>`<marker id="arrow${i}${target.slice(1)}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="${CONFIG.routeColors[i%5]}"/></marker>`).join("")}</defs>
+ <rect width="800" height="600" fill="#e9eff3"/>
+ ${Array.from({length:7},(_,i)=>`<line class="road" x1="${60+i*115}" y1="0" x2="${60+i*115}" y2="600"/>`).join("")}
+ ${Array.from({length:5},(_,i)=>`<line class="road" x1="0" y1="${70+i*115}" x2="800" y2="${70+i*115}"/>`).join("")}`;
+ if(state.scenario.disruption&&state.disruptionActive){const z=state.scenario.disruption.zone;svg.insertAdjacentHTML("beforeend",`<rect class="zone" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}"/><text x="${z.x+8}" y="${z.y+18}" fill="#8f2018" font-weight="700">40% TRAFFIC ZONE</text>`)}
+ state.scenario.vehicles.forEach((v,i)=>{
+   const r=routes[v.id]||[];if(!r.length)return;
+   const pts=[state.scenario.depot,...r.map(node),state.scenario.depot].map(p=>`${p.x},${p.y}`).join(" ");
+   svg.insertAdjacentHTML("beforeend",`<polyline class="route-line" points="${pts}" stroke="${CONFIG.routeColors[i%5]}" stroke-dasharray="${CONFIG.routeDashes[i%5]}" marker-mid="url(#arrow${i}${target.slice(1)})" opacity="${state.selectedVehicle===v.id?1:.78}"/>`);
+   r.forEach((id,j)=>{const c=node(id);svg.insertAdjacentHTML("beforeend",`<circle cx="${c.x+13}" cy="${c.y-14}" r="10" fill="${CONFIG.routeColors[i%5]}"/><text x="${c.x+13}" y="${c.y-10}" text-anchor="middle" fill="white" font-size="10">${j+1}</text>`)});
+ });
+ const d=state.scenario.depot;
+ svg.insertAdjacentHTML("beforeend",`<g aria-label="Depot"><path d="M${d.x},${d.y-16} l16,16 -16,16 -16,-16z" fill="#142d4c" stroke="white" stroke-width="3"/><text x="${d.x}" y="${d.y+32}" text-anchor="middle" font-weight="700">DEPOT</text></g>`);
+ state.scenario.customers.forEach(c=>{
+   const a=assignment(c.id);
+   svg.insertAdjacentHTML("beforeend",`<g class="map-node" tabindex="0" role="button" data-id="${c.id}" aria-label="${c.id}, ${a?"assigned":"unassigned"}">
+   <circle cx="${c.x}" cy="${c.y}" r="${state.selectedCustomer===c.id?16:13}" fill="${a?"#16794c":"#fff"}" stroke="${a?"#fff":"#27364c"}" stroke-width="3"/>
+   <text x="${c.x}" y="${c.y+4}" text-anchor="middle" font-size="10" font-weight="800" fill="${a?"white":"#172033"}">${a?"✓":c.id.replace("C","")}</text>
+   <text x="${c.x}" y="${c.y-20}" text-anchor="middle" font-size="11" font-weight="700">${c.id}${state.scenario.capacity?" d"+c.demand:""}</text>
+   ${state.scenario.timeWindows?`<text x="${c.x}" y="${c.y+29}" text-anchor="middle" font-size="9">${clock(c.tw[0])}–${clock(c.tw[1])}</text>`:""}</g>`);
+ });
+ svg.querySelectorAll(".map-node").forEach(g=>{
+   const go=()=>{state.selectedCustomer=g.dataset.id;if(!assignment(g.dataset.id))addCustomer(g.dataset.id);else render()};
+   g.onclick=go;g.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}};
+ });
+}
 
-    function drawMap(showRoute=true){
-      resizeCanvas();
-      drawGrid();
+function renderFleet(plan){
+ const box=document.querySelector("#fleet");box.innerHTML="";
+ plan.evaluations.forEach((e,i)=>{
+   const card=document.createElement("article");card.className=`route-card ${state.selectedVehicle===e.vehicle.id?"active":""}`;card.style.setProperty("--route",CONFIG.routeColors[i%5]);
+   card.innerHTML=`<div class="route-title"><div><b>${e.vehicle.name}</b><div class="meta">${e.vehicle.type} · ${e.vehicle.available?"Available":"Unavailable"}</div></div>
+   <button class="select">${state.selectedVehicle===e.vehicle.id?"Selected":"Select"}</button></div>
+   <div class="metrics"><span>Load <b>${e.demand}/${e.vehicle.capacity}</b></span><span>Distance <b>${fmt(e.dist)} km</b></span>
+   <span>Cost <b>${money(e.cost)}</b></span><span>Return <b>${e.route.length?clock(e.returnTime):"—"}</b></span>
+   <span>Fixed <b>${money(e.fixed)}</b></span><span>Variable <b>${money(e.variable)}</b></span>
+   <span>Waiting <b>${Math.round(e.wait)} min</b></span><span class="${e.feasible?"good":"bad"}">${e.feasible?"✓ Route feasible":"✕ Route issue"}</span></div>
+   <div class="route-stops"><div class="meter"><i style="width:${Math.min(100,e.demand/e.vehicle.capacity*100)}%"></i></div>
+   ${e.route.length?e.route.map((id,j)=>`<div class="stop" draggable="true" data-i="${j}">
+     <b>${j+1}</b><span>${id}</span><button title="Move earlier" aria-label="Move ${id} earlier">↑</button>
+     <button title="Move later" aria-label="Move ${id} later">↓</button><button title="Remove" aria-label="Remove ${id}">×</button>
+   </div>`).join(""):"<p class='meta'>Depot → no stops → depot</p>"}
+   ${Number.isFinite(e.vehicle.range)?`<div class="meta">Range ${fmt(e.dist)}/${e.vehicle.range} km</div>`:""}</div>`;
+   card.querySelector(".select").onclick=()=>{state.selectedVehicle=e.vehicle.id;render()};
+   card.querySelectorAll(".stop").forEach(stop=>{
+     const j=+stop.dataset.i,b=stop.querySelectorAll("button");
+     b[0].onclick=()=>moveStop(e.vehicle.id,j,-1);b[1].onclick=()=>moveStop(e.vehicle.id,j,1);b[2].onclick=()=>removeStop(e.vehicle.id,j);
+     stop.ondragstart=x=>x.dataTransfer.setData("text/plain",j);
+     stop.ondragover=x=>x.preventDefault();
+     stop.ondrop=x=>{x.preventDefault();const from=+x.dataTransfer.getData("text/plain"),to=j;if(from!==to)mutate(()=>{const r=state.routes[e.vehicle.id];r.splice(to,0,r.splice(from,1)[0])})};
+     stop.ondblclick=()=>moveVehicle(e.vehicle.id,j);
+   });
+   box.append(card);
+ });
+}
 
-      // Draw depot
-      const d = worldToCanvas(DEPOT.x, DEPOT.y);
-      ctx.save();
-      ctx.fillStyle = '#111827';
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, 6, 0, Math.PI*2);
-      ctx.fill();
-      ctx.font = 'bold 12px system-ui';
-      ctx.fillText('Depot', d.x+10, d.y-8);
-      ctx.restore();
+function renderMessages(plan){
+ document.querySelector("#messages").innerHTML=plan.feasible?`<p class="good"><b>✓ The current plan satisfies all hard constraints.</b></p>`:
+ `<p class="bad"><b>${plan.violations.length} issue(s) require attention:</b></p><ul>${plan.violations.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+ document.querySelector("#schedules").innerHTML=plan.evaluations.filter(e=>e.route.length).map(e=>`
+ <details><summary>${e.vehicle.name} schedule — ${e.feasible?"feasible":"check violations"}</summary>
+ <div style="overflow:auto"><table><thead><tr><th>Seq.</th><th>Location</th><th>Demand</th><th>Arrival</th><th>Window</th><th>Wait</th><th>Service start</th><th>Service</th><th>Departure</th><th>Delivered</th></tr></thead>
+ <tbody>${e.schedule.map(x=>{const c=x.id==="DEPOT"?null:node(x.id);return `<tr><td>${x.seq}</td><td>${x.id}</td><td>${x.demand}</td><td>${clock(x.arrival)}</td><td>${c&&state.scenario.timeWindows?clock(c.tw[0])+"–"+clock(c.tw[1]):"—"}</td><td>${Math.round(x.wait)}</td><td>${clock(x.start)}</td><td>${x.service}</td><td>${clock(x.departure)}</td><td>${x.delivered}</td></tr>`}).join("")}</tbody></table></div></details>`).join("");
+}
 
-      // Draw orders
-      ctx.save();
-      for(const o of orders){
-        const p = worldToCanvas(o.x, o.y);
-        ctx.fillStyle = '#0ea5e9';
-        ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#0c4a6e';
-        ctx.font = 'bold 12px system-ui';
-        ctx.fillText('#'+o.id, p.x+8, p.y-8);
-      }
-      ctx.restore();
+/* ================================================================
+   10. SUBMISSION, DISRUPTION, RESULTS AND FEEDBACK
+================================================================ */
+function submitPlan(){
+ state.attempts++;const p=evaluatePlan();
+ if(!p.feasible){toast(`Plan not submitted: ${p.violations[0]||"incomplete"}`);render();save();return}
+ if(state.scenario.module===4&&state.scenario.disruption&&!state.disruptionActive){
+   state.preDisruption={routes:structuredClone(state.routes),plan:p};state.disruptionActive=true;
+   state.undo.push({routes:structuredClone(state.routes),disruptionActive:false});render();save();
+   modal("Operational disruption",`<p><b>${state.scenario.disruption.message}</b></p><p>Your original plan has been preserved. Travel times and feasibility have been recalculated. Revise the routes, then submit again.</p>`,
+     [{label:"Begin replanning",primary:true}]);return;
+ }
+ const b=state.settings.showBenchmark?benchmark():null,score=scorePlan(p,b);
+ const resilience=state.preDisruption?Math.max(0,100-Math.round(Math.abs(p.cost-state.preDisruption.plan.cost)/Math.max(1,state.preDisruption.plan.cost)*100)-state.attempts*2):null;
+ state.lastResult={scenarioId:state.scenario.id,seed:state.scenario.seed,routes:structuredClone(state.routes),plan:p,benchmark:b,score,...exportMeta()};
+ state.completed[state.scenario.id]=state.lastResult;save();showResults(p,b,score,resilience);
+}
+function showResults(p,b,s,resilience){
+ const diff=b&&b.plan.feasible?(p.cost-b.plan.cost)/b.plan.cost*100:null;
+ const feedback=[];
+ if(p.feasible)feedback.push("You served every mandatory customer and respected all active hard constraints.");
+ if(b&&p.used>b.plan.used)feedback.push("Your plan used more vehicles than the heuristic, increasing fixed fleet cost.");
+ if(diff>10)feedback.push("Route sequencing or customer grouping offers meaningful cost-improvement potential.");
+ else feedback.push("Your cost is reasonably close to the heuristic comparison.");
+ if(p.wait>45)feedback.push("Substantial early-arrival waiting suggests that some appointment sequences could be retimed.");
+ if(state.preDisruption)feedback.push(resilience>70?"The revised plan showed good resilience after congestion changed.":"The disruption caused a material cost or replanning impact, illustrating the value of flexibility.");
+ const html=`<div class="result-grid">
+  <div class="result-box"><b>Score</b><div style="font-size:30px">${s.score}/100</div>${s.rating}</div>
+  <div class="result-box"><b>Feasibility</b><div class="good">✓ Feasible</div>Service 100%</div>
+  <div class="result-box"><b>Student plan</b><div>${fmt(p.distance)} km · ${money(p.cost)}</div>${p.used} vehicles · ${Math.round(p.wait)} min wait</div>
+  <div class="result-box"><b>Benchmark</b><div>${b&&b.plan.feasible?`${fmt(b.plan.distance)} km · ${money(b.plan.cost)}`:"Not shown / failed"}</div>${diff!==null?`${diff>=0?"+":""}${fmt(diff)}% cost difference`:""}</div>
+ </div>
+ ${resilience!==null?`<h3>Resilience metric: ${resilience}/100</h3><p>Higher values indicate a smaller disruption penalty and fewer replanning attempts.</p>`:""}
+ <h3>Feedback</h3><ul>${feedback.map(x=>`<li>${x}</li>`).join("")}</ul>
+ <h3>Heuristic benchmark—not guaranteed to be optimal.</h3>
+ ${b&&b.plan.feasible?`<div style="height:320px;border:1px solid #ccd5e2"><svg id="benchmarkMap" viewBox="0 0 800 600" style="width:100%;height:100%" aria-label="Benchmark route map"></svg></div>`:""}
+ <h3>Reflection</h3><ol><li>Did minimizing distance also minimize total cost?</li><li>Could two routes be combined without violating capacity or time windows?</li><li>${state.scenario.timeWindows?"How did time windows alter your customer sequence?":"Which local routing choice had the largest global effect?"}</li></ol>`;
+ modal("Plan results",html,[{label:"Export JSON",action:exportJSON},{label:"Retry scenario",action:restart},{label:"Close",primary:true}]);
+ if(b&&b.plan.feasible)renderMap(b.routes,"#benchmarkMap");
+}
 
-      // Draw current route polyline
-      if(showRoute && route.length > 0){
-        ctx.save();
-        ctx.strokeStyle = '#2563eb';
-        ctx.lineWidth = 3;
-        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-        const seqPoints = [depot(), ...route.map(byId), depot()];
-        ctx.beginPath();
-        for(let i=0;i<seqPoints.length;i++){
-          const p = worldToCanvas(seqPoints[i].x, seqPoints[i].y);
-          if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
-        }
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
+/* ================================================================
+   11. HINTS, RULES, TUTORIAL AND INSTRUCTOR OPTIONS
+================================================================ */
+function hint(){
+ if(!state.settings.hints)return toast("Hints are disabled.");
+ state.hintsUsed++;const p=evaluatePlan();let text;
+ if(state.hintsUsed%3===1)text="Conceptual: Group nearby customers before deciding their internal visit order.";
+ else if(state.hintsUsed%3===2)text=p.violations[0]?`Diagnostic: ${p.violations[0]}`:"Diagnostic: Look for a long return leg or low-use vehicle.";
+ else{
+   const tight=state.scenario.customers.slice().sort((a,b)=>(a.tw?.[1]||9999)-(b.tw?.[1]||9999))[0];
+   text=state.scenario.timeWindows?`Strategic: ${tight.id} has one of the earliest deadlines and may need to be visited earlier.`:"Strategic: Try reversing or swapping a section where route legs cross.";
+ }
+ toast(text,5000);save();
+}
+function showRules(){
+ const s=state.scenario;
+ modal("Scenario Rules",`<ul>
+ <li>Distance = Euclidean map distance × <b>${state.settings.distanceScale}</b> km per map unit.</li>
+ <li>Every used vehicle departs from and returns to the depot.</li>
+ <li>Fixed cost is charged once only when a vehicle has at least one stop.</li>
+ <li>Capacity represents the vehicle's starting delivery load; orders cannot be split.</li>
+ <li>${s.timeWindows?"Service must start within the displayed window. Early arrival causes waiting. Service duration delays later stops.":"Customer time windows are inactive."}</li>
+ <li>${s.capacity?"Vehicle capacity is a hard constraint.":"Capacity is unlimited for this scenario."}</li>
+ <li>Travel time = distance ÷ vehicle speed × active traffic multiplier.</li>
+ <li>Cost includes fixed, distance, driver-time and waiting-time cost.</li>
+ <li>Shift end, availability and finite vehicle range are hard limits.</li></ul>
+ <h3>Learning notes</h3><ul>${s.notes.map(x=>`<li>${x}</li>`).join("")}</ul>`,[{label:"Close",primary:true}]);
+}
+function tutorial(){
+ if(!state.scenario.tutorial||localStorage.getItem("fleetflow-tutorial-done"))return;
+ modal("Quick tutorial",`<ol>
+ <li>Select <b>Training Van</b> in the Fleet panel.</li>
+ <li>Click an unassigned customer on the map, or use its Add button.</li>
+ <li>Use ↑ and ↓ to change sequence; × removes a stop. Double-clicking a stop moves it to another vehicle where available.</li>
+ <li>Read route demand, distance, cost and return time as they update.</li>
+ <li>Resolve every validation message and choose <b>Test / Submit Plan</b>.</li></ol>
+ <p>Map actions always have equivalent buttons outside the map.</p>`,
+ [{label:"Skip tutorial",action:()=>localStorage.setItem("fleetflow-tutorial-done","1")},{label:"Start",primary:true,action:()=>localStorage.setItem("fleetflow-tutorial-done","1")}]);
+}
+function instructor(){
+ const x=state.settings;
+ modal("Instructor Options",`<div class="formgrid">
+ <label>Distance scale<input id="iScale" type="number" step=".01" value="${x.distanceScale}"></label>
+ <label>Default capacity override<input id="iCapacity" type="number" min="1" placeholder="Leave unchanged"></label>
+ <label>Vehicle fixed-cost multiplier<input id="iFixed" type="number" step=".1" value="1"></label>
+ <label>Variable-cost multiplier<input id="iVariable" type="number" step=".1" value="1"></label>
+ <label>Constraints<select id="iHard"><option value="true" ${x.hardConstraints?"selected":""}>Hard</option><option value="false">Soft scoring display</option></select></label>
+ <label>Late-window penalty<input id="iLate" type="number" value="${x.latePenalty}"></label>
+ <label>Shift end override<input id="iShift" type="time"></label>
+ <label>Hints<select id="iHints"><option value="true" ${x.hints?"selected":""}>Available</option><option value="false" ${!x.hints?"selected":""}>Disabled</option></select></label>
+ <label>Benchmark<select id="iBench"><option value="true" ${x.showBenchmark?"selected":""}>Shown after submission</option><option value="false" ${!x.showBenchmark?"selected":""}>Hidden</option></select></label>
+ <label>Planning timer<select id="iTimer"><option value="false">Disabled</option><option value="true" ${x.timerEnabled?"selected":""}>Enabled</option></select></label>
+ <label>Timer minutes<input id="iMinutes" type="number" value="${x.timerMinutes}"></label>
+ <label>Feasibility score weight<input id="iScoreF" type="number" value="${x.scoring.feasibility}"></label>
+ </div>
+ <h3>Import scenario JSON</h3><textarea id="importText" aria-label="Scenario JSON"></textarea>
+ <p class="meta">No personal data is collected or transmitted. Options are stored only in this browser.</p>`,
+ [{label:"Import",action:importScenario},{label:"Export JSON",action:exportJSON},{label:"Export CSV",action:exportCSV},
+  {label:"Copy summary",action:copySummary},{label:"Clear saved data",action:clearSaved},{label:"Apply",primary:true,action:applyInstructor}]);
+}
+function applyInstructor(){
+ const q=id=>document.querySelector(id);
+ const scale=+q("#iScale").value;if(scale>0)state.settings.distanceScale=scale;
+ state.settings.hardConstraints=q("#iHard").value==="true";state.settings.latePenalty=+q("#iLate").value||150;
+ state.settings.hints=q("#iHints").value==="true";state.settings.showBenchmark=q("#iBench").value==="true";
+ state.settings.timerEnabled=q("#iTimer").value==="true";state.settings.timerMinutes=+q("#iMinutes").value||20;
+ state.settings.scoring.feasibility=+q("#iScoreF").value||60;
+ const cap=+q("#iCapacity").value,fx=+q("#iFixed").value||1,vr=+q("#iVariable").value||1;
+ state.scenario.vehicles.forEach(v=>{if(cap)v.capacity=cap;v.fixed*=fx;v.perKm*=vr;
+   if(q("#iShift").value){const [h,m]=q("#iShift").value.split(":").map(Number);v.shiftEnd=T(h,m)}});
+ render();save();toast("Instructor options applied.");
+}
 
-    window.addEventListener('resize', ()=> drawMap(true));
+/* ================================================================
+   12. MODALS, TOASTS, EXPORT AND IMPORT
+================================================================ */
+let lastFocus=null;
+function modal(title,content,actions=[]){
+ lastFocus=document.activeElement;
+ document.querySelector("#modalTitle").textContent=title;document.querySelector("#modalContent").innerHTML=content;
+ const a=document.querySelector("#modalActions");a.innerHTML="";
+ actions.forEach(x=>{const b=document.createElement("button");b.textContent=x.label;if(x.primary)b.className="primary";
+   b.onclick=()=>{closeModal();x.action?.()};a.append(b)});
+ document.querySelector("#modalBack").classList.remove("hidden");(a.querySelector("button")||document.querySelector("#modal")).focus();
+}
+function closeModal(){document.querySelector("#modalBack").classList.add("hidden");lastFocus?.focus()}
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape"&&!document.querySelector("#modalBack").classList.contains("hidden"))closeModal();
+ if(e.key==="Tab"&&!document.querySelector("#modalBack").classList.contains("hidden")){
+   const f=[...document.querySelector("#modal").querySelectorAll("button,input,select,textarea,[tabindex]:not([tabindex='-1'])")].filter(x=>!x.disabled);
+   if(!f.length)return;const first=f[0],last=f.at(-1);
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+ }
+});
+function toast(msg,ms=3000){const t=document.querySelector("#toast");t.textContent=msg;t.classList.remove("hidden");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.add("hidden"),ms)}
+function exportMeta(){return {hintsUsed:state.hintsUsed,attempts:state.attempts,timeSpentSeconds:Math.round((Date.now()-state.startTime)/1000),disruptionActive:state.disruptionActive}}
+function exportData(){
+ const p=evaluatePlan(),sc=state.lastResult?.score||scorePlan(p,null);
+ return {scenarioId:state.scenario.id,seed:state.scenario.seed,module:state.scenario.module,routes:state.routes,feasible:p.feasible,
+ violations:p.violations,distance:p.distance,cost:p.cost,vehiclesUsed:p.used,score:sc.score,...exportMeta()};
+}
+function download(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function exportJSON(){download("fleetflow-result.json",JSON.stringify(exportData(),null,2),"application/json")}
+function exportCSV(){
+ const d=exportData(),rows=[["scenario","seed","module","feasible","distance_km","cost","vehicles_used","score","hints","attempts"],
+ [d.scenarioId,d.seed,d.module,d.feasible,d.distance,d.cost,d.vehiclesUsed,d.score,d.hintsUsed,d.attempts],[],
+ ["vehicle","route"],...Object.entries(d.routes).map(([v,r])=>[v,r.join(" > ")])];
+ download("fleetflow-summary.csv",rows.map(r=>r.map(x=>`"${String(x??"").replaceAll('"','""')}"`).join(",")).join("\n"),"text/csv");
+}
+async function copySummary(){const d=exportData(),t=`FleetFlow ${d.scenarioId}: ${d.feasible?"feasible":"infeasible"}, ${fmt(d.distance)} km, ${money(d.cost)}, ${d.vehiclesUsed} vehicles, score ${d.score}.`;try{await navigator.clipboard.writeText(t);toast("Summary copied.")}catch{toast("Clipboard permission unavailable.")}}
+function importScenario(){
+ try{
+   const s=JSON.parse(document.querySelector("#importText").value);
+   if(!s.id||![1,2,3,4].includes(+s.module)||!s.depot||!Array.isArray(s.customers)||!Array.isArray(s.vehicles))throw Error("Required fields: id, module, depot, customers and vehicles.");
+   const ids=new Set();s.customers.forEach(c=>{if(!c.id||!Number.isFinite(c.x)||!Number.isFinite(c.y)||ids.has(c.id))throw Error("Customer IDs and coordinates must be valid and unique.");ids.add(c.id)});
+   s.module=+s.module;s.title=s.title||s.id;s.briefing=s.briefing||"Imported scenario.";s.notes=s.notes||[];s.seed=s.seed||0;
+   SCENARIOS.push(s);closeModal();loadScenario(s);populateSelectors();toast("Scenario imported.");
+ }catch(e){toast("Import failed: "+e.message,5000)}
+}
+function clearSaved(){localStorage.removeItem(CONFIG.storageKey);localStorage.removeItem("fleetflow-tutorial-done");toast("Saved data cleared.");}
 
-    // ----------------------------
-    // UI: Orders table & Route zone
-    // ----------------------------
-    function renderOrders(){
-      ordersBody.innerHTML = '';
-      for(const o of orders){
-        const tr = document.createElement('tr');
-        tr.draggable = !assigned.has(o.id);
-        tr.dataset.id = o.id;
-        if(assigned.has(o.id)) tr.classList.add('assigned');
+/* ================================================================
+   13. PERSISTENCE AND SCENARIO CONTROL
+================================================================ */
+function save(){
+ try{localStorage.setItem(CONFIG.storageKey,JSON.stringify({scenarioId:state.scenario.id,scenario:state.scenario.id.startsWith("gen-")?state.scenario:null,
+ routes:state.routes,selectedVehicle:state.selectedVehicle,hintsUsed:state.hintsUsed,attempts:state.attempts,startTime:state.startTime,
+ disruptionActive:state.disruptionActive,preDisruption:state.preDisruption,completed:state.completed,settings:state.settings}))}catch{}
+}
+function loadSaved(){
+ try{
+   const d=JSON.parse(localStorage.getItem(CONFIG.storageKey));if(!d)return false;
+   if(d.scenario&&!SCENARIOS.some(s=>s.id===d.scenario.id))SCENARIOS.push(d.scenario);
+   const s=SCENARIOS.find(x=>x.id===d.scenarioId);if(!s)return false;
+   state.settings={...structuredClone(CONFIG),...d.settings,scoring:{...CONFIG.scoring,...d.settings?.scoring}};
+   loadScenario(s,false);state.routes=d.routes||state.routes;state.selectedVehicle=d.selectedVehicle||state.selectedVehicle;
+   state.hintsUsed=d.hintsUsed||0;state.attempts=d.attempts||0;state.startTime=d.startTime||Date.now();
+   state.disruptionActive=!!d.disruptionActive;state.preDisruption=d.preDisruption||null;state.completed=d.completed||{};return true;
+ }catch(e){localStorage.removeItem(CONFIG.storageKey);return false}
+}
+function loadScenario(s,doSave=true){
+ state.scenario=structuredClone(s);state.routes=Object.fromEntries(s.vehicles.map(v=>[v.id,[]]));
+ state.selectedVehicle=s.vehicles.find(v=>v.available)?.id||s.vehicles[0].id;state.selectedCustomer=null;
+ state.undo=[];state.redo=[];state.hintsUsed=0;state.attempts=0;state.startTime=Date.now();state.disruptionActive=false;state.preDisruption=null;state.lastResult=null;
+ populateSelectors();render();if(doSave)save();setTimeout(tutorial,100);
+}
+function restart(){loadScenario(state.scenario)}
+function populateSelectors(){
+ const m=document.querySelector("#moduleSelect"),ss=document.querySelector("#scenarioSelect");
+ m.innerHTML=Object.entries(MODULES).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");m.value=state.scenario?.module||1;
+ const list=SCENARIOS.filter(s=>s.module===+(m.value||1));
+ ss.innerHTML=list.map(s=>`<option value="${s.id}">${s.title}</option>`).join("");
+ if(state.scenario&&list.some(s=>s.id===state.scenario.id))ss.value=state.scenario.id;
+}
 
-        tr.addEventListener('dragstart', e=>{
-          if(assigned.has(o.id)) return e.preventDefault();
-          tr.classList.add('dragging');
-          e.dataTransfer.setData('text/plain', JSON.stringify({type:'order', id:o.id}));
-          e.dataTransfer.effectAllowed = 'copy';
-        });
-        tr.addEventListener('dragend', ()=> tr.classList.remove('dragging'));
+/* ================================================================
+   14. INTERNAL DEVELOPER TESTS
+   Call FleetFlowTests() in the browser console. It returns test results
+   without transmitting data or altering the active plan permanently.
+================================================================ */
+window.FleetFlowTests=function(){
+ const old=structuredClone({scenario:state.scenario,routes:state.routes,settings:state.settings,disruptionActive:state.disruptionActive});
+ const tests=[];const test=(name,ok)=>tests.push({name,pass:!!ok});
+ try{
+   loadScenario(SCENARIOS.find(s=>s.id==="m3-a"),false);
+   state.routes.V1=["C1"];let e=evaluateRoute(state.scenario.vehicles[0],state.routes.V1);
+   test("Depot return distance included",e.dist>distance("DEPOT","C1"));
+   test("Capacity totals",e.demand===node("C1").demand);
+   state.routes.V2=["C1"];test("Duplicate detection",evaluatePlan().violations.some(x=>x.includes("assigned 2")));
+   state.routes.V2=[];test("Unassigned detection",evaluatePlan().violations.some(x=>x.includes("not been assigned")));
+   test("Waiting calculation",e.schedule[1].start>=node("C1").tw[0]&&e.schedule[1].wait>=0);
+   test("Service duration",Math.abs(e.schedule[1].departure-e.schedule[1].start-node("C1").service)<1e-7);
+   test("Fixed cost once",e.fixed===state.scenario.vehicles[0].fixed);
+   test("Route cost totals",Math.abs(e.cost-(e.fixed+e.variable+e.driver+e.waitCost))<1e-7);
+   const g1=generatedScenario(2,12345),g2=generatedScenario(2,12345);test("Same-seed reproduction",JSON.stringify(g1.customers)===JSON.stringify(g2.customers));
+   const short={...state.scenario.vehicles[0],shiftEnd:T(8,1)};test("Shift limit",evaluateRoute(short,["C1"]).violations.some(x=>x.includes("shift ends")));
+ }finally{state.scenario=old.scenario;state.routes=old.routes;state.settings=old.settings;state.disruptionActive=old.disruptionActive;render()}
+ console.table(tests);return tests;
+};
 
-        const c1 = document.createElement('td');
-        c1.textContent = o.id;
+/* ================================================================
+   15. EVENT BINDINGS AND STARTUP
+================================================================ */
+document.querySelector("#moduleSelect").onchange=e=>{
+ const s=SCENARIOS.find(x=>x.module===+e.target.value);if(s)loadScenario(s);
+};
+document.querySelector("#scenarioSelect").onchange=e=>loadScenario(SCENARIOS.find(s=>s.id===e.target.value));
+document.querySelector("#newBtn").onclick=()=>loadScenario(generatedScenario(+document.querySelector("#moduleSelect").value,Math.floor(Date.now()%1000000)));
+document.querySelector("#restartBtn").onclick=restart;
+document.querySelector("#undoBtn").onclick=undo;document.querySelector("#redoBtn").onclick=redo;
+document.querySelector("#clearBtn").onclick=()=>mutate(()=>Object.keys(state.routes).forEach(k=>state.routes[k]=[]));
+document.querySelector("#hintBtn").onclick=hint;document.querySelector("#rulesBtn").onclick=showRules;
+document.querySelector("#instructorBtn").onclick=instructor;document.querySelector("#submitBtn").onclick=submitPlan;
+document.querySelector("#orderFilter").onchange=renderOrders;
+document.querySelector("#fitBtn").onclick=()=>{document.querySelector("#map").setAttribute("viewBox","0 0 800 600");toast("Map fitted to scenario.")};
+document.querySelector("#animateBtn").onclick=()=>{
+ if(matchMedia("(prefers-reduced-motion: reduce)").matches)return toast("Animation disabled by reduced-motion preference.");
+ const lines=[...document.querySelectorAll("#map .route-line")];lines.forEach(l=>{const n=l.getTotalLength();l.style.strokeDasharray=`${n}`;l.style.strokeDashoffset=n;l.animate([{strokeDashoffset:n},{strokeDashoffset:0}],{duration:1600,fill:"forwards"})});
+};
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("tab-hidden",x.dataset.view!==b.dataset.tab));
+});
+setInterval(()=>{
+ const sec=Math.floor((Date.now()-state.startTime)/1000),remain=Math.max(0,state.settings.timerMinutes*60-sec);
+ document.querySelector("#timerPill").textContent=state.settings.timerEnabled?`Time left ${String(Math.floor(remain/60)).padStart(2,"0")}:${String(remain%60).padStart(2,"0")}`:`Planning ${String(Math.floor(sec/60)).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}`;
+},1000);
 
-        const c2 = document.createElement('td');
-        c2.textContent = `(${o.x}, ${o.y})`;
-
-        const c3 = document.createElement('td');
-        const addBtn = document.createElement('button');
-        addBtn.className = 'btn';
-        addBtn.textContent = assigned.has(o.id) ? 'Assigned' : 'Add';
-        addBtn.disabled = assigned.has(o.id);
-        addBtn.addEventListener('click', ()=>{
-          addToRoute(o.id);
-        });
-        c3.appendChild(addBtn);
-
-        tr.append(c1,c2,c3);
-        ordersBody.appendChild(tr);
-      }
-    }
-
-    function renderRoute(){
-      routeZone.innerHTML = '';
-      for(const id of route){
-        const o = byId(id);
-        const row = document.createElement('div');
-        row.className = 'route-row';
-        row.draggable = true;
-        row.dataset.id = id;
-
-        row.addEventListener('dragstart', e=>{
-          row.classList.add('dragging');
-          e.dataTransfer.setData('text/plain', JSON.stringify({type:'routeItem', id, from:'route'}));
-          e.dataTransfer.effectAllowed = 'move';
-        });
-        row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
-
-        row.addEventListener('dblclick', ()=> removeFromRoute(id));
-
-        const idBadge = document.createElement('div');
-        idBadge.className = 'id';
-        idBadge.textContent = '#'+o.id;
-
-        const coords = document.createElement('div');
-        coords.style.flex='1';
-        coords.textContent = `(${o.x}, ${o.y})`;
-
-        const del = document.createElement('button');
-        del.title = 'Remove from route';
-        del.textContent = 'Remove';
-        del.addEventListener('click', ()=> removeFromRoute(id));
-
-        row.append(idBadge, coords, del);
-        routeZone.appendChild(row);
-      }
-      updateMetrics();
-    }
-
-    function routeDropIndex(evt){
-      // compute insert index based on position within routeZone
-      const rows = Array.from(routeZone.querySelectorAll('.route-row:not(.dragging)'));
-      const y = evt.clientY;
-      let idx = rows.length;
-      for(let i=0;i<rows.length;i++){
-        const r = rows[i].getBoundingClientRect();
-        const mid = r.top + r.height/2;
-        if(y < mid){ idx = i; break; }
-      }
-      return idx;
-    }
-
-    routeZone.addEventListener('dragover', e=>{
-      e.preventDefault();
-      routeZone.classList.add('over');
-      e.dataTransfer.dropEffect = 'copy';
-    });
-    routeZone.addEventListener('dragleave', ()=> routeZone.classList.remove('over'));
-
-    routeZone.addEventListener('drop', e=>{
-      e.preventDefault();
-      routeZone.classList.remove('over');
-      let data;
-      try{ data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}'); }catch{}
-      if(!data) return;
-
-      if(data.type === 'order'){
-        addToRoute(data.id, routeDropIndex(e));
-      }else if(data.type === 'routeItem' && data.from==='route'){
-        // reorder within route
-        const id = data.id;
-        const fromIndex = route.indexOf(id);
-        const toIndex = routeDropIndex(e);
-        if(fromIndex >= 0){
-          route.splice(fromIndex,1);
-          const newIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
-          route.splice(newIndex,0,id);
-          renderRoute();
-          drawMap(false);
-        }
-      }
-    });
-
-    function addToRoute(id, index=null){
-      if(assigned.has(id)) return; // already assigned
-      assigned.add(id);
-      if(index===null || index<0 || index>route.length) route.push(id);
-      else route.splice(index, 0, id);
-      renderOrders();
-      renderRoute();
-      drawMap(false);
-      setFeedback('Added to route. Arrange sequence then Confirm.', 'ok');
-    }
-
-    function removeFromRoute(id){
-      const i = route.indexOf(id);
-      if(i>=0){
-        route.splice(i,1);
-        assigned.delete(id);
-        renderOrders();
-        renderRoute();
-        drawMap(false);
-        setFeedback('Removed from route.', 'ok');
-      }
-    }
-
-    function updateMetrics(){
-      routeCountEl.textContent = route.length;
-      totalDistanceEl.textContent = round(currentRouteDistance());
-    }
-
-    function currentRouteDistance(){
-      if(route.length===0) return 0;
-      const seq = [depot(), ...route.map(byId), depot()];
-      let sum = 0;
-      for(let i=0;i<seq.length-1;i++){
-        sum += distance(seq[i], seq[i+1]);
-      }
-      return sum;
-    }
-
-    function setFeedback(msg, type='ok'){
-      feedbackEl.textContent = msg;
-      feedbackEl.className = 'msg '+(type==='err'?'err':type==='warn'?'warn':'ok');
-      feedbackEl.style.display = 'block';
-    }
-
-    function clearFeedback(){ feedbackEl.style.display = 'none'; }
-
-    // ----------------------------
-    // Controls
-    // ----------------------------
-    btnNew.addEventListener('click', ()=>{
-      regenerate();
-      setFeedback('New set of orders generated. Build your route!', 'ok');
-    });
-
-    btnReset.addEventListener('click', ()=>{
-      route = [];
-      assigned.clear();
-      renderOrders();
-      renderRoute();
-      drawMap(false);
-      clearFeedback();
-    });
-
-    btnConfirm.addEventListener('click', ()=>{
-      if(route.length === 0){
-        setFeedback('No orders in the route. Drag orders into the Routing Plan first.', 'warn');
-        drawMap(false);
-        updateMetrics();
-        return;
-      }
-      const dist = currentRouteDistance();
-      totalDistanceEl.textContent = round(dist);
-      drawMap(true);
-      setFeedback(`Route drawn on map. Total distance: ${round(dist)} km (starts and ends at Depot).`, 'ok');
-    });
-
-    function regenerate(){
-      orders = generateOrders(ORDERS_COUNT);
-      route = [];
-      assigned.clear();
-      renderOrders();
-      renderRoute();
-      drawMap(false);
-    }
-
-    // Initialize
-    regenerate();
-  </script>
+if(!loadSaved())loadScenario(SCENARIOS[0],false);
+populateSelectors();render();
+</script>
 </body>
 </html>
