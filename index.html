@@ -1,690 +1,1058 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SCM Serious Game Hub</title>
+  <title>SCM Game Hub — Library</title>
   <meta
     name="description"
-    content="A clear landing page for university students to browse and open serious games in supply chain management."
+    content="Browse and launch SCM serious games."
   />
   <link rel="icon" href="pic/icon.png" type="image/png" sizes="32x32" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f3f7fc;
-      --surface: rgba(255, 255, 255, 0.88);
-      --surface-solid: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --primary: #2563eb;
-      --primary-strong: #1d4ed8;
-      --accent: #0f766e;
-      --border: rgba(148, 163, 184, 0.22);
-      --ring: rgba(37, 99, 235, 0.25);
-      --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-      --radius-xl: 28px;
-      --radius-lg: 22px;
-      --radius-md: 16px;
-      --container: 1120px;
-      --header-height: 76px;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #07111f;
-        --surface: rgba(15, 23, 42, 0.86);
-        --surface-solid: #0f172a;
-        --text: #e2e8f0;
-        --muted: #94a3b8;
-        --primary: #60a5fa;
-        --primary-strong: #3b82f6;
-        --accent: #2dd4bf;
-        --border: rgba(148, 163, 184, 0.16);
-        --ring: rgba(96, 165, 250, 0.24);
-        --shadow: 0 18px 45px rgba(2, 6, 23, 0.4);
-      }
+      --bg-0: #05070d;
+      --bg-1: #0a0f1c;
+      --bg-2: #111a2e;
+      --surface: rgba(20, 30, 52, 0.72);
+      --surface-solid: #121a30;
+      --surface-hover: #1a2540;
+      --border: rgba(96, 165, 250, 0.15);
+      --border-strong: rgba(96, 165, 250, 0.32);
+      --text: #e8eefc;
+      --text-dim: #8a99b8;
+      --text-mute: #586480;
+      --primary: #38bdf8;
+      --primary-strong: #0ea5e9;
+      --accent: #22d3ee;
+      --accent-glow: rgba(56, 189, 248, 0.35);
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #fb7185;
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --sidebar-w: 272px;
+      --header-h: 68px;
     }
 
     [data-theme="light"] {
-      --bg: #f3f7fc;
-      --surface: rgba(255, 255, 255, 0.88);
+      --bg-0: #eef2fb;
+      --bg-1: #f7f9fe;
+      --bg-2: #ffffff;
+      --surface: rgba(255, 255, 255, 0.85);
       --surface-solid: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --primary: #2563eb;
-      --primary-strong: #1d4ed8;
-      --accent: #0f766e;
-      --border: rgba(148, 163, 184, 0.22);
-      --ring: rgba(37, 99, 235, 0.25);
-      --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      --surface-hover: #f0f4ff;
+      --border: rgba(37, 99, 235, 0.14);
+      --border-strong: rgba(37, 99, 235, 0.3);
+      --text: #0b1220;
+      --text-dim: #46526b;
+      --text-mute: #7c87a0;
+      --primary: #0ea5e9;
+      --primary-strong: #0284c7;
+      --accent: #06b6d4;
+      --accent-glow: rgba(14, 165, 233, 0.22);
     }
 
-    [data-theme="dark"] {
-      --bg: #07111f;
-      --surface: rgba(15, 23, 42, 0.86);
-      --surface-solid: #0f172a;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --primary: #60a5fa;
-      --primary-strong: #3b82f6;
-      --accent: #2dd4bf;
-      --border: rgba(148, 163, 184, 0.16);
-      --ring: rgba(96, 165, 250, 0.24);
-      --shadow: 0 18px 45px rgba(2, 6, 23, 0.4);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
 
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: 'Manrope', 'Segoe UI', Roboto, Arial, sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 28%),
-        radial-gradient(circle at top right, rgba(15, 118, 110, 0.14), transparent 26%),
-        var(--bg);
-      line-height: 1.5;
+      background: var(--bg-0);
+      line-height: 1.55;
       -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      position: relative;
+      overflow-x: hidden;
     }
 
-    a {
-      color: inherit;
-      text-decoration: none;
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 800px 500px at 10% -10%, rgba(56, 189, 248, 0.18), transparent 60%),
+        radial-gradient(ellipse 600px 450px at 100% 10%, rgba(34, 211, 238, 0.13), transparent 55%),
+        radial-gradient(ellipse 900px 600px at 50% 110%, rgba(99, 102, 241, 0.1), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
     }
 
-    button,
-    input,
-    select {
-      font: inherit;
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+      opacity: 0.06;
+      pointer-events: none;
+      z-index: 0;
     }
 
-    img {
-      display: block;
-      max-width: 100%;
-    }
+    a { color: inherit; text-decoration: none; }
+    button, input, select { font: inherit; color: inherit; }
+    img { display: block; max-width: 100%; }
 
     :focus-visible {
-      outline: 3px solid var(--ring);
-      outline-offset: 2px;
+      outline: 2px solid var(--primary);
+      outline-offset: 3px;
+      border-radius: 6px;
     }
 
-    .container {
-      width: min(var(--container), calc(100% - 32px));
-      margin: 0 auto;
+    .app {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      min-height: 100vh;
     }
 
-    .skip-link {
-      position: absolute;
-      left: -9999px;
-      top: auto;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
+    /* ───────── SIDEBAR BACKDROP (mobile) ───────── */
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 49;
     }
 
-    .skip-link:focus {
-      left: 16px;
-      top: 16px;
-      width: auto;
-      height: auto;
-      padding: 0.75rem 1rem;
-      border-radius: 999px;
-      background: var(--surface-solid);
-      z-index: 1000;
-    }
-
-    .site-header {
+    /* ───────── SIDEBAR ───────── */
+    .sidebar {
       position: sticky;
       top: 0;
-      z-index: 40;
-      backdrop-filter: blur(14px) saturate(160%);
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
+      height: 100vh;
+      grid-column: 1;
+      border-right: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(12, 20, 38, 0.88), rgba(8, 14, 28, 0.94));
+      backdrop-filter: blur(20px) saturate(140%);
+      padding: 22px 18px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+      z-index: 10;
     }
 
-    .nav-shell {
-      min-height: var(--header-height);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
+    [data-theme="light"] .sidebar {
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(244,247,254,0.95));
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.9rem;
-      min-width: 0;
+      gap: 12px;
+      padding: 6px 8px 10px;
+      border-bottom: 1px solid var(--border);
     }
 
     .brand-mark {
-      width: 52px;
-      height: 52px;
-      padding: 0.45rem;
-      border-radius: 16px;
-      background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(15, 118, 110, 0.18));
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
+      width: 44px;
+      height: 44px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, var(--primary), #6366f1 70%, var(--accent));
+      box-shadow: 0 8px 24px rgba(56, 189, 248, 0.35);
+      display: grid;
+      place-items: center;
       flex-shrink: 0;
+      overflow: hidden;
     }
 
+    .brand-mark img { width: 28px; height: 28px; object-fit: contain; }
+
+    .brand-text { min-width: 0; }
     .brand-label {
-      display: block;
-      font-size: 0.75rem;
-      letter-spacing: 0.12em;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: var(--text-mute);
     }
-
     .brand-title {
       display: block;
-      font-size: 1rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 1.02rem;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
     }
 
-    .nav-actions {
+    .side-section-label {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      padding: 14px 12px 8px;
+    }
+
+    .cat-list {
+      list-style: none;
+      margin: 0;
+      padding: 0 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .cat-btn {
+      width: 100%;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 12px;
+      padding: 11px 14px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.18s ease;
     }
 
-    .btn,
+    .cat-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .cat-btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(99, 102, 241, 0.12));
+      color: var(--text);
+      border-color: var(--border-strong);
+      box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.08), 0 4px 14px var(--accent-glow);
+    }
+
+    .cat-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .cat-btn.active .cat-icon { transform: scale(1.08); }
+
+    .cat-icon svg { width: 17px; height: 17px; }
+
+    .cat-info { min-width: 0; flex: 1; }
+    .cat-name {
+      font-weight: 600;
+      font-size: 0.92rem;
+      line-height: 1.2;
+    }
+    .cat-count {
+      font-size: 0.72rem;
+      color: var(--text-mute);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    .cat-btn.active .cat-count { color: var(--primary); }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .stat-num {
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--primary);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-mute);
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* ───────── MAIN AREA ───────── */
+    .main-area {
+      min-width: 0;
+      grid-column: 2;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 9;
+      height: var(--header-h);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(8, 14, 28, 0.92) 0%, rgba(8, 14, 28, 0.78) 100%);
+      backdrop-filter: blur(22px) saturate(160%);
+    }
+
+    [data-theme="light"] .top-bar {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.88));
+    }
+
+    .search-wrap {
+      flex: 1;
+      max-width: 560px;
+      position: relative;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 17px;
+      height: 17px;
+      color: var(--text-mute);
+    }
+    .search-wrap input {
+      width: 100%;
+      height: 46px;
+      padding: 0 16px 0 44px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      transition: all 0.2s ease;
+    }
+    .search-wrap input::placeholder { color: var(--text-mute); }
+    .search-wrap input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--accent-glow);
+      background: var(--surface-solid);
+    }
+
+    .top-filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .chip-select {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-weight: 500;
+      font-size: 0.86rem;
+    }
+    .chip-select:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+    .chip-select select {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: inherit;
+      padding: 0;
+      cursor: pointer;
+    }
+    .chip-select select option { background: var(--bg-1); color: var(--text); }
+
     .icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: all 0.18s ease;
+    }
+    .icon-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    .icon-btn svg { width: 18px; height: 18px; }
+
+    /* ───────── CONTENT ───────── */
+    .content {
+      padding: 28px 32px 56px;
+      flex: 1;
+    }
+
+    .page-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .page-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+      letter-spacing: -0.02em;
+      margin: 0;
+      line-height: 1.1;
+    }
+    .page-sub {
+      color: var(--text-dim);
+      margin: 6px 0 0;
+      font-size: 0.94rem;
+    }
+    .results-meta {
+      color: var(--text-mute);
+      font-size: 0.84rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      white-space: nowrap;
+    }
+
+    /* ───────── FEATURED BANNER ───────── */
+    .featured {
+      position: relative;
+      margin-bottom: 36px;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      min-height: 290px;
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255,255,255,0.03);
+      cursor: pointer;
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
+      display: block;
+    }
+    .featured:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 40px 90px rgba(56, 189, 248, 0.12), 0 32px 70px rgba(0,0,0,0.5);
+    }
+    .featured-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+    }
+    .featured-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(100deg, rgba(5,7,13,0.96) 0%, rgba(5,7,13,0.78) 42%, rgba(5,7,13,0.28) 75%, transparent 100%),
+        linear-gradient(0deg, rgba(5,7,13,0.6) 0%, transparent 50%);
+    }
+    [data-theme="light"] .featured-overlay {
+      background:
+        linear-gradient(100deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.82) 42%, rgba(255,255,255,0.35) 75%, transparent 100%),
+        linear-gradient(0deg, rgba(255,255,255,0.5) 0%, transparent 50%);
+    }
+    .featured-inner {
+      position: relative;
+      padding: 42px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 290px;
+      max-width: 62%;
+    }
+    .featured-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      align-self: flex-start;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--primary), #6366f1);
+      color: #fff;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.35);
+    }
+    .featured-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin: 0 0 10px;
+    }
+    .featured-desc {
+      color: var(--text-dim);
+      font-size: 0.98rem;
+      margin: 0 0 22px;
+      max-width: 50ch;
+    }
+    .featured-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text-dim);
+    }
+    .meta-pill svg { width: 13px; height: 13px; }
+    .featured-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
+      gap: 8px;
+      padding: 12px 22px;
       border-radius: 999px;
-      transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-    }
-
-    .btn,
-    .icon-btn {
+      font-weight: 700;
+      font-size: 0.92rem;
+      cursor: pointer;
       border: 1px solid var(--border);
       background: var(--surface-solid);
       color: var(--text);
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+    .btn.primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #021018;
+      border: none;
+      box-shadow: 0 10px 30px rgba(56, 189, 248, 0.35);
+    }
+    .btn.primary:hover {
+      box-shadow: 0 14px 40px rgba(56, 189, 248, 0.48);
+      transform: translateY(-2px);
+    }
+    .btn.ghost {
+      background: transparent;
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+    .btn svg { width: 15px; height: 15px; }
+
+    /* ───────── CATEGORY ROWS ───────── */
+    .category-section {
+      margin-bottom: 40px;
+    }
+    .category-section:last-child { margin-bottom: 0; }
+
+    .cat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      padding: 0 2px;
+    }
+    .cat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .cat-header-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    }
+    .cat-header-icon svg { width: 20px; height: 20px; }
+    .cat-header-text h3 {
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .cat-header-text p {
+      margin: 3px 0 0;
+      font-size: 0.84rem;
+      color: var(--text-mute);
+      max-width: 52ch;
+    }
+    .cat-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .row-wrap { position: relative; }
+
+    .scroll-row {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: clamp(230px, 22vw, 280px);
+      gap: 18px;
+      overflow-x: auto;
+      padding: 8px 4px 18px;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(96,165,250,0.35) transparent;
+    }
+    .scroll-row::-webkit-scrollbar { height: 8px; }
+    .scroll-row::-webkit-scrollbar-track { background: transparent; }
+    .scroll-row::-webkit-scrollbar-thumb {
+      background: rgba(96,165,250,0.25);
+      border-radius: 999px;
+    }
+    .scroll-row::-webkit-scrollbar-thumb:hover { background: rgba(96,165,250,0.45); }
+
+    /* ───────── GAME CARD ───────── */
+    .game-card {
+      scroll-snap-align: start;
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      transition: transform 0.28s cubic-bezier(.2,.8,.2,1), box-shadow 0.28s ease, border-color 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-click-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
       cursor: pointer;
     }
-
-    .btn:hover,
-    .icon-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow);
+    .game-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      border-color: var(--border-strong);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-glow);
+      z-index: 3;
     }
 
-    .btn {
-      padding: 0.85rem 1.15rem;
+    .cover {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      overflow: hidden;
+      background: var(--bg-2);
+    }
+    .cover-img {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transition: transform 0.5s cubic-bezier(.2,.8,.2,1);
+    }
+    .game-card:hover .cover-img { transform: scale(1.08); }
+
+    .cover-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, transparent 40%, rgba(5,7,13,0.92) 100%),
+        linear-gradient(0deg, transparent 0%, rgba(5,7,13,0.1) 40%);
+    }
+
+    [data-theme="light"] .cover-overlay {
+      background:
+        linear-gradient(180deg, transparent 40%, rgba(5,7,13,0.78) 100%),
+        linear-gradient(0deg, transparent 0%, rgba(255,255,255,0.05) 40%);
+    }
+
+    .cover-badges {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      z-index: 2;
+    }
+    .new-badge {
+      font-family: 'Chakra Petch', sans-serif;
       font-weight: 700;
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #fb7185, #f43f5e);
+      color: #fff;
+      box-shadow: 0 6px 14px rgba(244, 63, 94, 0.4);
     }
-
-    .btn.primary {
+    .quick-play {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.92);
       border: none;
-      color: #ffffff;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: #021018;
+      opacity: 0;
+      transform: translateY(-6px) scale(0.85);
+      transition: all 0.26s cubic-bezier(.2,.8,.2,1);
+      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.45);
+      position: relative;
+      z-index: 2;
+    }
+    .game-card:hover .quick-play {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .quick-play:hover {
+      transform: scale(1.1) !important;
+      background: var(--accent);
+    }
+    .quick-play svg { width: 15px; height: 15px; margin-left: 2px; }
+
+    .cover-title {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 12px;
+      z-index: 2;
+    }
+    .cover-title h4 {
+      margin: 0;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 1.03rem;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.55);
+    }
+    [data-theme="light"] .cover-title h4 {
+      color: #fff;
     }
 
-    .icon-btn {
-      width: 44px;
-      height: 44px;
-      padding: 0;
+    .card-body {
+      padding: 14px 15px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
     }
-
-    .section {
-      padding: 2rem 0 2.5rem;
-    }
-
-    .section-head {
+    .card-tags {
       display: flex;
       flex-wrap: wrap;
-      align-items: end;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 1rem;
+      gap: 5px;
+    }
+    .card-tag {
+      font-size: 0.66rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(96, 165, 250, 0.1);
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .card-tag.time {
+      background: rgba(138, 153, 184, 0.12);
+      color: var(--text-dim);
     }
 
-    .section-head h2 {
-      margin: 0;
-      font-size: clamp(1.6rem, 3vw, 2.3rem);
-      letter-spacing: -0.04em;
-    }
-
-    .section-head p {
-      margin: 0.35rem 0 0;
-      color: var(--muted);
-      max-width: 54ch;
-    }
-
-    .manage-note {
-      margin-top: 0.6rem;
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    .results-meta {
-      color: var(--muted);
-      font-size: 0.94rem;
-      font-weight: 600;
-    }
-
-    .controls {
-      display: grid;
-      gap: 0.9rem;
-      padding: 1rem;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      box-shadow: var(--shadow);
-    }
-
-    .searchbar {
+    .desc-wrap {
       position: relative;
     }
-
-    .searchbar svg {
-      position: absolute;
-      left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 1rem;
-      height: 1rem;
-      color: var(--muted);
+    .desc-text {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
-
-    .searchbar input {
-      width: 100%;
-      height: 56px;
-      padding: 0 1rem 0 2.8rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--surface-solid);
-      color: var(--text);
+    .desc-wrap.expanded .desc-text {
+      -webkit-line-clamp: unset;
+      display: block;
     }
-
-    .searchbar input:focus {
-      outline: none;
-      box-shadow: 0 0 0 6px var(--ring);
-      border-color: rgba(37, 99, 235, 0.35);
-    }
-
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-
-    .select {
+    .desc-toggle {
+      margin-top: 6px;
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 0.55rem;
-      min-height: 46px;
-      padding: 0.65rem 0.95rem;
+      gap: 4px;
+      position: relative;
+      z-index: 2;
+    }
+    .desc-toggle:hover { text-decoration: underline; }
+    .desc-toggle svg { width: 12px; height: 12px; transition: transform 0.25s ease; }
+    .desc-wrap.expanded .desc-toggle svg { transform: rotate(180deg); }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 4px;
+    }
+    .updated {
+      font-size: 0.7rem;
+      color: var(--text-mute);
+      font-weight: 500;
+    }
+    .play-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 15px;
       border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--surface-solid);
-      color: var(--muted);
-    }
-
-    .select select {
+      font-size: 0.82rem;
+      font-weight: 700;
+      position: relative;
+      z-index: 2;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #021018;
       border: none;
-      background: transparent;
-      color: inherit;
-      outline: none;
-    }
-
-    .topics-grid {
-      display: grid;
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-
-    details.topic {
-      overflow: hidden;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      box-shadow: var(--shadow);
-    }
-
-    details.topic[open] {
-      border-color: rgba(37, 99, 235, 0.28);
-    }
-
-    details.topic summary {
-      list-style: none;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 1rem;
-      padding: 1.1rem;
-      align-items: start;
       cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      flex-shrink: 0;
+      box-shadow: 0 6px 16px rgba(56, 189, 248, 0.25);
+    }
+    .play-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(56, 189, 248, 0.4);
+    }
+    .play-btn svg { width: 13px; height: 13px; }
+
+    /* ───────── EMPTY ───────── */
+    .empty {
+      padding: 60px 20px;
+      text-align: center;
+      border-radius: var(--radius-xl);
+      border: 1px dashed var(--border-strong);
+      background: var(--surface);
+      color: var(--text-dim);
+      margin-top: 10px;
+    }
+    .empty svg {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 14px;
+      opacity: 0.5;
     }
 
-    details.topic summary::-webkit-details-marker {
+    /* ───────── MOBILE NAV BUTTON ───────── */
+    .mobile-menu-btn {
       display: none;
     }
 
-    .topic-accent {
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      color: #ffffff;
-      flex-shrink: 0;
+    /* ───────── RESPONSIVE ───────── */
+    @media (max-width: 1100px) {
+      .scroll-row { grid-auto-columns: clamp(220px, 42vw, 280px); }
     }
 
-    .topic-title {
-      margin: 0;
-      font-size: 1.18rem;
-      letter-spacing: -0.03em;
-    }
-
-    .topic-desc {
-      margin: 0.4rem 0 0;
-      color: var(--muted);
-    }
-
-    .topic-meta,
-    .game-meta,
-    .topic-footer {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      align-items: center;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.36rem 0.7rem;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(37, 99, 235, 0.06);
-      color: var(--muted);
-      font-size: 0.8rem;
-      font-weight: 700;
-    }
-
-    .chevron {
-      width: 1.2rem;
-      height: 1.2rem;
-      color: var(--muted);
-      transition: transform 0.2s ease;
-      margin-top: 0.15rem;
-    }
-
-    details.topic[open] .chevron {
-      transform: rotate(180deg);
-    }
-
-    .topic-content {
-      padding: 0 1.1rem 1.1rem;
-      border-top: 1px solid var(--border);
-    }
-
-    .games-list {
-      list-style: none;
-      margin: 1rem 0 0;
-      padding: 0;
-      display: grid;
-      gap: 0.8rem;
-    }
-
-    .game {
-      display: grid;
-      gap: 0.9rem;
-      padding: 0.95rem;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border);
-      background: var(--surface-solid);
-    }
-
-    .game h4 {
-      margin: 0 0 0.25rem;
-      font-size: 1rem;
-    }
-
-    .game p {
-      margin: 0;
-      color: var(--muted);
-    }
-
-    .game-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-    }
-
-    .play-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.45rem;
-      padding: 0.82rem 1rem;
-      border-radius: 999px;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: #ffffff;
-    }
-
-    .empty {
-      padding: 2rem 1rem;
-      text-align: center;
-      color: var(--muted);
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      box-shadow: var(--shadow);
-      margin-top: 1rem;
-    }
-
-    footer {
-      padding: 0 0 2rem;
-      color: var(--muted);
-    }
-
-    .footer-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--border);
-    }
-
-    .sr-only {
-      position: absolute !important;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    @media (min-width: 860px) {
-      .topics-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(var(--sidebar-w), 84vw);
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 50;
       }
-
-      .game {
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop.open { display: block; }
+      .mobile-menu-btn { display: grid; }
+      .featured-inner { max-width: 100%; padding: 30px 28px; }
+      .featured-overlay {
+        background: linear-gradient(0deg, rgba(5,7,13,0.96), rgba(5,7,13,0.55) 60%, rgba(5,7,13,0.2) 100%);
       }
+      [data-theme="light"] .featured-overlay {
+        background: linear-gradient(0deg, rgba(255,255,255,0.97), rgba(255,255,255,0.75) 60%, rgba(255,255,255,0.4) 100%);
+      }
+      .top-bar { padding: 0 18px; gap: 12px; }
+      .chip-select span.lbl { display: none; }
+      .content { padding: 22px 18px 40px; }
+      .scroll-row { grid-auto-columns: 75%; gap: 14px; }
     }
 
-    @media (max-width: 759px) {
-      details.topic summary {
-        grid-template-columns: auto 1fr;
-      }
-
-      .chevron {
-        display: none;
-      }
+    @media (max-width: 560px) {
+      .featured { min-height: 250px; }
+      .featured-inner { min-height: 250px; padding: 24px 20px; }
+      .featured-title { font-size: 1.35rem; }
+      .featured-desc { font-size: 0.88rem; }
+      .scroll-row { grid-auto-columns: 84%; }
+      .top-filters .chip-select { padding: 0 12px; }
+      .page-head { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="app">
 
-  <header class="site-header" role="banner">
-    <div class="container nav-shell">
-      <a class="brand" href="#main" aria-label="SCM Serious Game Hub home">
-        <img src="pic/icon.png" alt="" class="brand-mark" />
-        <span>
-          <span class="brand-label">Supply Chain Games</span>
-          <span class="brand-title">SCM Serious Game Hub</span>
-        </span>
-      </a>
+    <aside class="sidebar" id="sidebar" aria-label="Category navigation">
+      <div class="brand">
+        <div class="brand-mark">
+          <img src="pic/icon.png" alt="" />
+        </div>
+        <div class="brand-text">
+          <span class="brand-label">SCM Concepts</span>
+          <span class="brand-title">Serious Games</span>
+        </div>
+      </div>
 
-      <div class="nav-actions">
+      <div>
+        <div class="side-section-label">Browse</div>
+        <ul class="cat-list" id="catList" role="list"></ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="stats-grid">
+          <div>
+            <div class="stat-num" id="statTopics">0</div>
+            <div class="stat-label">Topics</div>
+          </div>
+          <div>
+            <div class="stat-num" id="statGames">0</div>
+            <div class="stat-label">Games</div>
+          </div>
+        </div>
         <button id="themeToggle" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">
-          <svg
-            id="themeIcon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.5"></circle>
+            <line x1="12" y1="1.5" x2="12" y2="4"></line>
+            <line x1="12" y1="20" x2="12" y2="22.5"></line>
+            <line x1="4.22" y1="4.22" x2="5.99" y2="5.99"></line>
+            <line x1="18.01" y1="18.01" x2="19.78" y2="19.78"></line>
+            <line x1="1.5" y1="12" x2="4" y2="12"></line>
+            <line x1="20" y1="12" x2="22.5" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.99" y2="18.01"></line>
+            <line x1="18.01" y1="5.99" x2="19.78" y2="4.22"></line>
           </svg>
         </button>
+        <div class="updated" style="text-align:center;">© <span id="year"></span> Paul Tsang</div>
       </div>
-    </div>
-  </header>
+    </aside>
 
-  <main id="main" role="main">
-    
-    <section id="games" class="section">
-      <div class="container">
-        <div class="section-head">
+    <div class="main-area">
+
+      <header class="top-bar" role="banner">
+        <button class="icon-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="search" type="search" placeholder="Search games, topics, tags…" aria-label="Search games" />
+        </div>
+
+        <div class="top-filters">
+          <label class="chip-select" for="sort">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:15px;height:15px;"><path d="M3 6h18"></path><path d="M6 12h12"></path><path d="M10 18h4"></path></svg>
+            <span class="lbl">Sort</span>
+            <select id="sort" aria-label="Sort games">
+              <option value="recent">Recently Updated</option>
+              <option value="alpha">A to Z</option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <main class="content" role="main" id="main">
+        <div class="page-head">
           <div>
-            <h2>Game Library</h2>
-            <p>Open a topic, choose a game, and launch it.</p>
-            <div class="manage-note">To add or delete topics and games, edit the <code>DATA.topics</code> block at the bottom of this file.</div>
+            <h1 class="page-title" id="pageTitle">All Games</h1>
+            <p class="page-sub" id="pageSub">Pick a category or scroll to explore. Hover cards for quick play.</p>
           </div>
-          <div id="resultsMeta" class="results-meta" aria-live="polite">Showing all topics and games.</div>
+          <div class="results-meta" id="resultsMeta" aria-live="polite">—</div>
         </div>
 
-        <div class="controls" aria-label="Browse controls">
-          <div class="searchbar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input
-              id="search"
-              type="search"
-              placeholder="Search topics or games..."
-              aria-label="Search topics and games"
-            />
-          </div>
+        <div id="categoriesWrap"></div>
 
-          <div class="filters">
-            <label class="select" for="sort">
-              <span class="sr-only">Sort</span>
-              Sort
-              <select id="sort" aria-label="Sort topics and games">
-                <option value="alpha">A to Z</option>
-                <option value="recent">Recently updated</option>
-              </select>
-            </label>
-
-            <label class="select" for="level">
-              Level
-              <select id="level" aria-label="Filter by level">
-                <option value="all">All</option>
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
-            </label>
-          </div>
+        <div class="empty" id="emptyState" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <div style="font-weight:700; font-size:1rem; margin-bottom:4px;">No games found</div>
+          <div style="font-size:0.88rem;">Try a different search or filter.</div>
         </div>
-
-        <div id="topicsGrid" class="topics-grid" aria-live="polite"></div>
-        <div id="emptyState" class="empty" hidden>No matching topics or games found.</div>
-      </div>
-    </section>
-  </main>
-
-  <footer role="contentinfo">
-    <div class="container footer-row">
-      <div>© <span id="year"></span> Paul Tsang</div>
-      <div>Clear access to SCM serious games.</div>
+      </main>
     </div>
-  </footer>
+  </div>
 
   <script>
-    // ------------------------------------------------------------
-    // Library content: edit this section to manage topics and games
-    // - Add a topic: copy EXAMPLE_TOPIC into DATA.topics
-    // - Delete a topic: remove the whole topic object
-    // - Add a game: copy EXAMPLE_GAME into a topic's games array
-    // - Delete a game: remove the whole game object from the array
-    // Reference examples below are not rendered until you copy them
-    // into DATA.topics.
-    // ------------------------------------------------------------
-    const EXAMPLE_GAME = {
-      id: "example-game-id",
-      title: "Example Game Title",
-      description: "One short sentence explaining what the game does.",
-      href: "gameModule/example-game.html",
-      est: "10-15 min",
-      updatedAt: "2026-01-01"
-    };
-
-    const EXAMPLE_TOPIC = {
-      id: "example-topic-id",
-      title: "Example Topic",
-      description: "A short topic description shown in the library.",
-      level: "Beginner",
-      color: "#2563eb",
-      gradient: "linear-gradient(135deg,#2563eb,#14b8a6)",
-      updatedAt: "2026-01-01",
-      tags: ["Example", "Tag"],
-      games: [EXAMPLE_GAME]
-    };
-
+    // ============================================================
+    // LIBRARY DATA — edit here to manage topics & games
+    // ============================================================
     const DATA = {
       topics: [
         {
           id: "demand-planning",
           title: "Demand Planning",
           description: "Forecast demand over time and improve planning accuracy.",
-          level: "Beginner",
           color: "#6366f1",
-          gradient: "linear-gradient(135deg,#6366f1,#22d3ee)",
+          gradient: "linear-gradient(135deg,#6366f1 0%, #8b5cf6 55%, #22d3ee 100%)",
           updatedAt: "2025-09-10",
           tags: ["Forecast", "Demand", "Accuracy"],
           games: [
             {
               id: "df-basic",
               title: "Forecasting in a Rolling Schedule",
-              description: "Forecast demand over time and minimise the errors.",
+              description: "Forecast demand over time and minimise the errors across multiple periods. Learn how different forecasting methods affect accuracy and operational performance.",
               href: "gameModule/df-basic.html",
-              est: "15-25 min",
-              updatedAt: "2026-07-13"
+              cover: "pic/cover/demandPlanning.jfif"
             }
           ]
         },
@@ -692,304 +1060,465 @@
           id: "production-planning",
           title: "Production Planning",
           description: "Plan production to balance demand, capacity, and operational decisions.",
-          level: "Beginner",
           color: "#0f766e",
-          gradient: "linear-gradient(135deg,#0f766e,#14b8a6)",
+          gradient: "linear-gradient(135deg,#0f766e 0%, #0d9488 50%, #14b8a6 100%)",
           updatedAt: "2026-07-13",
           tags: ["Production", "Planning", "Capacity"],
           games: [
             {
               id: "prod-plan-sim",
               title: "Production Planning Simulation",
-              description: "Build production plans and manage trade-offs in a production planning scenario.",
+              description: "Build production plans and manage trade-offs in a production planning scenario. Balance capacity, labour, and inventory to meet demand efficiently.",
               href: "gameModule/prodPlanSim.html",
-              est: "15-25 min",
-              updatedAt: "2026-07-13"
+              cover: "pic/cover/productionPlanning.jfif"
             }
           ]
         },
         {
           id: "inventory-management",
           title: "Inventory Management",
-          description: "Balance stock, service level, and total cost.",
-          level: "Beginner",
+          description: "Balance stock, service level, and total cost across the supply chain.",
           color: "#22c55e",
-          gradient: "linear-gradient(135deg,#22c55e,#14b8a6)",
+          gradient: "linear-gradient(135deg,#059669 0%, #22c55e 55%, #14b8a6 100%)",
           updatedAt: "2025-09-10",
           tags: ["Inventory", "Service Level", "Stock"],
           games: [
             {
               id: "inv-singleEchelon",
               title: "Single-Echelon Inventory Control",
-              description: "Find the order quantity that minimises total cost for your store.",
+              description: "Find the order quantity that minimises total cost for your store. Balance ordering costs, holding costs, and stockout penalties.",
               href: "gameModule/inv-singleEchelon.html",
-              est: "10-15 min",
-              updatedAt: "2025-09-10"
+              cover: "pic/cover/oneInvControl.jfif"
             },
             {
               id: "inv-twoEchelon",
               title: "Two-Echelon Inventory Control",
-              description: "Control inventory positions for a warehouse and three retail stores.",
+              description: "Control inventory positions for a warehouse and three retail stores. Manage stock allocation across the network to minimise total system cost.",
               href: "gameModule/inv-twoEchelon.html",
-              est: "20-25 min",
-              updatedAt: "2025-09-10"
+              cover: "pic/cover/twoInvControl.jfif"
             },
             {
               id: "inv-twoEchelonOld",
-              title: "Two-Echelon Inventory Control (Old)",
-              description: "Explore the earlier warehouse and retail store version.",
+              title: "Two-Echelon Inventory (Legacy)",
+              description: "Explore the earlier warehouse and retail store version. A classic approach to two-echelon inventory coordination.",
               href: "gameModule/inv-twoEchelonOld.html",
-              est: "20-25 min",
-              updatedAt: "2025-09-10"
+              cover: ""
             }
           ]
         },
         {
           id: "vehicle-routing-problem",
           title: "Fleet Management",
-          description: "Plan delivery routes under transport constraints.",
-          level: "Beginner",
+          description: "Plan delivery routes under transport constraints and vehicle limits.",
           color: "#f59e0b",
-          gradient: "linear-gradient(135deg,#f59e0b,#ef4444)",
+          gradient: "linear-gradient(135deg,#ea580c 0%, #f59e0b 55%, #ef4444 100%)",
           updatedAt: "2025-09-11",
           tags: ["Routing", "Truck", "Optimisation"],
           games: [
             {
               id: "routing-vrp",
-              title: "VRP",
-              description: "Construct a delivery route for fulfilling customer orders.",
+              title: "Vehicle Routing Problem",
+              description: "Construct a delivery route for fulfilling customer orders. Learn how sequencing decisions affect total distance travelled.",
               href: "gameModule/routing-vrp.html",
-              est: "10-15 min",
-              updatedAt: "2025-09-11"
-            },
-            {
-              id: "routing-cvrp",
-              title: "Capacitated VRP",
-              description: "Schedule deliveries while considering truck load and capacity.",
-              href: "gameModule/routing-cvrp.html",
-              est: "20-30 min",
-              updatedAt: "2025-09-11"
-            },
-            {
-              id: "routing-cvrptw",
-              title: "Capacitated VRP with Time Windows",
-              description: "Plan deliveries and reduce lateness under time-window pressure.",
-              href: "gameModule/routing-cvrptw.html",
-              est: "20-30 min",
-              updatedAt: "2025-09-11"
+              cover: ""
             }
           ]
         }
       ]
     };
 
-    const $ = (selector, context = document) => context.querySelector(selector);
-    const $$ = (selector, context = document) => Array.from(context.querySelectorAll(selector));
-
-    const by = {
-      textAlpha: (a, b, key = "title") => a[key].localeCompare(b[key]),
-      recent: (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
-    };
-
-    const FAV_KEYS = {
-      theme: "scmTheme"
-    };
+    // ============================================================
+    // UTILITIES
+    // ============================================================
+    const $ = (s, c = document) => c.querySelector(s);
+    const $$ = (s, c = document) => Array.from(c.querySelectorAll(s));
 
     const storage = {
-      get(key, fallback) {
-        try {
-          return JSON.parse(localStorage.getItem(key)) ?? fallback;
-        } catch {
-          return fallback;
-        }
-      },
-      set(key, value) {
-        localStorage.setItem(key, JSON.stringify(value));
-      }
+      get(k, fb) { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } },
+      set(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
     };
+
+    const FAV_KEYS = { theme: "scmTheme" };
 
     const state = {
       q: "",
-      sort: "alpha",
-      level: "all"
+      sort: "recent",
+      category: "all"
     };
 
-    const formatDate = (iso) => {
-      try {
-        return new Date(iso).toLocaleDateString();
-      } catch {
-        return "";
-      }
+    const daysSince = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    const isNew = (iso) => daysSince(iso) <= 60;
+
+    // ============================================================
+    // ICONS (SVG strings)
+    // ============================================================
+    const ICONS = {
+      all: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>`,
+      forecast: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 2 5-6"></path></svg>`,
+      production: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V10l7-5 7 5v11"></path><path d="M9 21v-7h6v7"></path></svg>`,
+      inventory: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><path d="M3.27 6.96L12 12.01l8.73-5.05"></path><path d="M12 22.08V12"></path></svg>`,
+      routing: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h5l2 3h9v6h-5l-2-3H4z"></path><circle cx="6" cy="20" r="2"></circle><circle cx="18" cy="20" r="2"></circle></svg>`,
+      play: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>`,
+      clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+      chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
+      featured: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
     };
 
-    const daysSince = (iso) => {
-      const date = new Date(iso);
-      return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+    const categoryIcon = (id) => {
+      if (id === "all") return ICONS.all;
+      if (id.includes("forecast") || id.includes("demand")) return ICONS.forecast;
+      if (id.includes("production")) return ICONS.production;
+      if (id.includes("inventory")) return ICONS.inventory;
+      if (id.includes("routing") || id.includes("vehicle") || id.includes("fleet")) return ICONS.routing;
+      return ICONS.all;
     };
 
-    const isNew = (iso) => daysSince(iso) <= 45;
-
-    const topicIcon = (id) => {
-      if (id.includes("forecast")) {
-        return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 14l3-3 3 2 4-5"></path></svg>';
-      }
-      if (id.includes("inventory")) {
-        return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><path d="M3.27 6.96L12 12.01l8.73-5.05"></path><path d="M12 22.08V12"></path></svg>';
-      }
-      if (id.includes("production")) {
-        return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"></path><path d="M5 21V9l7-4 7 4v12"></path><path d="M9 21v-6h6v6"></path></svg>';
-      }
-      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3h5l2 3h9v6h-5l-2-3H4z"></path><circle cx="6" cy="20" r="2"></circle><circle cx="18" cy="20" r="2"></circle></svg>';
+    // ============================================================
+    // OFFLINE SVG COVER ART (100% local, no server, no URLs needed)
+    // ============================================================
+    const COVER_PALETTES = {
+      demand:    { g0: "#312e81", g1: "#6366f1", g2: "#22d3ee" },
+      production:{ g0: "#134e4a", g1: "#0f766e", g2: "#34d399" },
+      inventory: { g0: "#065f46", g1: "#059669", g2: "#14b8a6" },
+      routing:   { g0: "#9a3412", g1: "#ea580c", g2: "#f97316" }
     };
 
+    const getCoverKey = (id) => {
+      if (id.includes("forecast") || id.includes("demand")) return "demand";
+      if (id.includes("production")) return "production";
+      if (id.includes("inventory")) return "inventory";
+      if (id.includes("routing") || id.includes("vehicle") || id.includes("fleet")) return "routing";
+      return "demand";
+    };
+
+    const getCoverArt = (topicId, gameId, gameCoverImg) => {
+      if (typeof gameCoverImg === "string") {
+        const clean = gameCoverImg.trim().replace(/\\/g, "/");
+        if (clean) return "url('" + clean + "')";
+      }
+      const key = getCoverKey(topicId);
+      const p = COVER_PALETTES[key];
+      const variant = gameId ? (gameId.charCodeAt(gameId.length - 1) % 4) : 0;
+      let shapes = "";
+
+      if (key === "demand") {
+        const by = 380 - variant * 15;
+        shapes =
+          "<g stroke='white' stroke-width='3.5' fill='none' opacity='0.55'>" +
+            "<path d='M60,"+by+" L160,"+(by-80)+" L260,"+(by-40)+" L360,"+(by-160+variant*10)+" L460,"+(by-120)+" L560,"+(by-220-variant*8)+" L660,"+(by-180)+" L760,"+(by-280)+"'/>" +
+            "<path d='M60,"+(by+20)+" L160,"+(by-30)+" L260,"+(by-10)+" L360,"+(by-90)+" L460,"+(by-60)+" L560,"+(by-150)+" L660,"+(by-120)+" L760,"+(by-200)+"' opacity='0.3'/>" +
+          "</g>" +
+          "<g fill='white' opacity='0.92'>" +
+            "<circle cx='160' cy='"+(by-80)+"' r='6.5'/>" +
+            "<circle cx='260' cy='"+(by-40)+"' r='6.5'/>" +
+            "<circle cx='360' cy='"+(by-160+variant*10)+"' r='6.5'/>" +
+            "<circle cx='460' cy='"+(by-120)+"' r='6.5'/>" +
+            "<circle cx='560' cy='"+(by-220-variant*8)+"' r='6.5'/>" +
+            "<circle cx='660' cy='"+(by-180)+"' r='6.5'/>" +
+          "</g>" +
+          "<g fill='white' opacity='0.16'>" +
+            "<rect x='80' y='60' width='"+(140+variant*20)+"' height='70' rx='10'/>" +
+            "<rect x='80' y='150' width='"+(90+variant*15)+"' height='40' rx='8'/>" +
+          "</g>";
+      } else if (key === "production") {
+        const off = variant * 18;
+        shapes =
+          "<g fill='white' opacity='0.22'>" +
+            "<rect x='60' y='"+(250-off)+"' width='120' height='200' rx='4'/>" +
+            "<rect x='210' y='"+(180+variant*10)+"' width='140' height='270' rx='4'/>" +
+            "<rect x='380' y='"+(220-off/2)+"' width='100' height='230' rx='4'/>" +
+            "<rect x='510' y='"+(160+variant*5)+"' width='160' height='290' rx='4'/>" +
+          "</g>" +
+          "<g fill='white' opacity='0.6'>" +
+            "<rect x='90' y='290' width='18' height='26' rx='2'/>" +
+            "<rect x='134' y='310' width='18' height='26' rx='2'/>" +
+            "<rect x='240' y='230' width='22' height='30' rx='2'/>" +
+            "<rect x='292' y='270' width='22' height='30' rx='2'/>" +
+            "<rect x='405' y='270' width='18' height='26' rx='2'/>" +
+            "<rect x='555' y='210' width='26' height='34' rx='2'/>" +
+            "<rect x='617' y='240' width='26' height='34' rx='2'/>" +
+          "</g>" +
+          "<g stroke='white' stroke-width='3' opacity='0.35'>" +
+            "<path d='M60,470 L180,470'/><path d='M210,470 L350,470'/>" +
+            "<path d='M380,470 L480,470'/><path d='M510,470 L670,470'/>" +
+          "</g>";
+      } else if (key === "inventory") {
+        const cols = 6, rows = 5, gap = 70, sx = 90, sy = 120 + variant*8;
+        let boxes = "";
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const shade = (r*cols+c+variant) % 3;
+            const op = shade === 0 ? "0.12" : shade === 1 ? "0.2" : "0.28";
+            boxes += "<rect x='"+(sx+c*gap)+"' y='"+(sy+r*52)+"' width='54' height='40' rx='5' fill='white' opacity='"+op+"'/>";
+          }
+        }
+        shapes =
+          "<g stroke='white' stroke-width='2' opacity='0.35'>" +
+            "<line x1='80' y1='100' x2='80' y2='420'/>" +
+            "<line x1='80' y1='420' x2='730' y2='420'/>" +
+          "</g>" + boxes;
+      } else {
+        const off = variant * 14;
+        shapes =
+          "<g fill='white' opacity='0.18'>" +
+            "<circle cx='160' cy='"+(170+off)+"' r='18'/>" +
+            "<circle cx='380' cy='"+(290-off)+"' r='22'/>" +
+            "<circle cx='560' cy='"+(180+variant*6)+"' r='16'/>" +
+            "<circle cx='680' cy='"+(340-off/2)+"' r='20'/>" +
+            "<circle cx='250' cy='380' r='14'/>" +
+          "</g>" +
+          "<g stroke='white' stroke-width='3' fill='none' opacity='0.55'>" +
+            "<path d='M160,"+(170+off)+" C 260,"+(100+off)+" 320,"+(360-off)+" 380,"+(290-off)+"'/>" +
+            "<path d='M380,"+(290-off)+" C 460,"+(220-off)+" 500,"+(280+variant*6)+" 560,"+(180+variant*6)+"'/>" +
+            "<path d='M560,"+(180+variant*6)+" C 620,"+(250+variant*4)+" 630,"+(290-off/2)+" 680,"+(340-off/2)+"'/>" +
+            "<path d='M160,"+(170+off)+" C 190,300 220,350 250,380'/>" +
+          "</g>" +
+          "<g fill='white' opacity='0.85'>" +
+            "<circle cx='160' cy='"+(170+off)+"' r='4'/>" +
+            "<circle cx='380' cy='"+(290-off)+"' r='4'/>" +
+            "<circle cx='560' cy='"+(180+variant*6)+"' r='4'/>" +
+            "<circle cx='680' cy='"+(340-off/2)+"' r='4'/>" +
+          "</g>";
+      }
+
+      const svg =
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid slice'>" +
+          "<defs>" +
+            "<linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
+              "<stop offset='0%25' stop-color='"+p.g0+"'/>" +
+              "<stop offset='55%25' stop-color='"+p.g1+"'/>" +
+              "<stop offset='100%25' stop-color='"+p.g2+"'/>" +
+            "</linearGradient>" +
+            "<pattern id='dots' width='30' height='30' patternUnits='userSpaceOnUse'>" +
+              "<circle cx='1.5' cy='1.5' r='1.2' fill='white' opacity='0.08'/>" +
+            "</pattern>" +
+          "</defs>" +
+          "<rect width='800' height='500' fill='url(%23g)'/>" +
+          "<rect width='800' height='500' fill='url(%23dots)'/>" +
+          shapes +
+        "</svg>";
+
+      return "url('data:image/svg+xml;utf8," + svg + "')";
+    };
+
+    // ============================================================
+    // THEME
+    // ============================================================
     const applyTheme = (mode) => {
       document.documentElement.setAttribute("data-theme", mode);
       const icon = $("#themeIcon");
       if (!icon) return;
       icon.innerHTML = mode === "dark"
-        ? '<circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="1.5" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22.5"></line><line x1="4.22" y1="4.22" x2="5.99" y2="5.99"></line><line x1="18.01" y1="18.01" x2="19.78" y2="19.78"></line><line x1="1.5" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22.5" y2="12"></line><line x1="4.22" y1="19.78" x2="5.99" y2="18.01"></line><line x1="18.01" y1="5.99" x2="19.78" y2="4.22"></line>'
+        ? `<circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="1.5" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22.5"></line><line x1="4.22" y1="4.22" x2="5.99" y2="5.99"></line><line x1="18.01" y1="18.01" x2="19.78" y2="19.78"></line><line x1="1.5" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22.5" y2="12"></line><line x1="4.22" y1="19.78" x2="5.99" y2="18.01"></line><line x1="18.01" y1="5.99" x2="19.78" y2="4.22"></line>`
         : mode === "light"
-          ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'
-          : '<path d="M4 12a8 8 0 0 1 8-8"></path><path d="M20 12a8 8 0 0 1-8 8"></path><circle cx="12" cy="12" r="2.5"></circle>';
+          ? `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`
+          : `<path d="M4 12a8 8 0 0 1 8-8"></path><path d="M20 12a8 8 0 0 1-8 8"></path><circle cx="12" cy="12" r="2.5"></circle>`;
     };
 
     const initTheme = () => {
-      const saved = storage.get(FAV_KEYS.theme, "auto");
+      const saved = storage.get(FAV_KEYS.theme, "dark");
       applyTheme(saved);
       $("#themeToggle")?.addEventListener("click", () => {
-        const current = document.documentElement.getAttribute("data-theme") || "auto";
-        const next = current === "light" ? "dark" : current === "dark" ? "auto" : "light";
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : current === "light" ? "auto" : "dark";
         storage.set(FAV_KEYS.theme, next);
         applyTheme(next);
       });
     };
 
-    const filteredTopics = () => {
+    // ============================================================
+    // FILTERING / SORTING
+    // ============================================================
+    const getFilteredData = () => {
       const q = state.q.trim().toLowerCase();
-      let topics = DATA.topics.map((topic) => ({ ...topic, games: [...topic.games] }));
+      let topics = DATA.topics.map(t => ({ ...t, games: [...t.games] }));
 
-      if (state.level !== "all") {
-        topics = topics.filter((topic) => (topic.level || "Beginner") === state.level);
-      }
+      if (state.category !== "all") topics = topics.filter(t => t.id === state.category);
 
       if (q) {
         topics = topics
-          .map((topic) => {
-            const topicText = [topic.title, topic.description, ...(topic.tags || [])].join(" ").toLowerCase();
-            const matchesTopic = topicText.includes(q);
-            const games = topic.games.filter((game) => [game.title, game.description].join(" ").toLowerCase().includes(q));
-            return { ...topic, games, matchesTopic };
+          .map(t => {
+            const tText = [t.title, t.description, ...(t.tags || [])].join(" ").toLowerCase();
+            const tMatch = tText.includes(q);
+            const games = t.games.filter(g =>
+              [g.title, g.description, t.title].join(" ").toLowerCase().includes(q)
+            );
+            return { ...t, games, tMatch };
           })
-          .filter((topic) => topic.matchesTopic || topic.games.length > 0);
+          .filter(t => t.tMatch || t.games.length > 0);
       }
 
-      if (state.sort === "alpha") topics.sort((a, b) => by.textAlpha(a, b, "title"));
-      if (state.sort === "recent") topics.sort(by.recent);
+      if (state.sort === "alpha") topics.sort((a, b) => a.title.localeCompare(b.title));
+      if (state.sort === "recent") topics.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
-      topics.forEach((topic) => {
-        if (state.sort === "alpha") topic.games.sort((a, b) => by.textAlpha(a, b, "title"));
-        if (state.sort === "recent") topic.games.sort(by.recent);
+      topics.forEach(t => {
+        if (state.sort === "alpha") t.games.sort((a, b) => a.title.localeCompare(b.title));
+        if (state.sort === "recent") t.games.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
       });
 
       return topics;
     };
 
-    const topicCardHTML = (topic) => {
-      const accent = `style="background:${topic.gradient || topic.color || 'var(--primary)'}"`;
-      const newBadge = isNew(topic.updatedAt) ? '<span class="pill">New</span>' : "";
+    // ============================================================
+    // SIDEBAR
+    // ============================================================
+    const buildSidebar = () => {
+      const list = $("#catList");
+      const allCount = DATA.topics.reduce((s, t) => s + t.games.length, 0);
 
-      return `
-        <details class="topic" id="${topic.id}">
-          <summary aria-controls="${topic.id}-games">
-            <div class="topic-accent" ${accent}>${topicIcon(topic.id)}</div>
-            <div>
-              <h3 class="topic-title">${topic.title}</h3>
-              <p class="topic-desc">${topic.description}</p>
-              <div class="topic-meta" style="margin-top:0.75rem;">
-                <span class="pill">${topic.games.length} game${topic.games.length !== 1 ? "s" : ""}</span>
-                <span class="pill">${topic.level || "Beginner"}</span>
-                ${newBadge}
-              </div>
+      const items = [
+        { id: "all", name: "All Games", count: allCount, gradient: "linear-gradient(135deg,var(--primary),#6366f1)" },
+        ...DATA.topics.map(t => ({ id: t.id, name: t.title, count: t.games.length, gradient: t.gradient }))
+      ];
+
+      list.innerHTML = items.map(item => `
+        <li role="none">
+          <button class="cat-btn ${state.category === item.id ? "active" : ""}" data-cat="${item.id}" role="menuitem">
+            <div class="cat-icon" style="background:${item.gradient}; color:#fff;">
+              ${categoryIcon(item.id)}
             </div>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </summary>
-
-          <div class="topic-content" id="${topic.id}-games">
-            <div class="topic-footer" style="margin-top:1rem;">
-              <span class="pill">Updated ${formatDate(topic.updatedAt)}</span>
+            <div class="cat-info">
+              <div class="cat-name">${item.name}</div>
+              <div class="cat-count">${item.count} game${item.count !== 1 ? "s" : ""}</div>
             </div>
-
-            <ul class="games-list">
-              ${topic.games.map((game) => gameItemHTML(game, topic)).join("")}
-            </ul>
-          </div>
-        </details>
-      `;
-    };
-
-    const gameItemHTML = (game, topic) => {
-      const newBadge = isNew(game.updatedAt) ? '<span class="pill">New</span>' : "";
-      return `
-        <li class="game">
-          <div>
-            <h4>${game.title}</h4>
-            <p>${game.description}</p>
-            <div class="game-meta" style="margin-top:0.7rem;">
-              <span class="pill">${game.est || "10-15 min"}</span>
-              <span class="pill">${topic.title}</span>
-              ${newBadge}
-            </div>
-          </div>
-
-          <div class="game-actions">
-            <a class="play-link" href="${game.href}">
-              Play
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </a>
-          </div>
+          </button>
         </li>
-      `;
+      `).join("");
+
+      $$("#catList .cat-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.category = btn.dataset.cat;
+          $$("#catList .cat-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          updatePageTitle();
+          render();
+          closeSidebar();
+        });
+      });
+
+      $("#statTopics").textContent = DATA.topics.length;
+      $("#statGames").textContent = allCount;
     };
 
-    const updateSummary = (topics) => {
-      const visibleGames = topics.reduce((sum, topic) => sum + topic.games.length, 0);
+    const updatePageTitle = () => {
+      if (state.category === "all") {
+        $("#pageTitle").textContent = "All Games";
+        $("#pageSub").textContent = "Pick a category or scroll to explore. Hover cards for quick play.";
+      } else {
+        const t = DATA.topics.find(x => x.id === state.category);
+        if (t) {
+          $("#pageTitle").textContent = t.title;
+          $("#pageSub").textContent = t.description;
+        }
+      }
+    };
+
+    // ============================================================
+    // CATEGORY ROWS & GAME CARDS
+    // ============================================================
+    const gameCardHTML = (game, topic) => {
+      const cover = getCoverArt(topic.id, game.id, game.cover);
+      const newBadge = isNew(game.updatedAt) ? `<span class="new-badge">New</span>` : "";
+
+      return (
+        `<article class="game-card" data-game="${game.id}">` +
+          `<a class="card-click-overlay" href="${game.href}" aria-label="Play ${game.title}"></a>` +
+          `<div class="cover">` +
+            `<div class="cover-img" style="background-image:${cover};"></div>` +
+            `<div class="cover-overlay"></div>` +
+            `<div class="cover-badges">` +
+              newBadge +
+              `<a href="${game.href}" class="quick-play" aria-label="Quick play ${game.title}" title="Quick play">${ICONS.play}</a>` +
+            `</div>` +
+            `<div class="cover-title"><h4>${game.title}</h4></div>` +
+          `</div>` +
+          `<div class="card-body">` +
+            `<div class="desc-wrap" data-desc-wrap>` +
+              `<p class="desc-text">${game.description}</p>` +
+              `<button class="desc-toggle" data-desc-btn type="button">More info ${ICONS.chevron}</button>` +
+            `</div>` +
+            `<div class="card-footer" style="justify-content:flex-end;">` +
+              `<a class="play-btn" href="${game.href}">Play ${ICONS.play}</a>` +
+            `</div>` +
+          `</div>` +
+        `</article>`
+      );
+    };
+
+    const categorySectionHTML = (topic) => {
+      const iconBG = topic.gradient || `linear-gradient(135deg, ${topic.color}, var(--accent))`;
+      return (
+        `<section class="category-section" data-topic="${topic.id}">` +
+          `<div class="cat-header">` +
+            `<div class="cat-header-left">` +
+              `<div class="cat-header-icon" style="background:${iconBG}; color:#fff;">${categoryIcon(topic.id)}</div>` +
+              `<div class="cat-header-text"><h3>${topic.title}</h3><p>${topic.description}</p></div>` +
+            `</div>` +
+            `<div class="cat-header-right">` +
+              `<span class="results-meta" style="padding:6px 12px; font-size:0.76rem;">${topic.games.length}</span>` +
+            `</div>` +
+          `</div>` +
+          `<div class="row-wrap"><div class="scroll-row" role="list">` +
+            topic.games.map(g => gameCardHTML(g, topic)).join("") +
+          `</div></div>` +
+        `</section>`
+      );
+    };
+
+    const bindDescToggles = () => {
+      $$("[data-desc-wrap]").forEach(wrap => {
+        const text = wrap.querySelector(".desc-text");
+        const btn = wrap.querySelector("[data-desc-btn]");
+        if (!btn || !text) return;
+        const needsToggle = text.scrollHeight > text.clientHeight + 2;
+        btn.style.display = needsToggle ? "" : "none";
+        btn.addEventListener("click", () => {
+          const expanded = wrap.classList.toggle("expanded");
+          btn.innerHTML = expanded ? `Less info ${ICONS.chevron}` : `More info ${ICONS.chevron}`;
+        });
+      });
+    };
+
+    // ============================================================
+    // MAIN RENDER
+    // ============================================================
+    const render = () => {
+      const topics = getFilteredData();
+      const totalGames = topics.reduce((s, t) => s + t.games.length, 0);
 
       $("#resultsMeta").textContent = topics.length
-        ? `Showing ${topics.length} topic${topics.length !== 1 ? "s" : ""} and ${visibleGames} game${visibleGames !== 1 ? "s" : ""}.`
-        : "No matching topics or games.";
+        ? `${topics.length} categor${topics.length !== 1 ? "ies" : "y"} · ${totalGames} game${totalGames !== 1 ? "s" : ""}`
+        : "Nothing found";
+
+      $("#emptyState").hidden = topics.length > 0 && totalGames > 0;
+
+      $("#categoriesWrap").innerHTML = topics.map(categorySectionHTML).join("");
+      bindDescToggles();
     };
 
-    const render = () => {
-      const topics = filteredTopics();
-      $("#topicsGrid").innerHTML = topics.map((topic) => topicCardHTML(topic)).join("");
-      $("#emptyState").hidden = topics.length > 0;
-      updateSummary(topics);
-    };
+    // ============================================================
+    // MOBILE SIDEBAR
+    // ============================================================
+    const openSidebar = () => { $("#sidebar")?.classList.add("open"); $("#sidebarBackdrop")?.classList.add("open"); };
+    const closeSidebar = () => { $("#sidebar")?.classList.remove("open"); $("#sidebarBackdrop")?.classList.remove("open"); };
 
+    // ============================================================
+    // CONTROLS
+    // ============================================================
     const initControls = () => {
-      $("#search")?.addEventListener("input", (event) => {
-        state.q = event.target.value;
-        render();
-      });
-
-      $("#sort")?.addEventListener("change", (event) => {
-        state.sort = event.target.value;
-        render();
-      });
-
-      $("#level")?.addEventListener("change", (event) => {
-        state.level = event.target.value;
-        render();
-      });
+      $("#search")?.addEventListener("input", e => { state.q = e.target.value; render(); });
+      $("#sort")?.addEventListener("change", e => { state.sort = e.target.value; render(); });
+      $("#mobileMenuBtn")?.addEventListener("click", openSidebar);
+      $("#sidebarBackdrop")?.addEventListener("click", closeSidebar);
     };
 
+    // ============================================================
+    // INIT
+    // ============================================================
     document.addEventListener("DOMContentLoaded", () => {
       $("#year").textContent = new Date().getFullYear();
       initTheme();
+      buildSidebar();
       initControls();
       render();
     });
