@@ -780,16 +780,15 @@
             <h3>GRAPHS</h3>
             <canvas id="graph"></canvas>
             <details class="collapse" id="kpi-details" open>
-                <summary data-tooltip="Service level and fill rate help you see whether your policy meets demand without stockouts.">Service Level & Fill Rate (KPIs)</summary>
+                <summary data-tooltip="Fill rate helps you see whether your policy meets demand without stockouts.">Fill Rate (KPIs)</summary>
                 <div class="collapse-body">
-                    <table class="kpi-table" aria-label="Service level and fill rate KPIs">
+                    <table class="kpi-table" aria-label="Fill rate KPIs">
                         <tr>
                             <th>Location</th>
                             <th>Demand</th>
                             <th>Sold</th>
                             <th>Lost</th>
                             <th>Fill Rate</th>
-                            <th>Service Level</th>
                         </tr>
                         <tr>
                             <td>MK</td>
@@ -797,7 +796,6 @@
                             <td id="kpi_r1_sold">0</td>
                             <td id="kpi_r1_lost">0</td>
                             <td id="kpi_r1_fill">100%</td>
-                            <td id="kpi_r1_service">100%</td>
                         </tr>
                         <tr>
                             <td>WC</td>
@@ -805,7 +803,6 @@
                             <td id="kpi_r2_sold">0</td>
                             <td id="kpi_r2_lost">0</td>
                             <td id="kpi_r2_fill">100%</td>
-                            <td id="kpi_r2_service">100%</td>
                         </tr>
                         <tr>
                             <td>TST</td>
@@ -813,7 +810,6 @@
                             <td id="kpi_r3_sold">0</td>
                             <td id="kpi_r3_lost">0</td>
                             <td id="kpi_r3_fill">100%</td>
-                            <td id="kpi_r3_service">100%</td>
                         </tr>
                         <tr>
                             <td><strong>Overall</strong></td>
@@ -821,7 +817,6 @@
                             <td id="kpi_all_sold">0</td>
                             <td id="kpi_all_lost">0</td>
                             <td id="kpi_all_fill">100%</td>
-                            <td id="kpi_all_service">100%</td>
                         </tr>
                     </table>
                 </div>
@@ -1359,39 +1354,30 @@ In addition to the transportation cost specified above, there is a storage cost 
             const totalDemand = cum_demand_per.reduce((a, b) => a + b, 0);
             const totalSold = cum_sold_per.reduce((a, b) => a + b, 0);
             const totalLost = cum_lost_per.reduce((a, b) => a + b, 0);
-            const totalDays = Math.max(1, ticks);
 
             const rows = [
-                { key: 'r1', demand: cum_demand_per[0], sold: cum_sold_per[0], lost: cum_lost_per[0], stockoutDays: stockout_days[0] },
-                { key: 'r2', demand: cum_demand_per[1], sold: cum_sold_per[1], lost: cum_lost_per[1], stockoutDays: stockout_days[1] },
-                { key: 'r3', demand: cum_demand_per[2], sold: cum_sold_per[2], lost: cum_lost_per[2], stockoutDays: stockout_days[2] }
+                { key: 'r1', demand: cum_demand_per[0], sold: cum_sold_per[0], lost: cum_lost_per[0] },
+                { key: 'r2', demand: cum_demand_per[1], sold: cum_sold_per[1], lost: cum_lost_per[1] },
+                { key: 'r3', demand: cum_demand_per[2], sold: cum_sold_per[2], lost: cum_lost_per[2] }
             ];
 
             for (const r of rows) {
                 const fillRate = r.demand > 0 ? (r.sold / r.demand) : 1;
-                const serviceLevel = 1 - (r.stockoutDays / totalDays);
                 document.getElementById(`kpi_${r.key}_demand`).textContent = fmtNumber(r.demand);
                 document.getElementById(`kpi_${r.key}_sold`).textContent = fmtNumber(r.sold);
                 document.getElementById(`kpi_${r.key}_lost`).textContent = fmtNumber(r.lost);
                 const fillEl = document.getElementById(`kpi_${r.key}_fill`);
-                const svcEl = document.getElementById(`kpi_${r.key}_service`);
                 fillEl.textContent = fmtPercent(fillRate, 1);
-                svcEl.textContent = fmtPercent(serviceLevel, 1);
                 setKpiCellClass(fillEl, fillRate);
-                setKpiCellClass(svcEl, serviceLevel);
             }
 
             const overallFill = totalDemand > 0 ? (totalSold / totalDemand) : 1;
-            const overallSvc = 1 - (stockout_days.reduce((a, b) => a + b, 0) / (3 * totalDays));
             document.getElementById('kpi_all_demand').textContent = fmtNumber(totalDemand);
             document.getElementById('kpi_all_sold').textContent = fmtNumber(totalSold);
             document.getElementById('kpi_all_lost').textContent = fmtNumber(totalLost);
             const allFillEl = document.getElementById('kpi_all_fill');
-            const allSvcEl = document.getElementById('kpi_all_service');
             allFillEl.textContent = fmtPercent(overallFill, 1);
-            allSvcEl.textContent = fmtPercent(overallSvc, 1);
             setKpiCellClass(allFillEl, overallFill);
-            setKpiCellClass(allSvcEl, overallSvc);
         }
 
         function applyPulse(el) {
